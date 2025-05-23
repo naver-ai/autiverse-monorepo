@@ -4,18 +4,22 @@
   "license": "MIT",
   "scripts": {},
   "private": true,
-  "dependencies": {},
   "devDependencies": {
+    "@inquirer/prompts": "^7.5.1",
     "@nx/js": "21.1.1",
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",
     "nx": "21.1.1",
     "prettier": "^2.6.2",
+    "ts-node": "^10.9.2",
     "tslib": "^2.3.0",
     "typescript": "~5.7.2"
   },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "nanoid": "^5.1.5"
+  }
 }
