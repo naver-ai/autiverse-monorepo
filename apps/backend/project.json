@@ -70,6 +70,13 @@
         "verbose": false,
         "debug": false
       }
+    },
+    "test_langchain": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "poetry run python backend/test_langchain.py",
+        "cwd": "{projectRoot}"
+      }
     }
   },
   "tags": [],

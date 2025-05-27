@@ -2,14 +2,20 @@
   "name": "@autiverse-monorepo/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "setup": "ts-node setup.ts",
+    "postinstall": "nx run-many --target=install --all"
+  },
   "private": true,
   "devDependencies": {
-    "@inquirer/prompts": "^7.5.1",
+    "@inquirer/prompts": "^7.5.3",
     "@nx/js": "21.1.1",
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",
+    "@types/fs-extra": "^11.0.4",
+    "dotenv": "^16.5.0",
+    "fs-extra": "^11.3.0",
     "nx": "21.1.1",
     "prettier": "^2.6.2",
     "ts-node": "^10.9.2",

@@ -23,5 +23,9 @@
     {
       "plugin": "@nxlv/python"
     }
-  ]
+  ],
+  
+  "tui": {
+    "enabled": false
+  }
 }
