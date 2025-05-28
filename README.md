@@ -42,7 +42,7 @@ npm install # This will also run nx run backend:install under the hood to instal
 
 Run initial setup script:
 ```bash
-nx run setup # Prepare OpenAI API Key.
+npm run setup # Prepare OpenAI API Key.
 ```
 
 ## Development Commands
