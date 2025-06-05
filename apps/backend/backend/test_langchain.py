@@ -98,7 +98,7 @@ class ScheduleConfig:
 
     @classmethod
     def get_people_for_location(cls, location: str) -> List[str]:
-        return cls.LOCATION_PEOPLE.get(location, ['선생님', '영호'])
+        return cls.LOCATION_PEOPLE.get(location, [])
 
     @classmethod
     def get_korean_day(cls, day: str) -> str:
@@ -276,7 +276,7 @@ class Chatbot:
     def __init__(self, location: str = "", people: List[str] = None):
         self.state = ConversationState.ASK_EVENTS
         self.completed_milestones: Set[ConversationMilestone] = set()
-        self.context = ConversationContext(location=location, people=people if people else ["선생님", "영호"])
+        self.context = ConversationContext(location=location, people=people if people else [])
         self.llm = ChatOpenAI(
             model="gpt-4o-mini",
             openai_api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
