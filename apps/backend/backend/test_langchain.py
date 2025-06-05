@@ -512,14 +512,29 @@ class Chatbot:
             for i in range(1, 5):
                 panel_key = f"panel{i}"
                 panel_content = panels.get(panel_key)
-                if panel_content:
-                    summary += f"{i}컷: {panel_content}\n"
+                summary += f"{panel_key}: {{ "
+                
+                if isinstance(panel_content, str):
+                    # Check if the content contains an explanation in parentheses
+                    if "(null" in panel_content or "null (" in panel_content:
+                        # Extract the explanation from parentheses
+                        parts = panel_content.split("(", 1)
+                        if len(parts) > 1:
+                            explanation = parts[1].rstrip(")").strip()
+                            summary += f'"content": undefined, "missing_content": "{explanation}" }}\n'
+                        else:
+                            summary += f'"content": undefined, "missing_content": "내용 없음" }}\n'
+                    else:
+                        summary += f'"content": "{panel_content}", "missing_content": undefined }}\n'
+                elif panel_content is None:
+                    summary += f'"content": undefined, "missing_content": "내용 없음" }}\n'
                 else:
-                    summary += f"{i}컷: ?\n"
+                    summary += f'"content": undefined, "missing_content": "패널 정보 없음" }}\n'
         else:
             # Fallback to simple event list if comic_panels not available
-            for i, event in enumerate(self.context.events, 1):
-                summary += f"{i}컷: {event}\n"
+            for i in range(1, 5):
+                panel_key = f"panel{i}"
+                summary += f'{panel_key}: {{ "content": undefined, "missing_content": "패널 정보를 생성할 수 없음" }}\n'
 
         return summary
 
@@ -594,8 +609,8 @@ async def run_chatbot():
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     
     # Check if we have preset values
-    preset_location = "학교"  # You can set this based on your needs
-    preset_people = ["선생님", "영호"]  # You can set this based on your needs
+    preset_location = "집"  # You can set this based on your needs
+    preset_people = ["엄마", "할머니"]  # You can set this based on your needs
 
     if preset_location and preset_people:
         # Use preset values
