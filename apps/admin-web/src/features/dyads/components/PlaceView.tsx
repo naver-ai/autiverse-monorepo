@@ -1,7 +1,9 @@
-import { Place } from "@autiverse-monorepo/ts-core"
-import { XMarkIcon } from "@heroicons/react/20/solid"
-import { Button, Card, Space, Typography } from "antd"
-import { useDeletePlaceMutation, useSetPlaceScheduleMutation } from "../api"
+import { Place, Person } from "@autiverse-monorepo/ts-core"
+import { XMarkIcon, UserPlusIcon } from "@heroicons/react/20/solid"
+import { Button, Card, Space, Typography, Dropdown } from "antd"
+import { useAddPersonToPlaceMutation, useDeletePersonFromPlaceMutation, useDeletePlaceMutation, useSetPlaceScheduleMutation } from "../api"
+import type { MenuProps } from 'antd';
+import { useQueryClient } from "@tanstack/react-query";
 
 const DAYS_OF_WEEK = [
     { label: 'Sun', value: 0, key: 'sunday' },  // Sunday
@@ -14,8 +16,11 @@ const DAYS_OF_WEEK = [
 ] as const;
 
 export const PlaceView = ({place, dyadId}: {place: Place, dyadId: string}) => {
+    const queryClient = useQueryClient();
     const deletePlaceMutation = useDeletePlaceMutation();
     const setPlaceScheduleMutation = useSetPlaceScheduleMutation();
+    const addPersonToPlaceMutation = useAddPersonToPlaceMutation();
+    const deletePersonFromPlaceMutation = useDeletePersonFromPlaceMutation();
 
     const handleDayToggle = (dayIndex: number) => {
         setPlaceScheduleMutation.mutate({
@@ -27,6 +32,26 @@ export const PlaceView = ({place, dyadId}: {place: Place, dyadId: string}) => {
             }
         });
     };
+
+    const handlePersonSelect = (personId: string) => {
+        addPersonToPlaceMutation.mutate({
+            dyadId,
+            placeId: place.id,
+            personIds: [personId]
+        });
+    };
+
+    const dyads = queryClient.getQueryData(['dyads']) as any[];
+    const dyad = dyads?.find(d => d.id === dyadId);
+    const availablePeople = dyad?.people?.filter((person: Person) => 
+        !place.people?.some(connectedPerson => connectedPerson.id === person.id)
+    ) || [];
+
+    const items: MenuProps['items'] = availablePeople.map((person: Person) => ({
+        key: person.id,
+        label: person.name,
+        onClick: () => handlePersonSelect(person.id)
+    }));
 
     return <Card size="small" className="min-w-[250px]" title={place.name} extra={<Button type="text" 
         onClick={() => {
@@ -60,5 +85,30 @@ export const PlaceView = ({place, dyadId}: {place: Place, dyadId: string}) => {
             !place.monday && !place.tuesday && !place.wednesday && !place.thursday && !place.friday && !place.saturday && !place.sunday && (<Typography.Text type="danger" className="text-xs">No days are scheduled.</Typography.Text>)
         }
         
+        <div className="mt-4 flex flex-wrap gap-2">
+            {
+                place.people.map((person: Person) => (
+                    <Button className="group" key={person.id} type="text" size="small" onClick={()=>{
+                        if(window.confirm('Are you sure you want to disconnect this person?')) {
+                            deletePersonFromPlaceMutation.mutate({
+                                dyadId,
+                                placeId: place.id,
+                                personId: person.id
+                            })
+                        }
+                    }} loading={deletePersonFromPlaceMutation.isPending}>
+                        {person.name} <XMarkIcon className="w-4 h-4 group-hover:opacity-100 opacity-0 transition-opacity" />
+                    </Button>
+                ))
+            }
+            {
+                availablePeople.length > 0 && (<Dropdown menu={{ items }} trigger={['hover']}>
+                    <Button variant="outlined" size="small" onClick={(e) => e.preventDefault()}>
+                        <UserPlusIcon className="w-5 h-5" />
+                    </Button>
+                </Dropdown>)
+            }
+            
+        </div>
     </Card>
 }

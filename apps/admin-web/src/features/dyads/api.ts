@@ -249,3 +249,69 @@ export const useSetPlaceScheduleMutation = () => {
     return mutation;
 };
 
+export const addPersonToPlaceApi = async (args: {dyadId: string, placeId: string, personIds: string[]}): Promise<Place> => {
+    const token = localStorage.getItem('auth_token') || undefined;
+    const response = await NetworkHelper.axiosClient.post(
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getAddPersonToPlaceEndpoint(args.dyadId, args.placeId),
+        { person_ids: args.personIds },
+        { headers: NetworkHelper.getHeaders(token) }
+    );
+    return response.data;
+};
+
+export const useAddPersonToPlaceMutation = () => {
+    const queryClient = useQueryClient();
+    const mutation = useMutation({
+        mutationFn: addPersonToPlaceApi,
+        onSuccess: (data, args) => {
+            queryClient.setQueryData(['dyads'], (old: Dyad[]) => {
+                return old.map(dyad => {
+                    if (dyad.id === args.dyadId) {
+                        return { ...dyad, places: dyad.places.map(place => {
+                            if (place.id === args.placeId) {
+                                return data
+                            }
+                            return place;
+                        }) };
+                    }
+                    return dyad;
+                });
+            });
+        }
+    });
+
+    return mutation;
+};
+
+export const deletePersonFromPlaceApi = async (args: {dyadId: string, placeId: string, personId: string}) => {
+    const token = localStorage.getItem('auth_token') || undefined;
+    const response = await NetworkHelper.axiosClient.delete(
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getDeletePersonFromPlaceEndpoint(args.dyadId, args.placeId, args.personId),
+        { headers: NetworkHelper.getHeaders(token) }
+    );
+    return response.data;
+};
+
+export const useDeletePersonFromPlaceMutation = () => {
+    const queryClient = useQueryClient();
+    const mutation = useMutation({
+        mutationFn: deletePersonFromPlaceApi,
+        onSuccess: (data, args) => {
+            queryClient.setQueryData(['dyads'], (old: Dyad[]) => {
+                return old.map(dyad => {
+                    if (dyad.id === args.dyadId) {
+                        return { ...dyad, places: dyad.places.map(place => {
+                            if (place.id === args.placeId) {
+                                return data
+                            }
+                            return place;
+                        }) };
+                    }
+                    return dyad;
+                });
+            });
+        }
+    });
+
+    return mutation;
+};

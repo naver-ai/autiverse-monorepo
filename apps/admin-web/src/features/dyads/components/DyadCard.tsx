@@ -58,7 +58,7 @@ export const DyadCard = (props: {
             label: 'Interests',
             children: <div className="flex gap-2 flex-wrap">
             {
-                props.dyad.interests?.map(interest => <Button key={interest.id} type="text" size="small" onClick={() => {
+                props.dyad.interests?.map(interest => <Button className="group" key={interest.id} type="text" size="small" onClick={() => {
                     if(window.confirm('Are you sure you want to delete this interest?')) {
                     deleteInterestMutation.mutate({
                             dyadId: props.dyad.id,
@@ -67,7 +67,7 @@ export const DyadCard = (props: {
                     }
                 }} loading={deleteInterestMutation.isPending}><span className="text-sm">
                     {`${interest.name}`}</span>
-                    <XMarkIcon className="w-4 h-4" />
+                    <XMarkIcon className="w-4 h-4 group-hover:opacity-100 opacity-0 transition-opacity" />
                     </Button>) || 'No interests'
             }
             <Button type="link" size="small" onClick={() => openInterestModal(props.dyad.id)}>

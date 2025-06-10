@@ -9,7 +9,7 @@ export const PersonView = ({ person, dyadId }: {
 }) => {
     const deletePersonMutation = useDeletePersonMutation()
 
-    return <Button key={person.id} type="text" size="small" onClick={() => {
+    return <Button className="group" key={person.id} type="text" size="small" onClick={() => {
         if(window.confirm('Are you sure you want to delete this person?')) {
         deletePersonMutation.mutate({
                 dyadId: dyadId,
@@ -18,6 +18,6 @@ export const PersonView = ({ person, dyadId }: {
         }
     }} loading={deletePersonMutation.isPending}><span className="text-sm">
         {`${person.name}`}</span>
-        <XMarkIcon className="w-4 h-4" />
+        <XMarkIcon className="w-4 h-4 group-hover:opacity-100 opacity-0 transition-opacity" />
         </Button>
 }

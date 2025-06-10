@@ -20,7 +20,7 @@ export const NewDyadPanel = () => {
     const queryClient = useQueryClient();
     const [messageApi, contextHolder] = message.useMessage();
 
-    const { control, formState: {isValidating, isValid}, handleSubmit, reset } = useForm({
+    const { control, formState: {isValid}, handleSubmit, reset } = useForm({
         resolver: yupResolver(schema),
         defaultValues: { locale: UserLocale.Korean, child_age: 8 }
     })
