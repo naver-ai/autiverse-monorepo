@@ -49,7 +49,7 @@ export const SignedInLayout = () => {
 
     return <Layout className="bg-transparent h-[100vh] overflow-hidden">
         <Layout.Header className="bg-slate-100 border-b p-2 h-12 flex items-center justify-between">
-            <div className="font-bold text-[12pt]">AutiHero Admin</div>
+            <div className="font-bold text-[12pt]">Autiverse Admin</div>
         
             <Button variant="outlined" size="small" onClick={onSignOut}>Logout</Button>
         </Layout.Header>
