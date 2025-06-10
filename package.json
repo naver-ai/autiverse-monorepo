@@ -26,6 +26,7 @@
     "packages/*"
   ],
   "dependencies": {
+    "@nxlv/python": "^21.0.0",
     "nanoid": "^5.1.5"
   }
 }
