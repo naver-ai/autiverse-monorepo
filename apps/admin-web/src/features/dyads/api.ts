@@ -162,6 +162,8 @@ export const useDeletePersonMutation = () => {
                     return dyad
                 })
             })
+            queryClient.invalidateQueries({ queryKey: ['dyads'] });
+            queryClient.invalidateQueries({ queryKey: ['dyad', args.dyadId] });
         }
     })
 
