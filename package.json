@@ -2,6 +2,7 @@
   "name": "@autiverse-monorepo/source",
   "version": "0.0.0",
   "license": "MIT",
+  "nx": {},
   "scripts": {
     "setup": "ts-node setup.ts",
     "postinstall": "nx run-many --target=install --all"
@@ -13,6 +14,7 @@
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",
+    "@types/bcrypt": "^5.0.2",
     "@types/fs-extra": "^11.0.4",
     "dotenv": "^16.5.0",
     "fs-extra": "^11.3.0",
@@ -27,6 +29,7 @@
   ],
   "dependencies": {
     "@nxlv/python": "^21.0.0",
-    "nanoid": "^5.1.5"
+    "bcrypt": "^6.0.0",
+    "nanoid": "^3.3.11"
   }
 }

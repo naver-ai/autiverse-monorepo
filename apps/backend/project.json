@@ -71,6 +71,23 @@
         "debug": false
       }
     },
+
+    "run-dev": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "poetry run python backend/run-dev.py",
+        "cwd": "{projectRoot}"
+      }
+    },
+
+    "reset-db": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "poetry run python backend/reset-db.py",
+        "cwd": "{projectRoot}"
+      }
+    },
+
     "test_langchain": {
       "executor": "@nxlv/python:run-commands",
       "options": {
@@ -86,5 +103,3 @@
     }
   }
 }
-
-// push test

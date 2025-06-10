@@ -1,5 +1,5 @@
 from enum import StrEnum
-from os import getcwd, getenv, path
+from os import getcwd, getenv, path, makedirs
 import re
 
 from dotenv import load_dotenv
@@ -25,3 +25,35 @@ def get_env_variable(key: str) -> str:
         return getenv(key)
     else:
         raise ValueError("Could not load dotenv.")
+    
+
+class FilePaths:
+    __database_dir_path: str = path.join(getcwd(), "../../database")
+
+    dataset_dir_path: str = path.join(getcwd(), "../../data")
+
+    prompt_dir_path: str = path.join(getcwd(), "../../data/prompts")
+
+    users_database_dir_path: str = path.join(__database_dir_path, "users")
+
+    @classmethod
+    def get_database_dir_path(cls) -> str:
+        if not path.exists(cls.__database_dir_path):
+            makedirs(cls.__database_dir_path)
+        return cls.__database_dir_path
+    
+    @classmethod
+    def get_database_file_path(cls) -> str:
+        return path.join(cls.get_database_dir_path(), "database.db")
+
+    @classmethod
+    def get_user_database_dir_path(cls, user_id: str) -> str:
+        p = path.join(cls.users_database_dir_path, user_id)
+        if not path.exists(p):
+            makedirs(p)
+        return p
+    
+    @classmethod
+    def get_prompt_file_path(cls, prompt_filename: str) -> str:
+        p = path.join(cls.prompt_dir_path, prompt_filename)
+        return p

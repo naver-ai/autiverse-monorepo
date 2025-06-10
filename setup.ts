@@ -1,8 +1,9 @@
 import fs from 'fs-extra'
 import dotenv from 'dotenv'
 import path from 'path'
-import { input } from '@inquirer/prompts';
-//import bcrypt from 'bcrypt';
+import { input, password } from '@inquirer/prompts';
+import { nanoid } from 'nanoid';
+import bcrypt from 'bcrypt';
 
 const envPath = path.resolve(process.cwd(), ".env")
 console.log(envPath)
@@ -23,16 +24,16 @@ function makeExistingValidator(message: string) {
 
 const VITE_BLACKLISTS = ["OPENAI_API_KEY"]
 
-/*async function hashPassword(password: string): Promise<string>{
+async function hashPassword(password: string): Promise<string>{
     let hp = await bcrypt.hash(password.trim(), 10)
     console.log(hp)
     return hp
-}*/
+}
 
 async function setup(){
     const env = dotenv.config({path: envPath})?.parsed || {}
 
-    const answers: {[key: string]: string} = {/*
+    const answers: {[key: string]: string} = {
         "BACKEND_PORT": env["BACKEND_PORT"] || await input({
             default: '3000',
             message: 'Insert Backend port number:',
@@ -63,23 +64,12 @@ async function setup(){
             required: true,
             validate: makeExistingValidator("Please enter any text.")
         }),
-        "MONGODB_URL": env["MONGODB_URL"] || await input({
-            default: 'mongodb://localhost:27017/',
-            message: "Insert a full URL to connect to MongoDB on the system.",
-            required: true
-        }),
-        "MONGODB_DBNAME": env["MONGODB_DBNAME"] || await input({
-            default: "exploreself",
-            message: "Insert a DB name to store the app data.",
-            required: true
-        }),
         "ADMIN_HASHED_PW": env["ADMIN_HASHED_PW"] || await hashPassword(await password({
             message: 'Enter password for admin:',
-            required: true,
             validate: makeExistingValidator("Please enter a valid password.")
         })),
 
-        "ADMIN_ID": env["ADMIN_ID"] || nanoid(),*/
+        "ADMIN_ID": env["ADMIN_ID"] || nanoid(),
 
         "OPENAI_API_KEY": env["OPENAI_API_KEY"] || await input({
             message: 'Insert OpenAI API Key:',
