@@ -116,24 +116,24 @@ class PlaceScheduleCreate(BaseModel):
     day_of_week: int # 0-6, 0 is sunday
     has_schedule: Optional[bool] = None
 
-@router.post("/{dyad_id}/places/{place_id}/schedule", response_model=SharablePlace)
+@router.patch("/{dyad_id}/places/{place_id}/schedule", response_model=SharablePlace)
 async def update_place_schedule(dyad_id: str, place_id: str, args: PlaceScheduleCreate, db: Annotated[AsyncSession, Depends(with_db_session)]):
     entity_orm = await db.get(Place, place_id)
     if not entity_orm or entity_orm.dyad_id != dyad_id:
         raise HTTPException(status_code=404, detail="Place not found")
-    if args.day_of_week == 0:
+    if args.day_of_week == 1:
         entity_orm.monday = args.has_schedule
-    elif args.day_of_week == 1:
-        entity_orm.tuesday = args.has_schedule
     elif args.day_of_week == 2:
-        entity_orm.wednesday = args.has_schedule
+        entity_orm.tuesday = args.has_schedule
     elif args.day_of_week == 3:
-        entity_orm.thursday = args.has_schedule
+        entity_orm.wednesday = args.has_schedule
     elif args.day_of_week == 4:
-        entity_orm.friday = args.has_schedule
+        entity_orm.thursday = args.has_schedule
     elif args.day_of_week == 5:
-        entity_orm.saturday = args.has_schedule
+        entity_orm.friday = args.has_schedule
     elif args.day_of_week == 6:
+        entity_orm.saturday = args.has_schedule
+    elif args.day_of_week == 0:
         entity_orm.sunday = args.has_schedule
     else:
         raise HTTPException(status_code=400, detail="Invalid day of week")
@@ -146,12 +146,12 @@ class PlacePersonLinkArgs(BaseModel):
     person_ids: list[str]   
 
 @router.post("/{dyad_id}/places/{place_id}/people/add", response_model=SharablePlace)
-async def add_place_person(dyad_id: str, place_id: str, args: PlacePersonLinkArgs, db: Annotated[AsyncSession, Depends(with_db_session)]):
+async def add_person_to_place(dyad_id: str, place_id: str, args: PlacePersonLinkArgs, db: Annotated[AsyncSession, Depends(with_db_session)]):
     for person_id in args.person_ids:
         entity_orm = PlacePersonLink(
             dyad_id=dyad_id,
             place_id=place_id,
-                person_id=person_id
+            person_id=person_id
             )
         db.add(entity_orm)
     await db.commit()
@@ -161,10 +161,10 @@ async def add_place_person(dyad_id: str, place_id: str, args: PlacePersonLinkArg
     return place_orm.to_sharable()
 
 @router.delete("/{dyad_id}/places/{place_id}/people/{person_id}")
-async def delete_place_person(dyad_id: str, place_id: str, person_id: str, db: Annotated[AsyncSession, Depends(with_db_session)]):
-    entity_orm = await db.exec(select(PlacePersonLink).where(PlacePersonLink.place_id == place_id, PlacePersonLink.person_id == person_id)).first()
+async def delete_person_from_place(dyad_id: str, place_id: str, person_id: str, db: Annotated[AsyncSession, Depends(with_db_session)]):
+    entity_orm: PlacePersonLink = (await db.exec(select(PlacePersonLink).where(PlacePersonLink.place_id == place_id, PlacePersonLink.person_id == person_id))).first()
     if not entity_orm or entity_orm.dyad_id != dyad_id:
         raise HTTPException(status_code=404, detail="Place person link not found")
     await db.delete(entity_orm)
     await db.commit()
-    return entity_orm
+    return (await db.get(Place, place_id)).to_sharable()

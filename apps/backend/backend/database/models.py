@@ -52,7 +52,7 @@ class DyadInfo(IdTimestampMixin):
     child_name: str = Field(nullable=False, min_length=1, max_length=100)
     child_age: int = Field(nullable=False, ge=0)
 
-class SharablePlace(BaseModel):
+class SharablePlace(IdTimestampMixin):
     name: str
     people: list['Person'] = Field(default_factory=list)
 
@@ -81,6 +81,8 @@ class Dyad(SQLModel, DyadInfo, table=True):
     interests: list['Interest'] = Relationship(back_populates="dyad", sa_relationship_kwargs={'lazy': 'selectin'}, cascade_delete=True)
     places: list['Place'] = Relationship(back_populates="dyad", sa_relationship_kwargs={'lazy': 'selectin'}, cascade_delete=True)
     people: list['Person'] = Relationship(back_populates="dyad", sa_relationship_kwargs={'lazy': 'selectin'}, cascade_delete=True)
+
+    journal_entries: list['JournalEntry'] = Relationship(back_populates="dyad", sa_relationship_kwargs={'lazy': 'selectin'}, cascade_delete=True)
 
     def to_sharable(self) -> 'SharableDyad':
         return SharableDyad(
@@ -186,7 +188,7 @@ class JournalEntry(SQLModel, IdTimestampMixin, TimezoneTimestampMixin, DyadIdMix
 class JournalEntryIdMixin(BaseModel):
     journal_entry_id: str = Field(foreign_key=f"{JournalEntry.__tablename__}.id")
 
-class InteractionTurn(SQLModel, IdTimestampMixin, DyadIdMixin, JournalEntryIdMixin, table=True):
+class InteractionTurn(SQLModel, IdTimestampMixin, JournalEntryIdMixin, table=True):
     model_config = ConfigDict(use_enum_values=True)
     stage: JournalEntryStage = Field(nullable=False)
 
@@ -204,16 +206,14 @@ class MessageRole(StrEnum):
     User="user"
     Assistant="assistant"
 
-class Message(SQLModel, IdTimestampMixin, DyadIdMixin, JournalEntryIdMixin, table=True):
+class Message(SQLModel, IdTimestampMixin, JournalEntryIdMixin, InteractionTurnIdMixin, table=True):
     model_config = ConfigDict(use_enum_values=True)
 
     content: str = Field(nullable=False)
     role: MessageRole = Field(nullable=False)
 
     audio_filename: Optional[str] = Field(nullable=True, default=None)
-
-    dyad: Dyad = Relationship(back_populates="messages", sa_relationship_kwargs={'lazy': 'selectin'})
-
+    
     interaction_turn: InteractionTurn = Relationship(back_populates="messages", sa_relationship_kwargs={'lazy': 'selectin'})
 
     journal_entry: JournalEntry = Relationship(back_populates="messages", sa_relationship_kwargs={'lazy': 'selectin'})

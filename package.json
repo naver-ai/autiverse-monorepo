@@ -1,35 +1,67 @@
 {
-  "name": "@autiverse-monorepo/source",
+  "name": "autiverse-monorepo",
+  "author": "NAVER AI Lab",
   "version": "0.0.0",
   "license": "MIT",
   "nx": {},
   "scripts": {
     "setup": "ts-node setup.ts",
-    "postinstall": "nx run-many --target=install --all"
+    "postinstall": "nx run backend:install"
   },
   "private": true,
   "devDependencies": {
     "@inquirer/prompts": "^7.5.3",
     "@nx/js": "21.1.1",
+    "@nx/react": "^21.1.1",
+    "@nx/vite": "21.1.1",
+    "@nx/web": "21.1.1",
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",
+    "@tanstack/router-plugin": "^1.120.20",
     "@types/bcrypt": "^5.0.2",
     "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.0.0",
+    "@types/react": "19.0.0",
+    "@types/react-dom": "19.0.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "@vitest/ui": "^3.0.0",
+    "autoprefixer": "10.4.13",
     "dotenv": "^16.5.0",
     "fs-extra": "^11.3.0",
+    "jiti": "2.4.2",
+    "jsdom": "~22.1.0",
     "nx": "21.1.1",
+    "postcss": "8.4.38",
     "prettier": "^2.6.2",
+    "tailwindcss": "3.4.3",
     "ts-node": "^10.9.2",
     "tslib": "^2.3.0",
-    "typescript": "~5.7.2"
+    "typescript": "~5.7.2",
+    "vite": "^6.0.0",
+    "vitest": "^3.0.0"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "libs/*",
+    "apps/*"
   ],
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
+    "@hookform/resolvers": "^5.1.1",
     "@nxlv/python": "^21.0.0",
+    "@tanstack/react-query": "^5.80.6",
+    "@tanstack/react-router": "^1.120.20",
+    "antd": "^5.26.0",
     "bcrypt": "^6.0.0",
-    "nanoid": "^3.3.11"
+    "nanoid": "^3.3.11",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-hook-form": "^7.57.0",
+    "rxjs": "^7.8.2",
+    "socket.io-client": "^4.8.1",
+    "tailwind-merge": "^3.3.0",
+    "yup": "^1.6.1",
+    "zustand": "^5.0.5"
   }
 }
