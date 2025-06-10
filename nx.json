@@ -23,8 +23,7 @@
           "buildDepsName": "build-deps",
           "watchDepsName": "watch-deps"
         }
-      },
-      "exclude": ["libs/ts-core/*"]
+      }
     },
     {
       "plugin": "@nxlv/python"
@@ -38,15 +37,6 @@
         "watchDepsTargetName": "watch-deps",
         "buildDepsTargetName": "build-deps",
         "typecheckTargetName": "typecheck"
-      }
-    },
-    {
-      "plugin": "@nx/js/typescript",
-      "include": ["libs/ts-core/*"],
-      "options": {
-        "typecheck": {
-          "targetName": "typecheck"
-        }
       }
     },
     {
@@ -80,7 +70,8 @@
       },
       "library": {
         "style": "tailwind",
-        "linter": "none"
+        "linter": "none",
+        "unitTestRunner": "none"
       }
     }
   }

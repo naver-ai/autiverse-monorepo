@@ -2,7 +2,7 @@ import { Button, Table } from "antd"
 import { ColumnsType } from "antd/es/table";
 import { getAllDyadsApi, useDeleteInterestMutation } from "./api";
 import { useQuery } from "@tanstack/react-query";
-import { Dyad, InterestORM } from "ts-core";
+import { Dyad, Interest } from "@autiverse-monorepo/ts-core";
 import { NewDyadPanel } from "./components/NewDyadPanel";
 import { NewInterestModal } from "./components/NewInterestModal";
 import { useMemo, useState } from "react";
@@ -55,7 +55,7 @@ export const DyadsPage = () => {
             title: 'Interests',
             dataIndex: 'interests',
             key: 'interests',
-            render: (interests: InterestORM[], record: Dyad) => {
+            render: (interests: Interest[], record: Dyad) => {
                 return <div className="flex gap-2 flex-wrap">
                     {
                         interests?.map(interest => <Button key={interest.id} type="text" size="small" onClick={() => {
@@ -66,7 +66,7 @@ export const DyadsPage = () => {
                                 })
                             }
                         }} loading={deleteInterestMutation.isPending}><span className="text-sm">
-                            {`${interest.name_localized} (${interest.name_english})`}</span>
+                            {`${interest.name}`}</span>
                             <XMarkIcon className="w-4 h-4" />
                             </Button>) || 'No interests'
                     }

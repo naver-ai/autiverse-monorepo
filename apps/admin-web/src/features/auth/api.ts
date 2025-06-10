@@ -1,4 +1,4 @@
-import { NetworkHelper } from "ts-core";
+import { NetworkHelper } from "@autiverse-monorepo/ts-core";
 
 
 /**

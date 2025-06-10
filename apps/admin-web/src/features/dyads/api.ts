@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { NetworkHelper, Dyad, DyadInfo, InterestORM } from 'ts-core';
+import { NetworkHelper, Dyad, DyadInfo } from '@autiverse-monorepo/ts-core';
 
 export const getAllDyadsApi = async (): Promise<Array<Dyad>> => {
     const token = localStorage.getItem('auth_token') || undefined;
@@ -13,7 +13,7 @@ export const getAllDyadsApi = async (): Promise<Array<Dyad>> => {
     return response.data;
 };
 
-export const createDyadApi = async (data: Omit<DyadInfo, "interests">) => {
+export const createDyadApi = async (data: DyadInfo) => {
     const token = localStorage.getItem('auth_token') || undefined;
     const response = await NetworkHelper.axiosClient.post(
         NetworkHelper.ENDPOINTS.ADMIN.DYADS.CREATE,
@@ -26,12 +26,12 @@ export const createDyadApi = async (data: Omit<DyadInfo, "interests">) => {
     return response.data;
 }; 
 
-export const createInterestApi = async (args: {dyadId: string, data: { name_localized: string; name_english: string }}) => {
+export const createInterestApi = async (args: {dyadId: string, data: { name: string }}) => {
     const token = localStorage.getItem('auth_token') || undefined;
     
     console.log(args)
     const response = await NetworkHelper.axiosClient.post(
-        NetworkHelper.ENDPOINTS.ADMIN.DYADS.INTERESTS.getCreateEndpoint(args.dyadId),
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getAddInterestEndpoint(args.dyadId),
         args.data,
         {
             headers: NetworkHelper.getHeaders(token)
@@ -43,7 +43,7 @@ export const createInterestApi = async (args: {dyadId: string, data: { name_loca
 export const deleteInterestApi = async (args: {dyadId: string, interestId: string}) => {
     const token = localStorage.getItem('auth_token') || undefined;
     const response = await NetworkHelper.axiosClient.delete(
-        NetworkHelper.ENDPOINTS.ADMIN.DYADS.INTERESTS.getDeleteEndpoint(args.dyadId, args.interestId),
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getDeleteInterestEndpoint(args.dyadId, args.interestId),
         { headers: NetworkHelper.getHeaders(token) }
     );
     return response.data;

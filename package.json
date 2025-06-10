@@ -1,11 +1,12 @@
 {
-  "name": "@autiverse-monorepo/source",
+  "name": "autiverse-monorepo",
+  "author": "NAVER AI Lab",
   "version": "0.0.0",
   "license": "MIT",
   "nx": {},
   "scripts": {
     "setup": "ts-node setup.ts",
-    "postinstall": "nx run-many --target=install --all"
+    "postinstall": "nx run backend:install"
   },
   "private": true,
   "devDependencies": {

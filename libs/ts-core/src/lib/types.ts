@@ -29,6 +29,7 @@ export enum ProcessingStatus {
 
 export interface Dyad extends DBModel {
     alias: string;
+    passcode: string;
     locale: UserLocale;
     caregiver_type: CaregiverType;
     child_gender: ChildGender;
@@ -40,7 +41,7 @@ export interface Dyad extends DBModel {
     places: Place[];
 }
 
-export type DyadInfo = Omit<Dyad, keyof DBModel>;
+export type DyadInfo = Omit<Dyad, keyof DBModel | "interests" | "people" | "places" | "passcode">;
 
 export interface ContextEntity extends DBModel {
     name: string;

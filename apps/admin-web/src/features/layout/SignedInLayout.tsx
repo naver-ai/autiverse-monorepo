@@ -3,7 +3,7 @@ import {Outlet, useLocation, useNavigate} from '@tanstack/react-router'
 import { UserCircleIcon, BookOpenIcon } from '@heroicons/react/24/solid'
 import { useQuery } from "@tanstack/react-query"
 import { getAllDyadsApi } from "../dyads/api"
-import { Dyad } from 'ts-core'
+import { Dyad } from '@autiverse-monorepo/ts-core'
 
 export const SignedInLayout = () => {
     const navigate = useNavigate()

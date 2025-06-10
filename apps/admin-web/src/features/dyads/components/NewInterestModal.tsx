@@ -12,13 +12,11 @@ interface NewInterestModalProps {
 }
 
 interface InterestFormData {
-    name_localized: string;
-    name_english: string;
+    name: string;
 }
 
 const schema = yup.object({
-    name_localized: yup.string().required('Please input the localized interest name!'),
-    name_english: yup.string().required('Please input the English interest name!')
+    name: yup.string().required('Please input the interest name')
 }).required();
 
 export const NewInterestModal = ({ isOpen, dyadId, onClose }: NewInterestModalProps) => {
@@ -53,7 +51,7 @@ export const NewInterestModal = ({ isOpen, dyadId, onClose }: NewInterestModalPr
             afterOpenChange={(open) => {
                 if (open) {
                     reset();
-                    setFocus('name_localized');
+                    setFocus('name');
                 }
             }}
             title="Add New Interest"
@@ -67,18 +65,10 @@ export const NewInterestModal = ({ isOpen, dyadId, onClose }: NewInterestModalPr
             <Form onFinish={handleSubmit(onSubmit)} className="space-y-4">
                 <FormItem
                     control={control}
-                    name="name_localized"
-                    label="Interest Name (Localized)"
-                    
+                    name="name"
+                    label="Interest Name"
                 >
                     <Input autoFocus placeholder="Interest in the user's locale language"/>
-                </FormItem>
-                <FormItem
-                    control={control}
-                    name="name_english"
-                    label="Interest Name (English)"
-                >
-                    <Input placeholder="Interest in English"/>
                 </FormItem>
                 <div className="flex justify-end gap-2 mt-4">
                     <Button

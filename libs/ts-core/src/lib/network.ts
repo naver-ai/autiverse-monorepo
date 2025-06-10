@@ -20,6 +20,8 @@ export class NetworkHelper {
       DYADS: {
         LIST: `${this.ENDPOINT_PREFIX}/dyads/all`,
         CREATE: `${this.ENDPOINT_PREFIX}/dyads/new`,
+        getAddInterestEndpoint: (dyadId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/interests/add`,
+        getDeleteInterestEndpoint: (dyadId: string, interestId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/interests/${interestId}`,
         getGetEndpoint: (dyadId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}`,
         getSetScheduleEndpoint: (dyadId: string, placeId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/places/${placeId}/schedule`,
         getAddPeopleEndpoint: (dyadId: string, placeId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/places/${placeId}/people/add`,
