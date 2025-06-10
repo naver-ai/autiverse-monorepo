@@ -77,7 +77,24 @@
         "command": "poetry run python backend/test_langchain.py",
         "cwd": "{projectRoot}"
       }
+    },
+
+    "comic_intro": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "poetry run python backend/comic_intro.py",
+        "cwd": "{projectRoot}"
+      }
+    },
+
+    "comic_context": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "poetry run python backend/comic_context.py",
+        "cwd": "{projectRoot}"
+      }
     }
+
   },
   "tags": [],
   "release": {
