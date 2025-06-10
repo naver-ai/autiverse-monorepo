@@ -1,14 +1,18 @@
 import { Dyad } from "@autiverse-monorepo/ts-core"
 import { XMarkIcon } from "@heroicons/react/20/solid"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Button, Card, Descriptions } from "antd"
+import { Button, Card, Collapse, Descriptions } from "antd"
 import { deleteInterestApi } from "../api"
-import { useInterestModalStore } from "../store"
+import { useInterestModalStore, usePersonModalStore, usePlaceModalStore } from "../store"
+import { PersonView } from "./PersonView"
+import { PlaceView } from "./PlaceView"
 
 export const DyadCard = (props: {
     dyad: Dyad
 }) => {
     const { openInterestModal } = useInterestModalStore();
+    const { openPersonModal } = usePersonModalStore();
+    const { openPlaceModal } = usePlaceModalStore();
     const queryClient = useQueryClient();
 
     const deleteInterestMutation = useMutation({
@@ -78,6 +82,44 @@ export const DyadCard = (props: {
             <Descriptions title={`${props.dyad.alias} (${props.dyad.child_name})`}
                 items={items}
             />
+            <Collapse className="mt-4" items={[
+                {
+                    key: 'people',
+                    label: <div className="">
+                        <span className="font-semibold">People: </span> {
+                            props.dyad.people?.map(person => person.name)?.join(", ") || 'No people'
+                        }
+                    </div>,
+                    children:  <div className="flex gap-2 flex-wrap">
+                    {
+                        props.dyad.people?.map(person => <PersonView person={person} dyadId={props.dyad.id}/>) || 'No people'
+                    }
+                    <Button type="link" size="small" onClick={() => openPersonModal(props.dyad.id)}>
+                        Add Person
+                    </Button>
+                </div>
+                }
+            ]}/>
+
+            <Collapse className="mt-4" items={[
+                {
+                    key: 'place',
+                    label: <div className="">
+                        <span className="font-semibold">Places: </span> {
+                            props.dyad.places?.map(place => place.name)?.join(", ") || 'No places'
+                        }
+                    </div>,
+                    children: <div className="flex gap-2 flex-wrap">
+                    {
+                        props.dyad.places?.map(place => <PlaceView key={place.id} place={place} dyadId={props.dyad.id}/>) || 'No places'
+                    }
+                    <Button type="link" 
+                    onClick={() => openPlaceModal(props.dyad.id)}>
+                        Add Place
+                    </Button>
+                </div>
+                }
+            ]}/>
         </Card>
     )
 }

@@ -1,19 +1,18 @@
-import { Button, Table } from "antd"
-import { ColumnsType } from "antd/es/table";
-import { getAllDyadsApi, useDeleteInterestMutation } from "./api";
+import { getAllDyadsApi } from "./api";
 import { useQuery } from "@tanstack/react-query";
-import { Dyad, Interest } from "@autiverse-monorepo/ts-core";
 import { NewDyadPanel } from "./components/NewDyadPanel";
 import { NewInterestModal } from "./components/NewInterestModal";
-import { useMemo } from "react";
-import { XMarkIcon } from "@heroicons/react/20/solid";
+import { NewPersonModal } from "./components/NewPersonModal";
+import { NewPlaceModal } from "./components/NewPlaceModal";
 import { DyadCard } from "./components/DyadCard";
-import { useInterestModalStore } from "./store";
+import { useInterestModalStore, usePersonModalStore, usePlaceModalStore } from "./store";
 
 export const DyadsPage = () => {
-    const { isOpen, selectedDyadId, closeInterestModal } = useInterestModalStore();
+    const { isOpen: isInterestModalOpen, selectedDyadId: selectedInterestDyadId, closeInterestModal } = useInterestModalStore();
+    const { isOpen: isPersonModalOpen, selectedDyadId: selectedPersonDyadId, closePersonModal } = usePersonModalStore();
+    const { isOpen: isPlaceModalOpen, selectedDyadId: selectedPlaceDyadId, closePlaceModal } = usePlaceModalStore();
 
-    const { data: dyads, isLoading } = useQuery({
+    const { data: dyads } = useQuery({
         queryKey: ['dyads'],
         queryFn: getAllDyadsApi
     });
@@ -28,9 +27,19 @@ export const DyadsPage = () => {
         }
         </div>
         <NewInterestModal
-            isOpen={isOpen}
-            dyadId={selectedDyadId}
+            isOpen={isInterestModalOpen}
+            dyadId={selectedInterestDyadId}
             onClose={closeInterestModal}
+        />
+        <NewPersonModal
+            isOpen={isPersonModalOpen}
+            dyadId={selectedPersonDyadId}
+            onClose={closePersonModal}
+        />
+        <NewPlaceModal
+            isOpen={isPlaceModalOpen}
+            dyadId={selectedPlaceDyadId}
+            onClose={closePlaceModal}
         />
     </div>
 }

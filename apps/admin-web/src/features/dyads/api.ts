@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { NetworkHelper, Dyad, DyadInfo } from '@autiverse-monorepo/ts-core';
+import { NetworkHelper, Dyad, DyadInfo, Place } from '@autiverse-monorepo/ts-core';
 
 export const getAllDyadsApi = async (): Promise<Array<Dyad>> => {
     const token = localStorage.getItem('auth_token') || undefined;
@@ -87,3 +87,165 @@ export const useDeleteInterestMutation = () => {
 
     return mutation
 }
+
+export const createPersonApi = async (args: {dyadId: string, data: { name: string }}) => {
+    const token = localStorage.getItem('auth_token') || undefined;
+    const response = await NetworkHelper.axiosClient.post(
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getAddPersonEndpoint(args.dyadId),
+        args.data,
+        {
+            headers: NetworkHelper.getHeaders(token)
+        }
+    );
+    return response.data;
+};
+
+export const deletePersonApi = async (args: {dyadId: string, personId: string}) => {
+    const token = localStorage.getItem('auth_token') || undefined;
+    const response = await NetworkHelper.axiosClient.delete(
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getDeletePersonEndpoint(args.dyadId, args.personId),
+        { headers: NetworkHelper.getHeaders(token) }
+    );
+    return response.data;
+};
+
+export const createPlaceApi = async (args: {dyadId: string, data: { name: string }}) => {
+    const token = localStorage.getItem('auth_token') || undefined;
+    const response = await NetworkHelper.axiosClient.post(
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getAddPlaceEndpoint(args.dyadId),
+        args.data,
+        {
+            headers: NetworkHelper.getHeaders(token)
+        }
+    );
+    return response.data;
+};
+
+export const deletePlaceApi = async (args: {dyadId: string, placeId: string}) => {
+    const token = localStorage.getItem('auth_token') || undefined;
+    const response = await NetworkHelper.axiosClient.delete(
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getDeletePlaceEndpoint(args.dyadId, args.placeId),
+        { headers: NetworkHelper.getHeaders(token) }
+    );
+    return response.data;
+};
+
+export const useCreatePersonMutation = () => {
+    const queryClient = useQueryClient();
+    const mutation = useMutation({
+        mutationFn: createPersonApi,
+        onSuccess: (data, args) => {
+            queryClient.setQueryData(['dyads'], (old: Dyad[]) => {
+                return old.map(dyad => {
+                    if (dyad.id === args.dyadId) {
+                        return { ...dyad, people: [...dyad.people, data] }
+                    }
+                    return dyad
+                })
+            })
+        }
+    })
+
+    return mutation
+}
+
+export const useDeletePersonMutation = () => {
+    const queryClient = useQueryClient();
+    const mutation = useMutation({
+        mutationFn: deletePersonApi,
+        onSuccess: (data, args) => {
+            queryClient.setQueryData(['dyads'], (old: Dyad[]) => {
+                return old.map(dyad => {
+                    if (dyad.id === args.dyadId) {
+                        return { ...dyad, people: dyad.people.filter(person => person.id !== args.personId) }
+                    }
+                    return dyad
+                })
+            })
+        }
+    })
+
+    return mutation
+}
+
+export const useCreatePlaceMutation = () => {
+    const queryClient = useQueryClient();
+    const mutation = useMutation({
+        mutationFn: createPlaceApi,
+        onSuccess: (data, args) => {
+            queryClient.setQueryData(['dyads'], (old: Dyad[]) => {
+                return old.map(dyad => {
+                    if (dyad.id === args.dyadId) {
+                        return { ...dyad, places: [...dyad.places, data] }
+                    }
+                    return dyad
+                })
+            })
+        }
+    })
+
+    return mutation
+}
+
+export const useDeletePlaceMutation = () => {
+    const queryClient = useQueryClient();
+    const mutation = useMutation({
+        mutationFn: deletePlaceApi,
+        onSuccess: (data, args) => {
+            queryClient.setQueryData(['dyads'], (old: Dyad[]) => {
+                return old.map(dyad => {
+                    if (dyad.id === args.dyadId) {
+                        return { ...dyad, places: dyad.places.filter(place => place.id !== args.placeId) }
+                    }
+                    return dyad
+                })
+            })
+        }
+    })
+
+    return mutation
+}
+
+export const setPlaceScheduleApi = async (args: {
+    dyadId: string,
+    placeId: string,
+    data: {day_of_week: number, has_schedule: boolean}
+}) => {
+    const token = localStorage.getItem('auth_token') || undefined;
+    const response = await NetworkHelper.axiosClient.patch(
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getSetPlaceScheduleEndpoint(args.dyadId, args.placeId),
+        args.data,
+        {
+            headers: NetworkHelper.getHeaders(token)
+        }
+    );
+    return response.data;
+};
+
+export const useSetPlaceScheduleMutation = () => {
+    const queryClient = useQueryClient();
+    const mutation = useMutation({
+        mutationFn: setPlaceScheduleApi,
+        onSuccess: (data, args) => {
+            queryClient.setQueryData(['dyads'], (old: Dyad[]) => {
+                return old.map(dyad => {
+                    if (dyad.id === args.dyadId) {
+                        return {
+                            ...dyad,
+                            places: dyad.places.map(place => {
+                                if (place.id === args.placeId) {
+                                    return { ...place, ...data };
+                                }
+                                return place;
+                            })
+                        };
+                    }
+                    return dyad;
+                });
+            });
+        }
+    });
+
+    return mutation;
+};
+

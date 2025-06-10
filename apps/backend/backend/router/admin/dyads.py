@@ -116,24 +116,24 @@ class PlaceScheduleCreate(BaseModel):
     day_of_week: int # 0-6, 0 is sunday
     has_schedule: Optional[bool] = None
 
-@router.post("/{dyad_id}/places/{place_id}/schedule", response_model=SharablePlace)
+@router.patch("/{dyad_id}/places/{place_id}/schedule", response_model=SharablePlace)
 async def update_place_schedule(dyad_id: str, place_id: str, args: PlaceScheduleCreate, db: Annotated[AsyncSession, Depends(with_db_session)]):
     entity_orm = await db.get(Place, place_id)
     if not entity_orm or entity_orm.dyad_id != dyad_id:
         raise HTTPException(status_code=404, detail="Place not found")
-    if args.day_of_week == 0:
+    if args.day_of_week == 1:
         entity_orm.monday = args.has_schedule
-    elif args.day_of_week == 1:
-        entity_orm.tuesday = args.has_schedule
     elif args.day_of_week == 2:
-        entity_orm.wednesday = args.has_schedule
+        entity_orm.tuesday = args.has_schedule
     elif args.day_of_week == 3:
-        entity_orm.thursday = args.has_schedule
+        entity_orm.wednesday = args.has_schedule
     elif args.day_of_week == 4:
-        entity_orm.friday = args.has_schedule
+        entity_orm.thursday = args.has_schedule
     elif args.day_of_week == 5:
-        entity_orm.saturday = args.has_schedule
+        entity_orm.friday = args.has_schedule
     elif args.day_of_week == 6:
+        entity_orm.saturday = args.has_schedule
+    elif args.day_of_week == 0:
         entity_orm.sunday = args.has_schedule
     else:
         raise HTTPException(status_code=400, detail="Invalid day of week")

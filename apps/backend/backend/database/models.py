@@ -52,7 +52,7 @@ class DyadInfo(IdTimestampMixin):
     child_name: str = Field(nullable=False, min_length=1, max_length=100)
     child_age: int = Field(nullable=False, ge=0)
 
-class SharablePlace(BaseModel):
+class SharablePlace(IdTimestampMixin):
     name: str
     people: list['Person'] = Field(default_factory=list)
 

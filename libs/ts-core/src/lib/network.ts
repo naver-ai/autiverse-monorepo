@@ -24,8 +24,11 @@ export class NetworkHelper {
         getDeleteInterestEndpoint: (dyadId: string, interestId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/interests/${interestId}`,
         getGetEndpoint: (dyadId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}`,
         getSetScheduleEndpoint: (dyadId: string, placeId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/places/${placeId}/schedule`,
-        getAddPeopleEndpoint: (dyadId: string, placeId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/places/${placeId}/people/add`,
-        getDeletePeopleEndpoint: (dyadId: string, placeId: string, personId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/places/${placeId}/people/${personId}`,
+        getAddPersonEndpoint: (dyadId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/people/add`,
+        getDeletePersonEndpoint: (dyadId: string, personId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/people/${personId}`,
+        getAddPlaceEndpoint: (dyadId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/places/add`,
+        getDeletePlaceEndpoint: (dyadId: string, placeId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/places/${placeId}`,
+        getSetPlaceScheduleEndpoint: (dyadId: string, placeId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/places/${placeId}/schedule`,
       },
     },
 
