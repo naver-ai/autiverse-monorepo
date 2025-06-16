@@ -13,6 +13,7 @@
 import { Route as rootRoute } from './routes/__root'
 import { Route as SigninImport } from './routes/signin'
 import { Route as ProtectedIndexImport } from './routes/_protected/index'
+import { Route as ProtectedComicImport } from './routes/_protected/comic'
 import { Route as ProtectedLayoutImport } from './routes/_protected/_layout'
 import { Route as ProtectedLayoutDyadsIndexImport } from './routes/_protected/_layout.dyads.index'
 import { Route as ProtectedLayoutDyadsListImport } from './routes/_protected/_layout.dyads.list'
@@ -31,6 +32,12 @@ const SigninRoute = SigninImport.update({
 const ProtectedIndexRoute = ProtectedIndexImport.update({
   id: '/_protected/',
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const ProtectedComicRoute = ProtectedComicImport.update({
+  id: '/_protected/comic',
+  path: '/comic',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -88,6 +95,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: ''
       preLoaderRoute: typeof ProtectedLayoutImport
+      parentRoute: typeof rootRoute
+    }
+    '/_protected/comic': {
+      id: '/_protected/comic'
+      path: '/comic'
+      fullPath: '/comic'
+      preLoaderRoute: typeof ProtectedComicImport
       parentRoute: typeof rootRoute
     }
     '/_protected/': {
@@ -162,6 +176,7 @@ const ProtectedLayoutRouteWithChildren = ProtectedLayoutRoute._addFileChildren(
 export interface FileRoutesByFullPath {
   '/signin': typeof SigninRoute
   '': typeof ProtectedLayoutRouteWithChildren
+  '/comic': typeof ProtectedComicRoute
   '/': typeof ProtectedIndexRoute
   '/dyads/list': typeof ProtectedLayoutDyadsListRoute
   '/dyads': typeof ProtectedLayoutDyadsIndexRoute
@@ -173,6 +188,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/signin': typeof SigninRoute
   '': typeof ProtectedLayoutRouteWithChildren
+  '/comic': typeof ProtectedComicRoute
   '/': typeof ProtectedIndexRoute
   '/dyads/list': typeof ProtectedLayoutDyadsListRoute
   '/dyads': typeof ProtectedLayoutDyadsIndexRoute
@@ -185,6 +201,7 @@ export interface FileRoutesById {
   __root__: typeof rootRoute
   '/signin': typeof SigninRoute
   '/_protected/_layout': typeof ProtectedLayoutRouteWithChildren
+  '/_protected/comic': typeof ProtectedComicRoute
   '/_protected/': typeof ProtectedIndexRoute
   '/_protected/_layout/dyads/list': typeof ProtectedLayoutDyadsListRoute
   '/_protected/_layout/dyads/': typeof ProtectedLayoutDyadsIndexRoute
@@ -198,6 +215,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/signin'
     | ''
+    | '/comic'
     | '/'
     | '/dyads/list'
     | '/dyads'
@@ -208,6 +226,7 @@ export interface FileRouteTypes {
   to:
     | '/signin'
     | ''
+    | '/comic'
     | '/'
     | '/dyads/list'
     | '/dyads'
@@ -218,6 +237,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/signin'
     | '/_protected/_layout'
+    | '/_protected/comic'
     | '/_protected/'
     | '/_protected/_layout/dyads/list'
     | '/_protected/_layout/dyads/'
@@ -230,12 +250,14 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   SigninRoute: typeof SigninRoute
   ProtectedLayoutRoute: typeof ProtectedLayoutRouteWithChildren
+  ProtectedComicRoute: typeof ProtectedComicRoute
   ProtectedIndexRoute: typeof ProtectedIndexRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   SigninRoute: SigninRoute,
   ProtectedLayoutRoute: ProtectedLayoutRouteWithChildren,
+  ProtectedComicRoute: ProtectedComicRoute,
   ProtectedIndexRoute: ProtectedIndexRoute,
 }
 
@@ -251,6 +273,7 @@ export const routeTree = rootRoute
       "children": [
         "/signin",
         "/_protected/_layout",
+        "/_protected/comic",
         "/_protected/"
       ]
     },
@@ -266,6 +289,9 @@ export const routeTree = rootRoute
         "/_protected/_layout/dyads/$dyadId/journal/$journalId",
         "/_protected/_layout/dyads/$dyadId/journal/"
       ]
+    },
+    "/_protected/comic": {
+      "filePath": "_protected/comic.tsx"
     },
     "/_protected/": {
       "filePath": "_protected/index.tsx"
