@@ -7,6 +7,28 @@ import asyncio
 import json
 import sys
 
+# Shared character background and conversation rules
+CHARACTER_BACKGROUND = """
+[Character Background]
+You are a 15-year-old Korean middle school student named Dodo (도도).
+You're having a friendly conversation with your autistic best friend, Yuchan (유찬, also 15, male).
+
+Yuchan's special interests:
+- Dinosaurs
+- Counting things
+- Talking to himself
+
+[General Speaking Rules]
+1. Use informal Korean (반말) like talking to a peer friend. Do not use honorifics.
+2. Keep responses short and simple - one or two sentences maximum.
+3. Use emojis appropriately.
+4. Ask only one question per turn.
+5. Never apologize or say sorry.
+6. Cover only one topic or question in a message if possible, and move to the next upon the user's reaction.
+7. If the user brings up special interests, show interest but gently guide back to the main topic.
+8. If the user asks a question that should be asked to adults or unrelated to the conversation topic, then you can say, "I don't know," and go back to the conversation topic.
+"""
+
 @dataclass
 class ComicPanel:
     """Comic panel data structure"""
@@ -32,7 +54,13 @@ class ComicContextGenerator:
 
         panels = {}
         for key, value in panels_dict.items():
-            if isinstance(value, str):
+            if isinstance(value, dict):
+                # Handle new format with content and missing_content
+                content = value.get("content")
+                missing_content = value.get("missing_content")
+                panels[key] = ComicPanel(content=content, missing_content=missing_content)
+            elif isinstance(value, str):
+                # Handle old format for backward compatibility
                 if value.startswith("null"):
                     # Extract missing content from parentheses
                     missing_content = value[value.find("(")+1:value.find(")")]
@@ -59,101 +87,102 @@ class ComicContextGenerator:
     async def analyze_story_flow(self) -> Dict[str, Any]:
         """Analyze if the 4-panel comic tells a complete story"""
         panels_content = {
-            key: panel.content if panel.content else "(empty)"
+            key: panel.content if panel.content else None
             for key, panel in self.panels.items()
         }
 
-        prompt = f"""You are analyzing a 4-panel comic diary. This is a simple diary format that just needs:
-        - A situation or event (panels 1-3)
-        - How I felt about it (panel 4)
-
-        [Current Panels]
-        1️⃣ {panels_content['panel1']}
-        2️⃣ {panels_content['panel2']}
-        3️⃣ {panels_content['panel3']}
-        4️⃣ {panels_content['panel4']}
-
-        [Analysis Guidelines]
-        - Each panel only needs one key point
-        - Small gaps between panels are normal
-        - Panel 2 can be a continuation of panel 1 and panel 3 can be a continuation of panel 2
-        - Panel 4 should show a clear feeling or reaction
-        - Focus on what happened, not why it happened
-        - Story is complete when:
-            * We can understand what happened
-            * Events are connected (even if brief)
-            * There is a clear emotion at the end
-
-        [Key Points to Check]
-        1. Can we understand what happened in each filled panel?
-        2. Do the events connect logically?
-        3. Is there a clear feeling at the end?
-
-        [Response Format]
-        Return a JSON object with:
-        - flow_issues: List of major issues in event sequence. Must check:
-            * Missing connections between panels
-            * Missing emotions
-            * List connection issues BEFORE emotion issues
-        - suggested_focus: Array of panel numbers that need info, or null if okay. Example: [2, 4]
-        - panel_order_ok: true if events are connected and make sense together
-
-        Example of good connected story:
-        {{
-            "flow_issues": [],
-            "suggested_focus": null,
-            "panel_order_ok": true
-        }}
-
-        Example of current story (complete):
-        Panel 1: "나는 학교 교실에서 뛰고있었다"
-        Panel 2: "그러자 선생님이 내게 다가오셨다"
-        Panel 3: "그리고는 선생님이 교실에서는 뛰면 안된다고 나를 혼내셨다"
-        Panel 4: "나는 속상했다"
-
-        Return:
-        {{
-            "flow_issues": [],
-            "suggested_focus": null,
-            "panel_order_ok": true
-        }}
-
-        Example of story needing connection:
-        {{
-            "flow_issues": ["Need to know what happened between drawing and teacher leaving", "Need to know how you felt"],
-            "suggested_focus": [2, 4],
-            "panel_order_ok": false
-        }}
-
-        Example of story only needing emotion:
-        {{
-            "flow_issues": ["Need to know how you felt"],
-            "suggested_focus": [4],
-            "panel_order_ok": true
-        }}
+        system_prompt = """
+        You are an expert analyst who reviews a 4-panel diary drafts written by autistic teenager. 
         
-        Example of time sequence issues:
+        Your job:
+        1. Read the four panels (panel1-4).  
+        2. Identify missing or unclear information that makes the story hard to understand in details ("Content" problems). 
+        - Typical issues: 
+          • if there's a clear gap in cause-effect or awkward flow, specify the exact point (MANDATORY)
+          • if these are truly unclear, specify what exactly is unclear (MANDATORY)
+          • if panel 4 has no emotion, "Panel 4에 감정이 드러나지 않음" (MANDATORY)
+          • if panel 4 has non-emotional content, "Panel 4에 감정 외 내용 포함" (MANDATORY)
+        3. Check temporal / causal order ("Order" problems).  
+        - If panels should be rearranged, state which and why.  
+        4. Return exactly one JSON in UTF-8 without extra keys:
         {{
-            "flow_issues": ["Need to change the time sequence of panel 1 and 2"],
-            "suggested_focus": null,
-            "panel_order_ok": false
-        }}"""
+            "Content": ["…", "…"],   // list; put "" if no issues
+            "Order":   ["…", "…"]    // list; put "" if no issues
+        }}
+        Write the feedback in natural Korean, but keep panel labels in English (panel 1, panel 2 …).  
+        Do NOT change the original sentences or add explanations outside the JSON.
 
-        
+        IMPORTANT RULES:
+        1. If a detail is already explained in previous panels, do NOT mark it as missing.
+        2. If a detail is implied by context, do NOT mark it as missing.
+        3. Only mark something as missing if it's truly unclear or contradictory.
+        4. Panel 4 MUST contain emotion. If there's no emotion in panel 4, ALWAYS mark it as "Panel 4에 감정이 드러나지 않음".
+        5. When describing missing information, use existing information to be more specific:
+           - Instead of "어떤 일이 있었는지 알 수 없음"
+           - Use "누구와/어디서/무엇을 했는지 구체적으로" (using known information)
+           - Example: "민수와 어떤 식으로 고등어 해체쇼를 했는지 알 수 없음"
+
+        Here is the examples:
+        ### Example 1
+        Input:
+        "panel1": "나는 민수랑 학교에서 고등어 해체쇼를 했다.",
+        "panel2": null,
+        "panel3": "고등어 머리를 자르고 배를 가르고 내장을 꺼내서 비닐에 넣었다.",
+        "panel4": null
+
+        Output:
+        {{
+        "Content": ["학교에서 고등어 해체쇼를 어떻게 했는지 알 수 없음. 필통 같은 것을 고등어로 빗대어 표현한 것인지 확인 필요", "Panel 4에 감정이 드러나지 않음"],
+        "Order":   [""]
+        }}
+
+        ### Example 2
+        Input:
+        "panel1": "소현이가 울었다.",
+        "panel2": "소현이가 내 앞을 가로막았다.",
+        "panel3": "나는 학교에서 길을 걷고 있었다.",
+        "panel4": "나는 땀을 닦고 당황스러워했다."
+
+        Output:
+        {{
+        "Content": ["소현이가 앞을 가로막았을 때 어떻게 했길래 울었는지 알 수 없음", "Panel 4에 감정 외 내용 포함"],
+        "Order":   ["panel 1, panel 3의 순서가 바뀌어야함"]
+        }}
+
+        ### Example 3
+        Input:
+        "panel1": "나는 복도에서 뛰어다녔다.",
+        "panel2": "선생님이 그걸 보셨다.",
+        "panel3": "그래서 나를 혼내셨다.",
+        "panel4": "나는 부끄러웠다."
+
+        Output:
+        {{
+        "Content": [""],
+        "Order":   [""]
+        }}
+        """
+
+        user_prompt = f"""Analyze Below Panels:
+        "panel1": "{panels_content['panel1'] if panels_content['panel1'] else 'null'}",
+        "panel2": "{panels_content['panel2'] if panels_content['panel2'] else 'null'}",
+        "panel3": "{panels_content['panel3'] if panels_content['panel3'] else 'null'}",
+        "panel4": "{panels_content['panel4'] if panels_content['panel4'] else 'null'}"
+        """
 
         messages = [
-            SystemMessage(content="You are a 4-panel comic helper. Focus on essential missing information and always check for emotion in panel 4."),
-            HumanMessage(content=prompt)
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_prompt)
         ]
 
         response = await self.llm.ainvoke(messages)
         try:
-            return json.loads(response.content)
+            result = json.loads(response.content)
+            return result
         except json.JSONDecodeError:
             return {
-                "flow_issues": [],
-                "suggested_focus": null,
-                "panel_order_ok": True
+                "Content": [],
+                "Order": []
             }
 
     def _display_analysis_status(self, analysis: Dict[str, Any]) -> None:
@@ -184,99 +213,104 @@ class ComicContextGenerator:
         response = await self.llm.ainvoke(messages)
         return response.content.strip()
 
-    async def reconstruct_panel(self, panel_number: int, answer: str, question: str) -> None:
+    async def reconstruct_panel(self, answer: str, question: str) -> None:
         """Reconstruct panels based on new information to tell a coherent story.
         
         Args:
-            panel_number: The panel number that the question was about
             answer: User's answer to the question
             question: The question that was asked
         """
-        prompt = f"""Based on the new information, create a coherent 4-panel comic diary.
+        if not self.story_analysis:
+            self.story_analysis = await self.analyze_story_flow()
 
-        [Current Panels]
-        Panel 1: {self.panels['panel1'].content if self.panels['panel1'].content else '(empty)'}
-        Panel 2: {self.panels['panel2'].content if self.panels['panel2'].content else '(empty)'}
-        Panel 3: {self.panels['panel3'].content if self.panels['panel3'].content else '(empty)'}
-        Panel 4: {self.panels['panel4'].content if self.panels['panel4'].content else '(empty)'}
+        system_prompt = f"""You are a rewriting engine that fixes 4-panel diary drafts written in first-person Korean past tense based on the user's answer and analysis_result.
 
-        [New Information]
-        Question about panel {panel_number}: {question}
-        Answer: {answer}
+TRANSFORMATION RULES
+1. Never invent new events, lines, or feelings. Allowed material = text in "panels_original" + "new_QA.answer".
+2. Treat null/None as an empty panel. When you fill an empty panel, reuse only existing material (no duplication).
+3. Obey every instruction in analysis_result.Order (swap panels as stated).
+4. From analysis_result.Content, directly fix any issue that can be solved by rewriting:
+   • "Panel 4 lacks emotion" → leave only an emotion in panel 4 and move the rest to panel 3.
+   • "Unclear if it was real or pretend" → clarify using new_QA.answer.
+   Skip issues that require user input.
+5. Panel 4 must contain one short emotion sentence only.
+6. Keep each panel to one Korean past-tense sentence, first-person diary style.
+7. When filling empty panels:
+   - DO NOT repeat information already stated in other panels
+   - DO NOT generate new content
+   - Only use information from the answer if it directly relates to the empty panel
+8. Output exactly this JSON (nothing else, no line breaks inside values):
 
-        [Task]
-        Create a simple, coherent story that:
-        - Incorporates the new answer naturally
-        - Uses first-person past tense ("나는 ~했다")
-        - Keeps each panel focused on one key point
-        - Maintains chronological order
-        - Merges duplicate or very similar content
-        - Avoids repeating the same information across panels
+{{
+  "panel1": "...",
+  "panel2": "...",
+  "panel3": "...",
+  "panel4": "..."
+}}
 
-        Example of duplicate content:
-        Input panels:
-        Panel 1: "나는 선생님이랑 센터에서 그림 그리기를 했다"
-        Panel 2: "나는 선생님이랑 같이 그림을 그렸다"
-        Panel 3: "트랜스포머가 완성되었다"
-        Panel 4: "나는 기분이 좋았다"
+Here is the examples:
+### Example 1
+<panels_original>
+"panel1": "나는 민수랑 학교에서 고등어 해체쇼를 했다.",
+"panel2": null,
+"panel3": "고등어 머리를 자르고 배를 가르고 내장을 꺼내서 비닐에 넣었다.",
+"panel4": null
+<new_QA>
+question: "대박대박! 너무 신기하다! 1) 학교에 진짜 고등어가 있었던 거야? 2) 필통 같은 걸로 고등어처럼 연극했어?"
+answer: "2"
+<analysis_result>
+Content: ["학교에서 고등어 해체쇼를 어떻게 했는지 알 수 없음. 필통 같은 것을 고등어로 빗대어 표현한 것인지 확인 필요", "Panel 4에 감정이 드러나지 않음"]
+Order: [""]
+<expected_output>
+{{
+  "panel1": "나는 민수랑 학교에서 필통을 가지고 고등어 해체쇼를 했다.",
+  "panel2": null,
+  "panel3": "고등어 머리를 자르고 배를 가르고 내장을 꺼내서 비닐에 넣었다.",
+  "panel4": null
+}}
 
-        Return (merged properly):
-        {{
-            "panel1": "나는 선생님이랑 센터에서 그림 그리기를 했다",
-            "panel2": "null",
-            "panel3": "트랜스포머가 완성되었다",
-            "panel4": "나는 기분이 좋았다"
-        }}
+### Example 2
+<panels_original>
+"panel1": "소현이가 울었다.",
+"panel2": "소현이가 내 앞을 가로막았다.",
+"panel3": "나는 학교에서 길을 걷고 있었다.",
+"panel4": "나는 소현이를 바라보며 당황스러워했다."
+<new_QA>
+question: "소현이가 앞을 가로막아서 진짜 당황스러웠겠네! 그래서 어떻게 했어? 1) 비켜달라고 했어? 2) 아니면 밀치고 지나갔어?"
+answer: "2"
+<analysis_result>
+"Content": ["소현이가 앞을 가로막았을 때 어떻게 했길래 울었는지 알 수 없음", "Panel 4에 감정 외 내용 포함"]
+"Order": ["panel 1, panel 3의 순서가 바뀌어야함"]
+<expected_output>
+{{
+"panel1": "나는 학교에서 길을 걷고 있었다.",
+"panel2": "소현이가 내 앞을 가로막길래 밀치고 지나갔다",
+"panel3": "그랬더니 소현이가 울어서 나는 소현이를 바라보았다.",
+"panel4": "나는 당황스러웠다."
+}}
 
-        Return ONLY a JSON object with:
-        {{
-            "panel1": "content",
-            "panel2": "content",
-            "panel3": "content",
-            "panel4": "content"
-        }}
 
-        Example 1:
-        If input panels are:
-        Panel 1: "소현이가 울었다"
-        Panel 2: "null (내용 없음)"
-        Panel 3: "나는 학교에서 길을 걷고 있었다"
-        Panel 4: "null (감정 표현 필요)"
+"""
 
-        And for Panel 2:
-        Question: "소현이가 왜 울었어?"
-        Answer: "내 앞을 가로막아서 지나갔더니 울었어"
+        user_prompt = f"""<panels_original>
+"panel1": "{self.panels['panel1'].content if self.panels['panel1'].content else 'null'}",
+"panel2": "{self.panels['panel2'].content if self.panels['panel2'].content else 'null'}",
+"panel3": "{self.panels['panel3'].content if self.panels['panel3'].content else 'null'}",
+"panel4": "{self.panels['panel4'].content if self.panels['panel4'].content else 'null'}"
+</panels_original>
 
-        Return (fixed chronological order):
-        {{
-            "panel1": "나는 학교에서 길을 걷고 있었다",
-            "panel2": "소현이가 내 앞을 가로막았다",
-            "panel3": "내가 지나가자 소현이가 울었다",
-            "panel4": "null (감정 표현 필요)"
-        }}
+<new_QA>
+question: {question}
+answer: {answer}
+</new_QA>
 
-        Example 2:
-        If input panels are:
-        Panel 1: "나는 복도에서 뛰어다녔다"
-        Panel 2: "선생님이 그걸 보셨다"
-        Panel 3: "그래서 나를 혼내셨다"
-        Panel 4: "null (감정 표현 필요)"
-
-        And for Panel 4:
-        Question: "그때 기분이 어땠어?"
-        Answer: "너무 부끄러웠어"
-
-        Return (fixed chronological order):ㄴ
-        {{
-            "panel1": "나는 복도에서 뛰어다녔다",
-            "panel2": "선생님이 그걸 보셨다",
-            "panel3": "그래서 나를 혼내셨다",
-            "panel4": "나는 부끄러웠다"
-        }}"""
+<analysis_result>
+{json.dumps(self.story_analysis, ensure_ascii=False)}
+</analysis_result>"""
 
         messages = [
-            SystemMessage(content="You are a story writer for a Korean diary. Follow these rules strictly:\n1. Write all output in Korean\n2. Use first-person past tense ('나는 ~했다')\n3. NEVER generate emotions unless explicitly stated by user\n4. Use 'null (감정 표현 필요)' for panel 4 if no emotion was mentioned\n5. Always arrange panels in chronological order:\n   - Start with the initial situation\n   - Follow with what happened\n   - End with the result and emotion\n6. Never assume or infer information not provided by user"),
-            HumanMessage(content=prompt)
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_prompt)
         ]
         
         response = await self.llm.ainvoke(messages)
@@ -285,77 +319,135 @@ class ComicContextGenerator:
             
             # Update all panels with new content
             for key, content in new_panels.items():
-                self.panels[key] = ComicPanel(content=content)
+                if content == "null":
+                    self.panels[key] = ComicPanel(content=None)
+                else:
+                    self.panels[key] = ComicPanel(content=content)
+            
+            # Print current status after reconstruction
+            print("\n=== 현재 패널 ===")
+            for i in range(1, 5):
+                panel = self.panels[f"panel{i}"]
+                if panel.content:
+                    print(f"패널 {i}: {panel.content}")
+                else:
+                    print(f"패널 {i}: null")
                     
         except json.JSONDecodeError:
             print("오류: 패널 재구성에 실패했습니다")
 
-    async def get_next_question(self) -> Optional[tuple[int, str]]:
+    async def get_next_question(self) -> Optional[str]:
         """Generate the next question based on essential missing information.
         
         Returns:
-            Tuple of (panel_number, question) or None if story is complete.
+            Question string or None if story is complete.
         """
-        if not self.story_analysis.get("flow_issues") and self.story_analysis.get("panel_order_ok"):
+        if not self.story_analysis or not self.story_analysis.get("Content"):
             return None
 
-        prompt = f"""Based on the current comic panels and missing information, generate the next question.
+        # Create conversation summary
+        conversation_summary = ""
+        if self.conversation_history:
+            conversation_summary = "\nPrevious Q&A:\n" + "\n".join(
+                f"Q: {q}\nA: {a}" for _, q, a in self.conversation_history  # Show all Q&A pairs
+            )
 
-        [Current Panels]
-        Panel 1: {self.panels['panel1'].content if self.panels['panel1'].content else '(empty)'}
-        Panel 2: {self.panels['panel2'].content if self.panels['panel2'].content else '(empty)'}
-        Panel 3: {self.panels['panel3'].content if self.panels['panel3'].content else '(empty)'}
-        Panel 4: {self.panels['panel4'].content if self.panels['panel4'].content else '(empty)'}
+        system_prompt = f"""You are role-playing Dodo (도도), a 15-year-old Korean middle-schooler.
+Your task: generate ONE follow-up question that fills the FIRST "Content" gap listed in "content_feedback".
 
-        [Missing Information]
-        {chr(10).join(f"- {issue}" for issue in self.story_analysis.get("flow_issues", []))}
+=== Question-Generation Rules ===
+1. Show a friendly reaction to the story.
+2. Then, focus ONLY on the first content gap in the list and write exactly ONE question that can elicit the missing detail.
+3. Whenever possible, ask the question as a 2- or 3-choice prompt  
+   (예: "A였어, B였어?" 또는 "1) … 2) … 3) …").  
+   Use an open-ended question **only** if clear choices cannot be offered.
+4. Avoid figurative language; keep sentences ≤ 15 syllables.
+5. If the child likes topics in "affinity", you may embed them lightly to grab attention.
+6. Avoid vague words like "그런 것", "이런 식으로", "그 때".
+7. Do NOT repeat questions already asked.
+8. Consider the entire conversation history and current panels when generating questions.
+9. DO NOT ask about information that is:
+   - Already stated in any panel (예: "민수랑 했다"가 이미 있으면 "누구랑 했어?, "혼자 했어?"라고 묻지 않기)
+   - Already confirmed in previous Q&A
+   - Can be inferred from existing information
+10. Before generating a question:
+    - Carefully check ALL panels for existing information
+    - Check ALL previous Q&A for confirmed information
+    - Make sure the question is about something truly missing
+11. Return exactly one JSON:  
+    {{ 
+      "question": "single question in Korean"
+    }}
 
-        [Task]
-        Generate ONE specific question in Korean that will:
-        - Target exactly what we need to know based on the flow issue
-        - Focus on the gap or missing information between panels
-        - Use casual, friendly language
-        - Include one emoji at the end
+{CHARACTER_BACKGROUND}
 
-        Return ONLY a JSON object with:
+=== Output Format (JSON only) ===
+{{
+  "question": "question in Korean"
+}}
+
+Here is the examples:
+        ### Example 1
+        Input:
+        "panel1": "나는 민수랑 학교에서 필통을 가지고 고등어 해체쇼를 했다.",
+        "panel2": null,
+        "panel3": "고등어 머리를 자르고 배를 가르고 내장을 꺼내서 비닐에 넣었다.",
+        "panel4": null
+
+        content_feedback: ["Panel 4에 감정이 드러나지 않음"]
+
+        conversation_summary:
+        Q: "대박대박! 너무 신기하다! 1) 학교에 진짜 고등어가 있었던 거야? 2) 고등어처럼 연극했어?"
+        A: "2"
+        Q: "어떤 걸 가지고 고등어처럼 해체한거야?"
+        A: "필통"
+        
+        Output:
         {{
-            "panel_number": number (1-4),
-            "question": "question in Korean"
+        "question": "필통으로 재미있게 했구나! 기분이 어땠어?"
         }}
 
-        Example 1:
-        If we need to know what happened between walking and being scolded:
+
+        ### Example 2
+        Input:
+        "panel1": "나는 학교에서 길을 걷고 있었다.",
+        "panel2": null,
+        "panel3": "소현이가 내 앞을 가로막았다.",
+        "panel4": null
+
+        content_feedback: ["소현이가 앞을 가로막았을 때 어떻게 했길래 울었는지 알 수 없음", "Panel 4에 감정이 드러나지 않음"]
+
+        conversation_summary:
+
+        Output:
         {{
-            "panel_number": 2,
-            "question": "선생님이 혼내시기 전에 무슨 일이 있었어? 🤔"
+        "question": "소현이가 앞을 가로막았을 때 어떻게 했어? 1) 비켜달라고 했어? 2) 아니면 밀치고 지나갔어?"
         }}
 
-        Example 2:
-        If we need to know why teacher got angry:
-        {{
-            "panel_number": 2,
-            "question": "선생님이 왜 화나셨던 거야? 😮"
-        }}
 
-        Example 3:
-        If we need to know specific details about an action:
-        {{
-            "panel_number": 2,
-            "question": "횡단보도를 어떻게 건넜는지 자세히 말해줄래? 🚶"
-        }}"""
+"""
+
+        user_prompt = f"""Current Panels:
+        "panel1": "{self.panels['panel1'].content if self.panels['panel1'].content else 'null'}",
+        "panel2": "{self.panels['panel2'].content if self.panels['panel2'].content else 'null'}",
+        "panel3": "{self.panels['panel3'].content if self.panels['panel3'].content else 'null'}",
+        "panel4": "{self.panels['panel4'].content if self.panels['panel4'].content else 'null'}"
+
+content_feedback:
+{chr(10).join(f"- {issue}" for issue in self.story_analysis.get("Content", []))}
+
+{conversation_summary}"""
 
         messages = [
-            SystemMessage(content="You are a friendly interviewer. Ask specific questions to fill the gaps in the story."),
-            HumanMessage(content=prompt)
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_prompt)
         ]
 
         response = await self.llm.ainvoke(messages)
         try:
             result = json.loads(response.content)
-            return (result["panel_number"], result["question"])
+            return result["question"]
         except (json.JSONDecodeError, KeyError):
-            if self.story_analysis.get("suggested_focus"):
-                return (self.story_analysis["suggested_focus"], "더 자세히 말해줄래? 🤔")
             return None
 
     def get_final_result(self) -> Dict[str, str]:
@@ -370,7 +462,7 @@ class ComicContextGenerator:
                 "panel4": "패널 4 내용"
             }
             
-            If a panel is empty, its content will be "내용 없음"
+            If a panel is empty, its content will be "null"
         """
         result = {}
         for i in range(1, 5):
@@ -379,7 +471,7 @@ class ComicContextGenerator:
             if panel and panel.content:
                 result[panel_key] = panel.content
             else:
-                result[panel_key] = "내용 없음"
+                result[panel_key] = "null"
         
         # Print final result in Korean
         print("\n=== 최종 4컷 만화 ===")
@@ -405,58 +497,89 @@ async def run_comic_conversation(input_json: str):
     
     while True:
         # 1. Analyze current story state
+        print("Analyzing story flow...")
         generator.story_analysis = await generator.analyze_story_flow()
         
-        # Print current status
-        print("\n=== 현재 상태 ===")
-        if generator.story_analysis.get("flow_issues"):
-            print("\n스토리 흐름 문제:")
-            for issue in generator.story_analysis["flow_issues"]:
-                print(f"- {issue}")
-        
-        print("\n현재 패널:")
-        for i in range(1, 5):
-            panel = generator.panels[f"panel{i}"]
-            if panel.content:
-                print(f"패널 {i}: {panel.content}")
-            else:
-                print(f"패널 {i}: 내용 없음")
-
-        # If story is complete, return final result
-        if not generator.story_analysis.get("flow_issues") and generator.story_analysis.get("panel_order_ok"):
-            return generator.get_final_result()
-
-        # 2. Get next question based on analysis
-        next_question = await generator.get_next_question()
-        if not next_question:
-            return generator.get_final_result()
+        # 2. If there are issues, ask questions to fix them
+        if generator.story_analysis.get("Content") or generator.story_analysis.get("Order"):
+            print("\n=== 현재 상태 ===\n")
             
-        # 3. Ask question and get answer
-        panel_number, question = next_question
-        print(f"\n친구: {question}")
-        print("유찬: ", end='', flush=True)
-        
-        try:
-            answer = input().strip()
-        except UnicodeDecodeError:
-            # If there's an encoding error, try to read raw bytes and decode with replacement
-            raw_input = sys.stdin.buffer.readline()
-            answer = raw_input.decode('utf-8', errors='replace').strip()
+            if generator.story_analysis.get("Content"):
+                print("내용 문제:")
+                for issue in generator.story_analysis["Content"]:
+                    print(f"- {issue}")
             
-        if not answer:
-            continue
+            if generator.story_analysis.get("Order"):
+                print("\n순서 문제:")
+                for issue in generator.story_analysis["Order"]:
+                    print(f"- {issue}")
             
-        # 4. Reconstruct panels with new information
-        await generator.reconstruct_panel(panel_number, answer, question)
-        # (analyze_story_flow will be called at the start of next loop)
+            # Get next question based on analysis
+            next_question = await generator.get_next_question()
+            if not next_question:
+                # If no question is generated, analyze story flow again
+                continue
+            
+            print(f"\n친구: {next_question}")
+            user_response = input("유찬: ")
+            
+            # Reconstruct panels based on user response
+            await generator.reconstruct_panel(next_question, user_response)
+            
+            print("\n=== 현재 패널 ===")
+            for i in range(1, 5):
+                panel = generator.panels.get(f"panel{i}")
+                print(f"패널 {i}: {panel.content if panel and panel.content else 'null'}")
+            print()
+        else:
+            # Check if at least 3 panels are filled
+            filled_panels = sum(1 for panel in generator.panels.values() if panel.content is not None)
+            if filled_panels >= 3:
+                # If at least 3 panels are filled and no issues, end the conversation
+                break
+            
+            # If less than 3 panels are filled, get next question
+            next_question = await generator.get_next_question()
+            if not next_question:
+                continue
+            
+            print(f"\n친구: {next_question}")
+            user_response = input("유찬: ")
+            
+            # Reconstruct panels based on user response
+            await generator.reconstruct_panel(next_question, user_response)
+            
+            print("\n=== 현재 패널 ===")
+            for i in range(1, 5):
+                panel = generator.panels.get(f"panel{i}")
+                print(f"패널 {i}: {panel.content if panel and panel.content else 'null'}")
+            print()
+    
+    print("\n=== 최종 4컷 만화 ===")
+    for i in range(1, 5):
+        panel = generator.panels.get(f"panel{i}")
+        print(f"패널 {i}: {panel.content if panel and panel.content else 'null'}")
+    
+    print("\n수고했어! 재미있는 만화일기가 완성됐네! 👋")
 
 if __name__ == "__main__":
     # Example input JSON
     example_input = {
-        "panel1": "나는 엄마랑 집 근처에서 산책했다",
-        "panel2": "null (산책 중에 어쩌다 엄마와 어떤 특정 이야기를 나누었는지 모르기 때문)",
-        "panel3": "나는 엄마와 놀이공원에 가고 싶은 이야기를 했다",
-        "panel4": "null (감정 표현 필요)"
+        # "panel1": {"content": "나는 엄마랑 집 근처에서 산책했다", "missing_content": None },
+        # "panel2": {"content": None, "missing_content": "산책 중에 어쩌다 엄마와 어떤 특정 이야기를 나누었는지 모르기 때문" },
+        # "panel3": {"content": "나는 엄마와 놀이공원에 가고 싶은 이야기를 했다", "missing_content": None },
+        # "panel4": {"content": None, "missing_content": "감정 표현 필요" }
+
+        # "panel1": { "content": "나는 학교에서 민수랑 줄넘기를 했다.", "missing_content": None },
+        # "panel2": { "content": None, "missing_content": "어떤 일이 있었는지 알 수 없음" },
+        # "panel3": { "content": None, "missing_content": "어떤 일이 있었는지 알 수 없음"  },
+        # "panel4": { "content": "재미있었다.", "missing_content": None }
+
+        # "panel1": {"content": "나는 영호랑 줄넘기를 하고 놀았다.", "missing_content": None },
+        # "panel2": {"content": None, "missing_content": "어떤 일이 있었는지 알 수 없음" },
+        # "panel3": {"content": "점프도 하고 줄도 돌렸다.", "missing_content": None },
+        # "panel4": {"content": None, "missing_content": None }
+ㄴ
     }
     asyncio.run(run_comic_conversation(example_input))
 

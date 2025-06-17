@@ -169,7 +169,7 @@ class PromptFactory:
     Contains speaking rules, character background, and state-specific prompts.
     """
     @staticmethod
-    def get_speaking_rules_block() -> str:
+    def get_system_prompt() -> str:
         return """
             [General Speaking Rules]
             1. Use informal Korean (반말) like talking to a peer friend. Do not use honorifics.
@@ -181,11 +181,8 @@ class PromptFactory:
             7. If the user brings up special interests, show interest but gently guide back to the main topic.
             8. If the user asks a question that should be asked to adults or unrelated to the conversation topic, then you can say, "I don't know," and go back to the conversation topic.
 
-            IMPORTANT: Always respond in natural, teenage-friendly Korean."""
-
-    @staticmethod
-    def get_character_background() -> str:
-        return """You are a 15-year-old Korean middle school student named Dodo (도도).
+            [Character Background]
+            You are a 15-year-old Korean middle school student named Dodo (도도).
             You're having a friendly conversation with your autistic best friend, Yuchan (유찬, also 15, male).
 
             Yuchan's special interests:
@@ -193,70 +190,70 @@ class PromptFactory:
             - Counting things
             - Talking to himself
 
-            Your goal is to help him create a 4-panel diary comic about his day."""
+            Your goal is to help him create a 4-panel diary comic about his day.
+
+            [Event Collection Guidelines]
+            1. What is an Event?
+               - An event is a concrete action that happened today
+               - Focus on interaction sequences with people present
+               - Each interaction or step in the sequence counts as an event
+               Examples:
+               - Activity "그림 그리기" with family:
+                 * "엄마가 스케치 하는 걸 도와주셨다"
+                 * "아빠랑 같이 색칠했다"
+                 * "완성된 그림을 냉장고에 붙였다"
+               - Activity "책 읽기" with parents:
+                 * "아빠가 책장에서 책을 골라주셨다"
+                 * "엄마랑 소파에 나란히 앉았다"
+                 * "엄마가 책을 읽어주셨다"
+
+            2. Conversation Flow:
+               A. When starting conversation:
+                  - Keep initial question open and natural
+                  - Let Yuchan lead with what he wants to share
+
+               B. When an activity is mentioned:
+                  - Focus on interactions with people present
+                  - Use context to ask about how they did it together
+                  - Bad: "그림 그릴 때 어땠어?", "엄마 아빠는 뭐 하셨어?"
+                  - Good: (if drawing is mentioned) "엄마랑은 어떤 걸 그렸어?" or "아빠도 같이 그림 그리는 거 도와주셨어?"
+
+               C. When special interests come up:
+                  - Stay focused on the activity sequence
+                  - Keep tracking interactions with family members
+                  - Don't diverge from the main activity
+
+               D. When collecting sequence:
+                  - Follow the natural flow of interactions
+                  - Pay attention to each person's role in the activity
+                  - Look for clear beginning-middle-end sequence
+                  - Move to next phase when sequence is complete
+
+            3. Conversation Rules:
+               - Keep responses natural and conversational
+               - Focus on interactions and shared moments
+               - Use context from previous responses
+               - Let Yuchan's responses guide the conversation
+               - Use appropriate emojis naturally
+
+            IMPORTANT: 
+            - Focus on interaction sequences with people present
+            - Track how family members participated in the activity
+            - Let the sequence emerge through natural conversation
+            - Each interaction in the sequence counts as an event
+            - Look for clear progression of events with people involved
+
+            IMPORTANT: Always respond in natural, teenage-friendly Korean."""
 
     @staticmethod
-    def get_state_prompt(state: ConversationState, context: ConversationContext) -> str:
+    def get_user_prompt(state: ConversationState, context: ConversationContext) -> str:
         prompts = {
             ConversationState.ASK_EVENTS: f"""
                 Current objective: Help Yuchan identify events that happened today at {context.location} with {', '.join(context.people)}
                 Current events collected: {', '.join(context.events) if context.events else 'None yet'}
 
                 Recent conversation:
-                {context.get_conversation_summary()}
-
-                EVENT COLLECTION GUIDELINES:
-
-                1. What is an Event?
-                   - An event is a concrete action that happened today
-                   - Focus on interaction sequences with people present
-                   - Each interaction or step in the sequence counts as an event
-                   Examples:
-                   - Activity "그림 그리기" with family:
-                     * "엄마가 스케치 하는 걸 도와주셨다"
-                     * "아빠랑 같이 색칠했다"
-                     * "완성된 그림을 냉장고에 붙였다"
-                   - Activity "책 읽기" with parents:
-                     * "아빠가 책장에서 책을 골라주셨다"
-                     * "엄마랑 소파에 나란히 앉았다"
-                     * "엄마가 책을 읽어주셨다"
-
-                2. Conversation Flow:
-
-                   A. When starting conversation:
-                      - Keep initial question open and natural
-                      - Let Yuchan lead with what he wants to share
-
-                   B. When an activity is mentioned:
-                      - Focus on interactions with people present
-                      - Use context to ask about how they did it together
-                      - Bad: "그림 그릴 때 어땠어?", "엄마 아빠는 뭐 하셨어?"
-                      - Good: (if drawing is mentioned) "엄마랑은 어떤 걸 그렸어?" or "아빠도 같이 그림 그리는 거 도와주셨어?"
-
-                   C. When special interests come up:
-                      - Stay focused on the activity sequence
-                      - Keep tracking interactions with family members
-                      - Don't diverge from the main activity
-
-                   D. When collecting sequence:
-                      - Follow the natural flow of interactions
-                      - Pay attention to each person's role in the activity
-                      - Look for clear beginning-middle-end sequence
-                      - Move to next phase when sequence is complete
-
-                3. Conversation Rules:
-                   - Keep responses natural and conversational
-                   - Focus on interactions and shared moments
-                   - Use context from previous responses
-                   - Let Yuchan's responses guide the conversation
-                   - Use appropriate emojis naturally
-
-                IMPORTANT: 
-                - Focus on interaction sequences with people present
-                - Track how family members participated in the activity
-                - Let the sequence emerge through natural conversation
-                - Each interaction in the sequence counts as an event
-                - Look for clear progression of events with people involved""",
+                {context.get_conversation_summary()}""",
 
             ConversationState.SUMMARIZE: f"""
                 Current objective: Confirm the story details
@@ -286,14 +283,10 @@ class Chatbot:
         self.last_analysis: Optional[EventAnalysis] = None
 
     def get_base_prompt(self) -> str:
-        return "\n\n".join([
-            PromptFactory.get_speaking_rules_block(),
-            PromptFactory.get_character_background(),
-            "IMPORTANT: Always respond in natural, teenage-friendly Korean."
-        ])
+        return PromptFactory.get_system_prompt()
 
     def get_state_prompt(self) -> str:
-        return PromptFactory.get_state_prompt(self.state, self.context)
+        return PromptFactory.get_user_prompt(self.state, self.context)
 
     async def analyze_conversation(self) -> EventAnalysis:
         """Analyze the entire conversation to track events and maintain context"""
@@ -312,16 +305,7 @@ class Chatbot:
                 ])
             conversation_text = "\n".join(conversation)
 
-            analysis_prompt = f"""
-            You are an expert at analyzing conversations to identify concrete events and special interests.
-
-            CONTEXT:
-            Location: {self.context.location}
-            People: {', '.join(self.context.people)}
-            Current events: {', '.join(self.context.events) if self.context.events else 'None'}
-
-            CONVERSATION:
-            {conversation_text}
+            system_prompt = """You are an expert at analyzing conversations to identify concrete events and special interests.
 
             TASK:
             1. Find sequences of events from different activities that happened today
@@ -385,21 +369,21 @@ class Chatbot:
             - For each null panel, include the reason why it's null in parentheses as part of the value
 
             Return ONLY a JSON object with this structure:
-            {{
+            {
                 "events_identified": ["이벤트 설명"], - List of events that happened
                 "special_interests_mentioned": ["관심 주제"],
                 "conversation_summary": "대화 내용 요약",
                 "should_proceed": false, - true if we have at least 2 events
-                "comic_panels": {{
+                "comic_panels": {
                     "panel1": null (첫번째로 이야기하는 이벤트 넣기),
                     "panel2": null (왜 1,3번 사이를 비웠는지 flow를 기반으로 설명),
                     "panel3": null (왜 2,4번 사이를 비웠는지 flow를 기반으로 설명),
                     "panel4": null (기분이나 감정이 없는 경우 null로 유지)
-                }}
-            }}
+                }
+            }
 
             Example response for walking at school:
-            {{
+            {
                 "events_identified": [
                     "학교에서 내가 길을 가고 있었다",
                     "선생님이 나를 혼냈다"
@@ -407,16 +391,16 @@ class Chatbot:
                 "special_interests_mentioned": [],
                 "conversation_summary": "학교에서 길을 가다가 선생님께 혼이 났다",
                 "should_proceed": true,
-                "comic_panels": {{
+                "comic_panels": {
                     "panel1": "학교에서 내가 길을 가고 있었다",
                     "panel2": "null (길을 가는데 선생님이 왜 혼냈는지 알 수 없음)",
                     "panel3": "선생님이 나를 혼냈다",
                     "panel4": "null (기분을 이야기하지 않음)"
-                }}
-            }}
+                }
+            }
 
             Example response for TV watching:
-            {{
+            {
                 "events_identified": [
                     "집에서 엄마, 아빠와 TV로 런닝맨을 봤다",
                     "유재석이 발차기를 하는 장면이 나왔다",
@@ -425,18 +409,26 @@ class Chatbot:
                 "special_interests_mentioned": [],
                 "conversation_summary": "집에서 가족들과 런닝맨을 보다가 유재석의 발차기 장면을 보고 웃었다",
                 "should_proceed": true,
-                "comic_panels": {{
+                "comic_panels": {
                     "panel1": "집에서 엄마, 아빠와 TV로 런닝맨을 봤다",
                     "panel2": "null (유재석이 왜 발차기를 했는지 이전 상황을 알 수 없음)",
                     "panel3": "유재석이 발차기를 하는 장면이 나왔다",
                     "panel4": "나는 그 부분이 가장 웃겼다"
-                }}
-            }}
-            """
+                }
+            }"""
+
+            user_prompt = f"""
+            CONTEXT:
+            Location: {self.context.location}
+            People: {', '.join(self.context.people)}
+            Current events: {', '.join(self.context.events) if self.context.events else 'None'}
+
+            CONVERSATION:
+            {conversation_text}"""
 
             messages = [
-                SystemMessage(content="You are a conversation analyzer. Return ONLY a valid JSON object."),
-                HumanMessage(content=analysis_prompt)
+                SystemMessage(content=system_prompt),
+                HumanMessage(content=user_prompt)
             ]
 
             try:
@@ -523,20 +515,20 @@ class Chatbot:
                         parts = panel_content.split("(", 1)
                         if len(parts) > 1:
                             explanation = parts[1].rstrip(")").strip()
-                            summary += f'"content": undefined, "missing_content": "{explanation}" }}\n'
+                            summary += f'"content": None, "missing_content": "{explanation}" }}\n'
                         else:
-                            summary += f'"content": undefined, "missing_content": "내용 없음" }}\n'
+                            summary += f'"content": None, "missing_content": "내용 없음" }}\n'
                     else:
-                        summary += f'"content": "{panel_content}", "missing_content": undefined }}\n'
+                        summary += f'"content": "{panel_content}", "missing_content": None }}\n'
                 elif panel_content is None:
-                    summary += f'"content": undefined, "missing_content": "내용 없음" }}\n'
+                    summary += f'"content": None, "missing_content": "내용 없음" }}\n'
                 else:
-                    summary += f'"content": undefined, "missing_content": "패널 정보 없음" }}\n'
+                    summary += f'"content": None, "missing_content": "패널 정보 없음" }}\n'
         else:
             # Fallback to simple event list if comic_panels not available
             for i in range(1, 5):
                 panel_key = f"panel{i}"
-                summary += f'{panel_key}: {{ "content": undefined, "missing_content": "패널 정보를 생성할 수 없음" }}\n'
+                summary += f'{panel_key}: {{ "content": None, "missing_content": "패널 정보를 생성할 수 없음" }}\n'
 
         return summary
 
@@ -611,8 +603,8 @@ async def run_chatbot():
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     
     # Check if we have preset values
-    preset_location = ""  # You can set this based on your needs
-    preset_people = [""]  # You can set this based on your needs
+    preset_location = "학교"  # You can set this based on your needs
+    preset_people = ["민수"]  # You can set this based on your needs
 
     if preset_location and preset_people:
         # Use preset values
