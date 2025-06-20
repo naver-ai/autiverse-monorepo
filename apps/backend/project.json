@@ -110,6 +110,22 @@
         "command": "poetry run python backend/comic_context.py",
         "cwd": "{projectRoot}"
       }
+    },
+
+    "revision_1": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "poetry run python backend/revision_1.py",
+        "cwd": "{projectRoot}"
+      }
+    },
+
+    "revision_2": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "poetry run python backend/revision_2.py",
+        "cwd": "{projectRoot}"
+      }
     }
 
   },
