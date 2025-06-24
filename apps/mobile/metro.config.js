@@ -1,7 +1,7 @@
 const { withNxMetro } = require('@nx/expo');
 const { getDefaultConfig } = require('@expo/metro-config');
 const { mergeConfig } = require('metro-config');
-
+const { withNativeWind } = require('nativewind/metro');
 const defaultConfig = getDefaultConfig(__dirname);
 const { assetExts, sourceExts } = defaultConfig.resolver;
 
@@ -15,6 +15,7 @@ const customConfig = {
   cacheVersion: 'mobile',
   transformer: {
     babelTransformerPath: require.resolve('react-native-svg-transformer'),
+    
   },
   resolver: {
     assetExts: assetExts.filter((ext) => ext !== 'svg'),
@@ -30,4 +31,4 @@ module.exports = withNxMetro(mergeConfig(defaultConfig, customConfig), {
   extensions: [],
   // Specify folders to watch, in addition to Nx defaults (workspace libraries and node_modules)
   watchFolders: [],
-});
+}).then(config => withNativeWind(config, {input: './src/global.css'}))
