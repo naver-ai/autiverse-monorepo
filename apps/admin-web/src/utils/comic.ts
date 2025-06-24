@@ -204,7 +204,7 @@ Panel 3: "${panelContents.panel3}"
 Panel 4: "${panelContents.panel4}"`;
 
     const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4.1-mini-2025-04-14',
       messages: [
         { role: 'system', content: system_prompt },
         { role: 'user', content: user_prompt }
@@ -293,7 +293,7 @@ Input elements for panel ${panelId}:
 ${panelElements.map(elem => JSON.stringify(elem, null, 2)).join('\n')}`;
 
     const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4.1-mini-2025-04-14',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -496,7 +496,7 @@ Output format:
 IMPORTANT: The output MUST include ALL elements from both "Elements to place" and "Topology relationships". No elements should be missing.`;
 
     const gridResponse = await this.openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4.1-mini-2025-04-14',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }

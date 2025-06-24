@@ -13,6 +13,7 @@
 import { Route as rootRoute } from './routes/__root'
 import { Route as SigninImport } from './routes/signin'
 import { Route as ProtectedIndexImport } from './routes/_protected/index'
+import { Route as ProtectedComicChatbotImport } from './routes/_protected/comic-chatbot'
 import { Route as ProtectedComicImport } from './routes/_protected/comic'
 import { Route as ProtectedLayoutImport } from './routes/_protected/_layout'
 import { Route as ProtectedLayoutDyadsIndexImport } from './routes/_protected/_layout.dyads.index'
@@ -32,6 +33,12 @@ const SigninRoute = SigninImport.update({
 const ProtectedIndexRoute = ProtectedIndexImport.update({
   id: '/_protected/',
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const ProtectedComicChatbotRoute = ProtectedComicChatbotImport.update({
+  id: '/_protected/comic-chatbot',
+  path: '/comic-chatbot',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -102,6 +109,13 @@ declare module '@tanstack/react-router' {
       path: '/comic'
       fullPath: '/comic'
       preLoaderRoute: typeof ProtectedComicImport
+      parentRoute: typeof rootRoute
+    }
+    '/_protected/comic-chatbot': {
+      id: '/_protected/comic-chatbot'
+      path: '/comic-chatbot'
+      fullPath: '/comic-chatbot'
+      preLoaderRoute: typeof ProtectedComicChatbotImport
       parentRoute: typeof rootRoute
     }
     '/_protected/': {
@@ -177,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/signin': typeof SigninRoute
   '': typeof ProtectedLayoutRouteWithChildren
   '/comic': typeof ProtectedComicRoute
+  '/comic-chatbot': typeof ProtectedComicChatbotRoute
   '/': typeof ProtectedIndexRoute
   '/dyads/list': typeof ProtectedLayoutDyadsListRoute
   '/dyads': typeof ProtectedLayoutDyadsIndexRoute
@@ -189,6 +204,7 @@ export interface FileRoutesByTo {
   '/signin': typeof SigninRoute
   '': typeof ProtectedLayoutRouteWithChildren
   '/comic': typeof ProtectedComicRoute
+  '/comic-chatbot': typeof ProtectedComicChatbotRoute
   '/': typeof ProtectedIndexRoute
   '/dyads/list': typeof ProtectedLayoutDyadsListRoute
   '/dyads': typeof ProtectedLayoutDyadsIndexRoute
@@ -202,6 +218,7 @@ export interface FileRoutesById {
   '/signin': typeof SigninRoute
   '/_protected/_layout': typeof ProtectedLayoutRouteWithChildren
   '/_protected/comic': typeof ProtectedComicRoute
+  '/_protected/comic-chatbot': typeof ProtectedComicChatbotRoute
   '/_protected/': typeof ProtectedIndexRoute
   '/_protected/_layout/dyads/list': typeof ProtectedLayoutDyadsListRoute
   '/_protected/_layout/dyads/': typeof ProtectedLayoutDyadsIndexRoute
@@ -216,6 +233,7 @@ export interface FileRouteTypes {
     | '/signin'
     | ''
     | '/comic'
+    | '/comic-chatbot'
     | '/'
     | '/dyads/list'
     | '/dyads'
@@ -227,6 +245,7 @@ export interface FileRouteTypes {
     | '/signin'
     | ''
     | '/comic'
+    | '/comic-chatbot'
     | '/'
     | '/dyads/list'
     | '/dyads'
@@ -238,6 +257,7 @@ export interface FileRouteTypes {
     | '/signin'
     | '/_protected/_layout'
     | '/_protected/comic'
+    | '/_protected/comic-chatbot'
     | '/_protected/'
     | '/_protected/_layout/dyads/list'
     | '/_protected/_layout/dyads/'
@@ -251,6 +271,7 @@ export interface RootRouteChildren {
   SigninRoute: typeof SigninRoute
   ProtectedLayoutRoute: typeof ProtectedLayoutRouteWithChildren
   ProtectedComicRoute: typeof ProtectedComicRoute
+  ProtectedComicChatbotRoute: typeof ProtectedComicChatbotRoute
   ProtectedIndexRoute: typeof ProtectedIndexRoute
 }
 
@@ -258,6 +279,7 @@ const rootRouteChildren: RootRouteChildren = {
   SigninRoute: SigninRoute,
   ProtectedLayoutRoute: ProtectedLayoutRouteWithChildren,
   ProtectedComicRoute: ProtectedComicRoute,
+  ProtectedComicChatbotRoute: ProtectedComicChatbotRoute,
   ProtectedIndexRoute: ProtectedIndexRoute,
 }
 
@@ -274,6 +296,7 @@ export const routeTree = rootRoute
         "/signin",
         "/_protected/_layout",
         "/_protected/comic",
+        "/_protected/comic-chatbot",
         "/_protected/"
       ]
     },
@@ -292,6 +315,9 @@ export const routeTree = rootRoute
     },
     "/_protected/comic": {
       "filePath": "_protected/comic.tsx"
+    },
+    "/_protected/comic-chatbot": {
+      "filePath": "_protected/comic-chatbot.tsx"
     },
     "/_protected/": {
       "filePath": "_protected/index.tsx"

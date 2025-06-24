@@ -146,7 +146,7 @@ Panel 3: "${panelContents.panel3}"
 Panel 4: "${panelContents.panel4}"`;
 
     const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4.1-mini-2025-04-14',
       messages: [
         { role: 'system', content: system_prompt },
         { role: 'user', content: user_prompt }
@@ -168,7 +168,7 @@ Panel 4: "${panelContents.panel4}"`;
     
     const systemPrompt = `You are a 5x5-layout designer that places story elements in a grid while maintaining visual balance and storytelling clarity.
 
-Input  : One panel’s semantic JSON objects  
+Input  : One panel's semantic JSON objects  
 Output : A JSON array of items, each with
   type     : figure | object | tell | think | emotion | location
   content  : Exactly the Korean text from the input
@@ -214,22 +214,22 @@ INPUT
 OUTPUT
 [
 {"type": "figure", "content": "나", "position": [1, 2]},
-{"type": "figure", "content": “민수", "position": [3, 2]},
-{"type": “object", "content": “축구공", "position": [2, 3]},
-{"type": "location", "content": “학교 운동장", "position": [4, 1]}
+{"type": "figure", "content": "민수", "position": [3, 2]},
+{"type": "object", "content": "축구공", "position": [2, 3]},
+{"type": "location", "content": "학교 운동장", "position": [4, 1]}
 ]
 
 # EXAMPLE 2
 INPUT
-{"panel":"2","act":"대화","figure":"민수","object":"","location":"","tell":"어!?"},
+{"panel":"2","act":"대화","figure":"민수","object":"","location":"","tell":"?!"},
 {"panel":"2","act":"날아갔다","figure":"축구공","object":"","location":"담장 너머"}
 
 OUTPUT
 [
-{"type": "figure", "content": “민수", "position": [3, 2]},
-{"type": “tell", "content": “어?!", "position": [3, 1]},
-{"type": “object", "content": “축구공", "position": [1,1]},
-{"type": "location", "content": “담장", "position": [1,2]}
+{"type": "figure", "content": "민수", "position": [3, 2]},
+{"type": "tell", "content": "?!", "position": [3, 1]},
+{"type": "object", "content": "축구공", "position": [1,1]},
+{"type": "location", "content": "담장", "position": [1,2]}
 ]
 
 # EXAMPLE 3
@@ -238,14 +238,14 @@ INPUT
 
 OUTPUT
 {"type": "figure", "content": "나", "position": [2, 2]},
-{"type": “emotion", "content": “기쁨", "position": [2, 1]}
+{"type": "emotion", "content": "기쁨", "position": [2, 1]}
 ]
 
 Input elements for panel ${panelId}:
 ${panelElements.map(elem => JSON.stringify(elem, null, 2)).join('\n')}`;
 
     const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4.1-mini-2025-04-14',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
