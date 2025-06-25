@@ -22,7 +22,7 @@ function makeExistingValidator(message: string) {
     }
 }
 
-const VITE_BLACKLISTS = ["OPENAI_API_KEY"]
+const CLIENT_BLACKLISTS = ["OPENAI_API_KEY", "AUTH_SECRET", "ADMIN_ID", "ADMIN_HASHED_PW"]
 
 async function hashPassword(password: string): Promise<string>{
     let hp = await bcrypt.hash(password.trim(), 10)
@@ -79,8 +79,9 @@ async function setup(){
     }
 
     for(const key of Object.keys(answers)){
-        if(key.startsWith("VITE_") == false && VITE_BLACKLISTS.indexOf(key) === -1){
+        if((key.startsWith("VITE_") == false && key.startsWith("EXPO_PUBLIC_") == false) && CLIENT_BLACKLISTS.indexOf(key) === -1){
             answers[`VITE_${key}`] = answers[key]
+            answers[`EXPO_PUBLIC_${key}`] = answers[key]
         }
     }
 
@@ -91,6 +92,7 @@ async function setup(){
     fs.writeFileSync(envPath, envFileContent, {encoding:'utf-8'})
 
     fs.copyFileSync(envPath, path.join(process.cwd(), "/apps/backend", ".env"))
+    fs.copyFileSync(envPath, path.join(process.cwd(), "/apps/mobile", ".env"))
 
     console.log("Setup complete. If you want to reset, remove the '.env' file from the root directory.")
 }

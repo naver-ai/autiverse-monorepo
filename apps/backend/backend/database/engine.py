@@ -8,11 +8,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 def json_serializer(a):
-    print("serialize JSON", a)
     return a.model_dump_json() if isinstance(a, BaseModel) else json.dumps(a)
 
 def create_database_engine(db_path: str, verbose: bool = False) -> AsyncEngine:
     return create_async_engine(f"sqlite+aiosqlite:///{db_path}", echo=verbose, 
+                                pool_size=50, max_overflow=100,
                                json_serializer=json_serializer)
 
 
