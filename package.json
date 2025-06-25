@@ -97,6 +97,8 @@
     "tailwind-merge": "^3.3.0",
     "yup": "^1.6.1",
     "zustand": "^5.0.5",
-    "expo-localization": "~16.1.5"
+    "expo-localization": "~16.1.5",
+    "expo-font": "~13.3.1",
+    "expo-dev-client": "~5.2.1"
   }
 }

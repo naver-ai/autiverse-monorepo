@@ -66,9 +66,9 @@ export const SignInScreen = () => {
 
     const {t} = useTranslation()
 
-    return <View className="flex-1 items-center justify-center pb-[5%] bg-blue-200">
+    return <View className="flex-1 items-center justify-center pb-[5%] bg-slate-50">
         <SafeAreaView className="items-stretch">
-            <Text className="justify-self-center text-center text-black text-5xl font-bold w-[400px]">Autiverse</Text>
+            <LogoImage className="justify-self-center" width={420} height={150} />
             {
                 isSigningIn === true ? <Text className="text-center text-lg text-slate-500" style={styleTemplates.withBoldFont}>{t("Auth.SignIn.Authenticating")}</Text> : <Fragment>
                     {

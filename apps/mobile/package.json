@@ -2,5 +2,25 @@
   "name": "mobile",
   "version": "0.0.1",
   "private": true,
-  "main": "index.js"
+  "main": "index.js",
+  "scripts": {
+    "android": "expo run:android",
+    "ios": "expo run:ios"
+  },
+  "dependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*",
+    "expo-localization": "*",
+    "expo-linking": "*",
+    "expo-secure-store": "*",
+    "expo-router": "*",
+    "expo-font": "*",
+    "expo-image": "*",
+    "react-native-safe-area-context": "*",
+    "react-native-screens": "*",
+    "react-native-svg": "*",
+    "react-native-gesture-handler": "*",
+    "react-native-reanimated": "*"
+  }
 }

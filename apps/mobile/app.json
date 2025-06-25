@@ -13,21 +13,41 @@
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.autiverse-mobile"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "package": "com.anonymous.autiversemobile"
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "plugins": ["expo-router", "expo-localization"],
+    "plugins": [
+      "expo-router",
+      "expo-localization",
+      "expo-secure-store",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/NanumSquareNeo-aLt.otf",
+            "./assets/fonts/NanumSquareNeo-bRg.otf",
+            "./assets/fonts/NanumSquareNeo-cBd.otf",
+            "./assets/fonts/NanumSquareNeo-dEb.otf",
+            "./assets/fonts/NanumSquareNeo-eHv.otf"
+          ]
+        }
+      ]
+    ],
     "userInterfaceStyle": "light"
   }
 }

@@ -14,7 +14,6 @@ export const fontFamilyByWeight = {
     withSemiboldFont: {"fontFamily": fontFamilyByWeight.semibold},
     withBoldFont: {"fontFamily": fontFamilyByWeight.bold},
     withExtraboldFont: {"fontFamily": fontFamilyByWeight.extrabold},
-    withHandwritingFont: {"fontFamily": "KyoboHandwriting2019"},
 
     itemsCenter: {alignItems: 'center'}
 })
