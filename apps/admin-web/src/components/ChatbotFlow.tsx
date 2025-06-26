@@ -192,12 +192,6 @@ export const ChatbotFlow: React.FC = () => {
               </div>
             )}
             <StageIndicator stage={currentStage} />
-            <button
-              onClick={resetChatbot}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              새로 시작
-            </button>
           </div>
         </div>
       </div>

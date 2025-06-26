@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { FourSceneComic } from './comic';
 
 export interface ChatMessage {
   id: string;
@@ -10,6 +11,7 @@ export interface ChatMessage {
 export interface ComicPanel {
   content?: string | null;
   missing_content?: string | null;
+  grid?: any[][]; // comic.ts에서 생성되는 grid 데이터
 }
 
 export interface ComicData {
@@ -26,6 +28,7 @@ export interface ChatResponse {
     panels?: ComicData;
     events?: string[];
     summary?: string;
+    focusedPanel?: string; // 현재 포커스되는 패널 (panel1, panel2, panel3, panel4)
   };
 }
 
@@ -92,6 +95,8 @@ export class ChatbotFlow {
   private storyAnalysis: any = null;
   private lastBotMessage: string | null = null;
   private lastAnalysis: EventAnalysis | null = null;
+  private focusedPanel: string | undefined = undefined; // 현재 포커스되는 패널
+  private comicContextHistory: Array<{user: string, bot: string}> = []; // comic_context 단계에서만 사용할 대화 기록
 
   constructor(apiKey: string) {
     this.openai = new OpenAI({ 
@@ -234,6 +239,17 @@ export class ChatbotFlow {
       response = "여기서 틀린 부분 있어? 🤔";
     }
 
+    // comic_context 단계로 전환할 때 comicContextHistory 초기화
+    if (this.chatbotStage === ChatbotStage.COMIC_CONTEXT && this.lastBotMessage?.includes('좋아! 그럼 이제 만화를 더 완성해볼게!')) {
+      console.log(`[DEBUG] Transitioning to COMIC_CONTEXT, initializing comicContextHistory`);
+      this.comicContextHistory = [];
+    }
+
+    // comic_context 단계로 전환할 때 comicData를 response에 포함
+    if (this.chatbotStage === ChatbotStage.COMIC_CONTEXT && this.comicData) {
+      console.log(`[DEBUG] COMIC_CONTEXT stage, including comicData in response`);
+    }
+
     this.lastBotMessage = response;
 
     return {
@@ -242,7 +258,8 @@ export class ChatbotFlow {
       data: {
         panels: this.comicData || undefined,
         events: this.events,
-        summary: this.summary
+        summary: this.summary,
+        focusedPanel: this.focusedPanel || undefined
       }
     };
   }
@@ -446,70 +463,7 @@ Example response for TV watching:
         "panel4": "나는 그 부분이 가장 웃겼다"
     }
 }
-
-# Example 1
-Input  
-"panel1": "Minsoo and I performed a mackerel dissection show at school.",  
-"panel2": null,  
-"panel3": "I cut off the head, opened the belly and put the organs in a bag.",  
-"panel4": null
-
-Output  
-{
-  "situation_type": "normal",
-  "A": ["background situation missing — e.g. 'during break time'"],
-  "B": ["B missing — behavior is actually written in panel 3"],
-  "C": [
-    "Non-C content in C (behavior described)",
-    "consequence missing — e.g. 'Minsoo laughed and said 'That's amazing'"
-  ],
-  "D": ["Emotion missing — e.g. 'I was happy'"],
-  "Order": ["panel 2 and panel 3 should be swapped (Behavior - Consequence)"]
-}
-
-# Example 2 
-Input  
-"panel1": "I told Mom I wanted to visit an amusement park.",  
-"panel2": "Mom said, 'Sure, let's go.'",  
-"panel3": "We will go next Saturday and ride the roller-coaster.",  
-"panel4": "I felt thrilled."
-
-Output  
-{
-  "situation_type": "normal",
-  "A": [
-    "place missing — e.g. 'home'",
-    "Non-A content in A (telling Mom is a behavior, which is B)"
-  ],
-  "B": [
-    "Non-B content in B (Mom's reaction belongs to C)",
-    "B missing — actual behavior is in panel 1"
-  ],
-  "C": [""],                    
-  "D": [""],
-  "Order": ["Behavior in panel 1 should move to panel 2",
-    "Reaction in panel 2 should move to panel 3"]
-}
-
-# Example 3 
-Input  
-"panel1": "I walked down the hallway at school.",  
-"panel2": "Sohyun suddenly blocked my way and started crying.",  
-"panel3": null,  
-"panel4": "I felt nervous and sweaty."
-
-{
-  "situation_type": "problematic",
-  "A": [""],
-  "B": [
-    "reason for crying missing — e.g. 'because I accidentally bumped her'"
-  ],
-  "C": [
-    "C missing — e.g. 'Sohyun kept crying and wouldn't move'"
-  ],
-  "D": [""],
-  "Order": [""]
-}`;
+`;
 
     const userPrompt = `CONTEXT:
 Location: ${this.location}
@@ -616,10 +570,15 @@ ${conversation}`;
         console.log(`[DEBUG] User said no to "is it correct now", asking for more corrections`);
         return "아앗;; 어디가 어떻게 틀렸어? 😅";
       } else if (message.toLowerCase().includes('응') || message.toLowerCase().includes('네') || message.toLowerCase().includes('yes') || message.toLowerCase().includes('y')) {
-        // 이제 맞다고 하면 comic_context로 넘어감
-        console.log(`[DEBUG] User said yes to "is it correct now", transitioning to COMIC_CONTEXT`);
+        // 이제 맞다고 하면 comic.ts를 호출해서 4컷 패널 생성 후 comic_context로 넘어감
+        console.log(`[DEBUG] User said yes to "is it correct now", generating comic panels and transitioning to COMIC_CONTEXT`);
+        
+        // comic.ts를 호출해서 4컷 패널 생성
+        await this.generateComicPanels();
+        
         this.chatbotStage = ChatbotStage.COMIC_CONTEXT;
         this.revisionCount = 0; // revision_2를 위해 초기화
+        this.focusedPanel = undefined; // comic_context 시작 시 포커스 초기화
         return "좋아! 그럼 이제 만화를 더 완성해볼게! 🎨";
       } else {
         return "응 아니 중에 골라줘! 😅";
@@ -631,10 +590,15 @@ ${conversation}`;
       console.log(`[DEBUG] First message in REVISION_1, processing yes/no response`);
       
       if (message.toLowerCase().includes('아니') || message.toLowerCase().includes('no') || message.toLowerCase().includes('n')) {
-        // "아니"라고 답한 경우, comic_context로 넘어감 (Python과 동일)
-        console.log(`[DEBUG] User said no to mistakes, transitioning to COMIC_CONTEXT`);
+        // "아니"라고 답한 경우, comic.ts를 호출해서 4컷 패널 생성 후 comic_context로 넘어감
+        console.log(`[DEBUG] User said no to mistakes, generating comic panels and transitioning to COMIC_CONTEXT`);
+        
+        // comic.ts를 호출해서 4컷 패널 생성
+        await this.generateComicPanels();
+        
         this.chatbotStage = ChatbotStage.COMIC_CONTEXT;
         this.revisionCount = 0; // revision_2를 위해 초기화
+        this.focusedPanel = undefined; // comic_context 시작 시 포커스 초기화
         return "좋아! 그럼 이제 만화를 더 완성해볼게! 🎨";
       } else if (message.toLowerCase().includes('응') || message.toLowerCase().includes('네') || message.toLowerCase().includes('yes') || message.toLowerCase().includes('y')) {
         console.log(`[DEBUG] User said yes, incrementing revisionCount`);
@@ -676,31 +640,33 @@ ABCD STRUCTURE:
 - D (panel4): Emotion - writer's own feeling only (emotion word)
 
 REVISION RULES:
-1. When user corrects only the ACTION/BEHAVIOR, preserve the LOCATION/CONTEXT
-2. When user corrects LOCATION/PLACE, replace the entire location context
-3. When user says something is "not correct" or "wrong", identify what part is wrong:
+1. **ONLY modify the specific panel(s) that the user wants to change**
+2. **KEEP all other panels exactly as they are**
+3. When user corrects only the ACTION/BEHAVIOR, preserve the LOCATION/CONTEXT
+4. When user corrects LOCATION/PLACE, replace the entire location context
+5. When user says something is "not correct" or "wrong", identify what part is wrong:
    - If it's the ACTION: keep location, change action
    - If it's the LOCATION: change location completely
    - If it's the WHOLE SENTENCE: replace completely
 
-4. Understand the user's correction request and apply it appropriately
-5. Maintain the ABCD structure while making the requested changes
-6. Keep each panel to one Korean past-tense sentence, first-person diary style
-7. Only change what the user specifically requested
-8. Preserve the overall story flow and coherence
-9. Output exactly this JSON format:
+6. Understand the user's correction request and apply it appropriately
+7. Maintain the ABCD structure while making the requested changes
+8. Keep each panel to one Korean past-tense sentence, first-person diary style
+9. **CRITICAL**: Only change what the user specifically requested
+10. Preserve the overall story flow and coherence
+11. Output exactly this JSON format with ONLY the panels that need to change:
 
 {
-  "panel1": "...",
-  "panel2": "...", 
-  "panel3": "...",
-  "panel4": "..."
+  "panel1": "new content only if panel1 needs to change",
+  "panel2": "new content only if panel2 needs to change", 
+  "panel3": "new content only if panel3 needs to change",
+  "panel4": "new content only if panel4 needs to change"
 }
 
-10. If a panel should remain unchanged, use the original content
-11. If a panel should be null, use "null"
-12. Write in natural Korean
-13. **IMPORTANT**: Make sure the story remains coherent and logical after revision`;
+12. **DO NOT include panels that should remain unchanged**
+13. **DO NOT include panels that should be null**
+14. Write in natural Korean
+15. **IMPORTANT**: Make sure the story remains coherent and logical after revision`;
 
     // Get current panel contents
     const currentPanels = {
@@ -717,14 +683,7 @@ REVISION RULES:
 "panel4": "${currentPanels.panel4}"
 
 User's correction request: ${userCorrection}
-
-Please apply the user's correction while maintaining the ABCD structure and story coherence. 
-Analyze whether the user is correcting:
-- Only the ACTION (keep location/context)
-- Only the LOCATION (replace location completely)  
-- The entire content (replace completely)
-
-Make sure the revised story is logical and coherent.`;
+`;
 
     try {
       const response = await this.openai.chat.completions.create({
@@ -739,29 +698,33 @@ Make sure the revised story is logical and coherent.`;
 
       const revisedPanels = JSON.parse(response.choices[0]?.message?.content || '{}');
       
-      // Update all panels with revised content
+      // Update only the panels that were returned in the response, preserving grid information
       if (revisedPanels.panel1 !== undefined) {
         this.comicData!.panel1 = { 
           content: revisedPanels.panel1 === "null" ? null : revisedPanels.panel1, 
-          missing_content: revisedPanels.panel1 === "null" ? "이벤트 1" : null 
+          missing_content: revisedPanels.panel1 === "null" ? "이벤트 1" : null,
+          grid: this.comicData!.panel1?.grid // 기존 grid 정보 보존
         };
       }
       if (revisedPanels.panel2 !== undefined) {
         this.comicData!.panel2 = { 
           content: revisedPanels.panel2 === "null" ? null : revisedPanels.panel2, 
-          missing_content: revisedPanels.panel2 === "null" ? "이벤트 2" : null 
+          missing_content: revisedPanels.panel2 === "null" ? "이벤트 2" : null,
+          grid: this.comicData!.panel2?.grid // 기존 grid 정보 보존
         };
       }
       if (revisedPanels.panel3 !== undefined) {
         this.comicData!.panel3 = { 
           content: revisedPanels.panel3 === "null" ? null : revisedPanels.panel3, 
-          missing_content: revisedPanels.panel3 === "null" ? "이벤트 3" : null 
+          missing_content: revisedPanels.panel3 === "null" ? "이벤트 3" : null,
+          grid: this.comicData!.panel3?.grid // 기존 grid 정보 보존
         };
       }
       if (revisedPanels.panel4 !== undefined) {
         this.comicData!.panel4 = { 
           content: revisedPanels.panel4 === "null" ? null : revisedPanels.panel4, 
-          missing_content: revisedPanels.panel4 === "null" ? "감정" : null 
+          missing_content: revisedPanels.panel4 === "null" ? "감정" : null,
+          grid: this.comicData!.panel4?.grid // 기존 grid 정보 보존
         };
       }
       
@@ -786,19 +749,15 @@ Make sure the revised story is logical and coherent.`;
       
       // Python과 동일하게: 첫 번째 메시지로 패널 재구성 (사용자 답변 기반)
       console.log(`[DEBUG] Reconstructing panel with first message: "${message}"`);
-      await this.reconstructPanel(message, "첫 번째 응답");
+      await this.reconstructPanel(message, "", true); // 첫 번째 메시지는 conversation history에 추가하지 않음
       console.log(`[DEBUG] After first reconstruction, comicData:`, this.comicData);
-      
-      // 재구성 후 다시 분석
-      this.storyAnalysis = await this.analyzeStoryFlow();
-      console.log(`[DEBUG] Updated storyAnalysis after reconstruction:`, this.storyAnalysis);
     } else {
       console.log(`[DEBUG] Using existing storyAnalysis:`, this.storyAnalysis);
       console.log(`[DEBUG] Reconstructing panel with message: "${message}"`);
-      await this.reconstructPanel(message, "사용자 입력");
+      await this.reconstructPanel(message, "사용자 입력", false);
       console.log(`[DEBUG] After reconstruction, comicData:`, this.comicData);
       
-      // 재구성 후 다시 분석
+      // Python과 동일하게: 재구성 후에만 분석 업데이트
       this.storyAnalysis = await this.analyzeStoryFlow();
       console.log(`[DEBUG] Updated storyAnalysis after reconstruction:`, this.storyAnalysis);
     }
@@ -818,19 +777,41 @@ Make sure the revised story is logical and coherent.`;
 
     if (!hasIssues) {
       console.log(`[DEBUG] No more issues, transitioning to REVISION_2`);
+      
+      // comic_context의 최종 결과물로 새로운 grid 생성
+      await this.generateComicPanels();
+      
       this.chatbotStage = ChatbotStage.REVISION_2;
+      this.focusedPanel = undefined; // revision_2에서는 포커스 하이라이트 제거
       return "완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔";
     } else {
       console.log(`[DEBUG] Still has issues, getting next question...`);
       const nextQuestion = await this.getNextQuestion();
       console.log(`[DEBUG] Next question: "${nextQuestion}"`);
       
-      // Python comic_context.py와 동일하게: 대화 기록에 Q&A 추가
-      if (nextQuestion) {
-        // 이전 질문과 현재 답변을 대화 기록에 추가
-        // (sendMessage에서 이미 추가되므로 여기서는 질문만 저장)
-        console.log(`[DEBUG] Adding Q&A to conversation history: Q="${nextQuestion}", A="${message}"`);
+      // current category to focus on을 직접 결정
+      const categories = ['A', 'B', 'C', 'D', 'Order'];
+      let currentCategory: string | null = null;
+      for (const category of categories) {
+        const issues = this.storyAnalysis[category] || [];
+        if (issues && Array.isArray(issues) && issues.some((issue: string) => issue.trim())) {
+          currentCategory = category;
+          break;
+        }
       }
+      
+      // focusedPanel 설정
+      if (currentCategory && ['A', 'B', 'C', 'D'].includes(currentCategory)) {
+        this.focusedPanel =
+          currentCategory === 'A' ? 'panel1' :
+          currentCategory === 'B' ? 'panel2' :
+          currentCategory === 'C' ? 'panel3' :
+          currentCategory === 'D' ? 'panel4' : undefined;
+      } else {
+        this.focusedPanel = undefined;
+      }
+      
+      console.log(`[DEBUG] Current category to focus on: ${currentCategory}, focusedPanel: ${this.focusedPanel}`);
       
       return nextQuestion || "다음에 대해 말해줘!";
     }
@@ -1202,7 +1183,7 @@ Input
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: 0.1,
+        temperature: 0.05,
         max_tokens: 500
       });
 
@@ -1215,7 +1196,7 @@ Input
     }
   }
 
-  private async reconstructPanel(answer: string, question: string): Promise<void> {
+  private async reconstructPanel(answer: string, question: string, addToHistory: boolean = true): Promise<void> {
     if (!this.storyAnalysis) {
       this.storyAnalysis = await this.analyzeStoryFlow();
     }
@@ -1225,39 +1206,45 @@ Input
 You are a rewriting engine that fixes 4-panel diary drafts written in first-person Korean past tense based on the user's answer and analysis_result.
 
 ABCD STRUCTURE:
-- A (panel1): Antecedent - where, who, situation (time optional)
-- B (panel2): Behavior - observable action, how/how long/with what
+- A (panel1): Antecedent - where, who, situation 
+- B (panel2): Behavior - observable action, how/with what
 - C (panel3): Consequence - immediate result or existing character's response (avoid new characters)
 - D (panel4): Emotion - writer's own feeling only (emotion word)
 
-TRANSFORMATION RULES
-1. NEVER invent new events, lines, or feelings. ONLY use text from "panels_original" + EXACT words from "new_QA.answer".
-2. Treat null/None as an empty panel. When you fill an empty panel, reuse only existing material (no duplication).
-3. Obey every instruction in analysis_result.Order (swap panels as stated).
-4. CRITICAL: ONLY use information from the user's answer to fill missing information:
-   • If user mentioned place/time in their answer → add to panel1 (A)
-   • If user mentioned behavior in their answer → add to panel2 (B)
-   • If user mentioned consequence in their answer → add to panel3 (C)
-   • If user mentioned emotion words in their answer → add to panel4 (D)
+CRITICAL RULES - YOU MUST FOLLOW THESE EXACTLY when you fill the panels:
+1. **ONLY use content from "panels_original" + "new_QA.answer"**
+2. **NEVER use ANY content from "analysis_result"**
+3. **NEVER invent new events, lines, or feelings**
+4. **KEEP ALL content from "panels_original" - NEVER delete or remove existing content**
+
+TRANSFORMATION RULES:
+1. **When adding missing information:**
+   • ONLY use information from user's answer (new_QA.answer)
+   • If user mentioned place/time → add to panel1 (A)
+   • If user mentioned behavior → add to panel2 (B)
+   • If user mentioned consequence → add to panel3 (C)
+   • If user mentioned emotion words → add to panel4 (D)
    • If user didn't provide specific information → leave panel as null
-5. IMPORTANT: analysis_result is for reference only - it shows what's missing, but you can ONLY fill panels with information from the user's answer.
-6. PANEL CONTENT REORGANIZATION: Move content to appropriate panels based on analysis_result:
+
+2. **analysis_result is ONLY for:**
+   - Order changes (swapping panels as stated in Order)
+   - Moving content to correct categories (A/B/C/D) if it's in wrong panel
    • Non-A content in A → move to appropriate panel ONLY if it exists in original
    • Non-B content in B → move to appropriate panel ONLY if it exists in original
    • Non-C content in C → move to appropriate panel ONLY if it exists in original
    • Non-D content in D → move to appropriate panel ONLY if it exists in original
-7. Each panel must contain only content appropriate for its category.
-8. Keep each panel to one Korean past-tense sentence, first-person diary style.
-9. When filling empty panels:
-   - DO NOT repeat information already stated in other panels
-   - DO NOT generate new content
-   - ONLY use EXACT words from user's answer
-   - If user's answer doesn't contain relevant information, leave panel as null
-10. If user's answer doesn't contain clear emotion words, leave panel 4 as null
-11. NEVER add details like time, place, duration, or reactions unless user explicitly mentioned them
-12. CRITICAL: Only use information that the user explicitly provided in their answer. Do not infer or assume anything not directly stated by the user.
-13. If the user's answer doesn't provide enough information to fill a panel according to analysis_result, leave that panel as null.
-14. Output exactly this JSON (nothing else, no line breaks inside values):
+
+3. **Each panel must contain only content appropriate for its category**
+4. **Keep each panel to one Korean past-tense sentence, first-person diary style**
+
+ABSOLUTELY FORBIDDEN - NEVER DO THESE:
+- Using any text from analysis_result issues
+- Creating content based on analysis_result suggestions
+- Filling panels with analysis_result examples
+- Using analysis_result to generate new content
+- Copying any part of analysis_result into panels
+
+Output exactly this JSON (nothing else, no line breaks inside values):
 
 {
   "panel1": "...",
@@ -1353,7 +1340,10 @@ answer: "내가 그냥 지나갔어."
   "panel2": "Sohyun suddenly blocked my way and started crying because I just passed her.",  
   "panel3": null,  
   "panel4": "I felt nervous and sweaty."
-}`;
+}
+
+<analysis_result>
+${JSON.stringify(this.storyAnalysis, null, 2)}`;
 
     const panelsOriginal = {
       panel1: this.comicData?.panel1?.content || null,
@@ -1370,8 +1360,7 @@ answer: "내가 그냥 지나갔어."
 <new_QA>
 question: "${question}"
 answer: "${answer}"
-<analysis_result>
-${JSON.stringify(this.storyAnalysis, null, 2)}
+
 `;
 
     try {
@@ -1381,7 +1370,7 @@ ${JSON.stringify(this.storyAnalysis, null, 2)}
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: 0.1,
+        temperature: 0,
         max_tokens: 500
       });
 
@@ -1402,10 +1391,12 @@ ${JSON.stringify(this.storyAnalysis, null, 2)}
       }
 
       // Update conversation history (Python 코드와 동일)
-      this.conversationHistory.push({
-        user: answer,
-        bot: question
-      });
+      if (addToHistory) {
+        this.comicContextHistory.push({
+          user: answer,
+          bot: question
+        });
+      }
       
     } catch (error) {
       console.error('패널 재구성 실패:', error);
@@ -1451,9 +1442,9 @@ ${JSON.stringify(this.storyAnalysis, null, 2)}
 
     // Create conversation summary (Python과 동일하게)
     let conversationSummary = "";
-    if (this.conversationHistory.length > 0) {
+    if (this.comicContextHistory.length > 0) {
       // Python과 동일하게: 최근 4개의 대화만 사용
-      const recentConversations = this.conversationHistory.slice(-4);
+      const recentConversations = this.comicContextHistory.slice(-4);
       conversationSummary = "\nPrevious Q&A:\n" + recentConversations
         .map(entry => `Q: ${entry.bot}\nA: ${entry.user}`)
         .join('\n');
@@ -1461,22 +1452,9 @@ ${JSON.stringify(this.storyAnalysis, null, 2)}
 
     console.log(`[DEBUG] Conversation summary:`, conversationSummary);
 
-    // Determine which category to focus on (A → B → C → D → Order priority)
-    let currentCategory = null;
-    const categories = ['A', 'B', 'C', 'D', 'Order'];
-    for (const category of categories) {
-      const issues = this.storyAnalysis[category] || [];
-      if (issues && Array.isArray(issues) && issues.some((issue: string) => issue.trim())) {
-        currentCategory = category;
-        break;
-      }
-    }
-
-    console.log(`[DEBUG] Current category to focus on: ${currentCategory}`);
-
-    // Check for consecutive "don't know" answers for the current category
+    // Check for consecutive "don't know" answers
     const dontKnowKeywords = ["모르겠어", "기억 안 나", "잘 모르겠어", "모르겠다", "기억이 안 나", "잘 모르겠다", "몰라", "모르겠다고"];
-    const recentAnswers = this.conversationHistory.slice(-3).map(entry => entry.user);
+    const recentAnswers = this.comicContextHistory.slice(-3).map(entry => entry.user);
     const consecutiveDontKnowCount = recentAnswers.filter(answer => 
       dontKnowKeywords.some(keyword => answer.toLowerCase().includes(keyword))
     ).length;
@@ -1669,7 +1647,6 @@ conversation_summary:${conversationSummary}
 issue_summary:${issueSummary}
 
 consecutive_dont_know_count: ${consecutiveDontKnowCount}
-current_category: ${currentCategory}
 
 Please generate a question that addresses the FIRST missing information gap.`;
 
@@ -1686,6 +1663,8 @@ Please generate a question that addresses the FIRST missing information gap.`;
 
       const result = JSON.parse(response.choices[0]?.message?.content || '{"question": "다음에 대해 말해줘!"}');
       console.log(`[DEBUG] Generated question:`, result);
+      
+      // current category to focus on 정보는 내부적으로만 사용하고, 질문만 반환
       return result.question;
     } catch (error) {
       console.error('질문 생성 실패:', error);
@@ -1696,5 +1675,62 @@ Please generate a question that addresses the FIRST missing information gap.`;
   // Python과 동일하게: farewell 메시지와 최종 요약을 분리
   public getFinalSummary(): string {
     return this.getFinalSummaryInternal();
+  }
+
+  private async generateComicPanels(): Promise<void> {
+    try {
+      console.log(`[DEBUG] Generating comic panels from Revision_1 data`);
+      
+      // 현재 comicData에서 패널 내용 추출
+      const panelContents = {
+        panel1: this.comicData?.panel1?.content || "null",
+        panel2: this.comicData?.panel2?.content || "null",
+        panel3: this.comicData?.panel3?.content || "null",
+        panel4: this.comicData?.panel4?.content || "null"
+      };
+      
+      console.log(`[DEBUG] Panel contents for comic generation:`, panelContents);
+      
+      // API 키 가져오기 (constructor에서 받은 것을 사용)
+      const apiKey = (this.openai as any).apiKey;
+      
+      // FourSceneComic 인스턴스 생성 및 실행
+      const fourSceneComic = new FourSceneComic(panelContents, apiKey);
+      const generatedComicData = await fourSceneComic.generate();
+      
+      console.log(`[DEBUG] Generated comic data:`, generatedComicData);
+      
+      // 생성된 comic data를 현재 comicData에 저장
+      // 기존 content는 유지하고 grid 정보만 추가
+      if (generatedComicData.panel1) {
+        this.comicData!.panel1 = {
+          ...this.comicData!.panel1,
+          grid: generatedComicData.panel1.grid
+        };
+      }
+      if (generatedComicData.panel2) {
+        this.comicData!.panel2 = {
+          ...this.comicData!.panel2,
+          grid: generatedComicData.panel2.grid
+        };
+      }
+      if (generatedComicData.panel3) {
+        this.comicData!.panel3 = {
+          ...this.comicData!.panel3,
+          grid: generatedComicData.panel3.grid
+        };
+      }
+      if (generatedComicData.panel4) {
+        this.comicData!.panel4 = {
+          ...this.comicData!.panel4,
+          grid: generatedComicData.panel4.grid
+        };
+      }
+      
+      console.log(`[DEBUG] Updated comicData with generated grids:`, this.comicData);
+      
+    } catch (error) {
+      console.error('Comic panel generation failed:', error);
+    }
   }
 } 

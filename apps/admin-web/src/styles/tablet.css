@@ -1,0 +1,303 @@
+/* Galaxy Tab S9 Tablet Styles */
+/* Resolution: 1600 x 2560 (274 PPI) - Landscape mode */
+
+/* Force landscape orientation */
+@media screen and (orientation: portrait) {
+  body {
+    transform: rotate(90deg);
+    transform-origin: left top;
+    width: 100vh;
+    height: 100vw;
+    overflow-x: hidden;
+    position: absolute;
+    top: 100%;
+    left: 0;
+  }
+}
+
+/* Galaxy Tab S9 specific styles */
+@media screen and (min-width: 1600px) and (min-height: 2560px) {
+  /* Ensure full viewport usage for Galaxy Tab S9 */
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Optimize for Galaxy Tab S9 touch interaction */
+  button, input, select, textarea {
+    min-height: 48px; /* Larger touch target for tablet */
+    font-size: 18px; /* Larger font for better readability */
+  }
+
+  /* Larger touch targets for better usability */
+  .tablet-touch-target {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 16px;
+  }
+
+  /* Optimize scrolling for touch */
+  .tablet-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* Prevent text selection on interactive elements */
+  .tablet-no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  /* Optimize for high DPI displays */
+  .tablet-high-dpi {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Landscape mode optimizations for Galaxy Tab S9 */
+@media screen and (orientation: landscape) and (min-width: 1600px) {
+  /* Ensure proper aspect ratio handling for Galaxy Tab S9 */
+  .tablet-landscape {
+    aspect-ratio: 5/8; /* 1600:2560 ratio */
+  }
+
+  /* Optimize layout for landscape on Galaxy Tab S9 */
+  .tablet-landscape-layout {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* Specific Galaxy Tab S9 landscape optimizations */
+  .galaxy-tab-s9-landscape {
+    /* Optimize for 2560 x 1600 landscape mode */
+    max-width: 2560px;
+    max-height: 1600px;
+    margin: 0 auto;
+  }
+}
+
+/* Touch-friendly input styles for Galaxy Tab S9 */
+.tablet-input {
+  font-size: 18px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 2px solid #e0e0e0;
+  outline: none;
+  transition: border-color 0.2s;
+  min-height: 48px;
+}
+
+.tablet-input:focus {
+  border-color: #4A90E2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+/* Touch-friendly button styles for Galaxy Tab S9 */
+.tablet-button {
+  font-size: 18px;
+  padding: 16px 24px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tablet-button:active {
+  transform: scale(0.98);
+}
+
+/* Optimize scrolling areas for Galaxy Tab S9 */
+.tablet-scroll-area {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #c0c0c0 transparent;
+}
+
+.tablet-scroll-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tablet-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tablet-scroll-area::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 4px;
+}
+
+.tablet-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+/* Prevent zoom on input focus for Galaxy Tab S9 */
+@media screen and (min-width: 1600px) {
+  input, select, textarea {
+    font-size: 18px !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .tablet-high-contrast {
+    border-width: 2px;
+    color: #000;
+    background: #fff;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .tablet-reduced-motion {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Galaxy Tab S9 specific optimizations */
+.galaxy-tab-s9 {
+  /* Custom styles for Galaxy Tab S9 */
+  font-size: 18px; /* Larger text for better readability */
+  line-height: 1.6; /* Better line spacing */
+}
+
+/* Optimize for Galaxy Tab S9's 274 PPI display */
+.galaxy-tab-s9-high-dpi {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Galaxy Tab S9 landscape layout helpers */
+.galaxy-tab-s9-landscape-container {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.galaxy-tab-s9-comic-section {
+  flex: 1.5; /* 60% of width */
+  background: white;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  border-right: 2px solid #e0e0e0;
+}
+
+.galaxy-tab-s9-chat-section {
+  flex: 1; /* 40% of width */
+  background: white;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Galaxy Tab S9 touch optimizations */
+.galaxy-tab-s9-touch {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 12px 16px;
+  font-size: 18px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.galaxy-tab-s9-touch:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.galaxy-tab-s9-touch:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Galaxy Tab S9 responsive grid */
+.galaxy-tab-s9-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  padding: 20px;
+}
+
+/* Galaxy Tab S9 card design */
+.galaxy-tab-s9-card {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.galaxy-tab-s9-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Galaxy Tab S9 typography */
+.galaxy-tab-s9-title {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.galaxy-tab-s9-subtitle {
+  font-size: 18px;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.galaxy-tab-s9-text {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #333;
+}
+
+/* Galaxy Tab S9 spacing */
+.galaxy-tab-s9-spacing {
+  padding: 20px;
+  margin: 20px;
+}
+
+.galaxy-tab-s9-gap {
+  gap: 20px;
+}
+
+/* Galaxy Tab S9 colors */
+.galaxy-tab-s9-primary {
+  color: #4A90E2;
+}
+
+.galaxy-tab-s9-secondary {
+  color: #666;
+}
+
+.galaxy-tab-s9-background {
+  background: #f5f5f5;
+}
+
+.galaxy-tab-s9-white {
+  background: white;
+} 

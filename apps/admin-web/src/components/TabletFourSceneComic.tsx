@@ -15,68 +15,104 @@ interface Panel {
   grid: Tile[][];
 }
 
-interface FourSceneComicProps {
+interface TabletFourSceneComicProps {
   panels: Record<string, Panel>;
+  focusedPanel?: string;
 }
 
-// Styled components
+// Styled components optimized for tablet
 const ComicContainer = styled.div`
   display: flex;
-  gap: 32px;
-  padding: 16px;
-  border-radius: 8px;
-  max-width: 1200px;
-  margin: 0 auto;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 20px;
+  padding: 2px 5px 5px 5px;
+  border-radius: 12px;
+  width: 100%;
+  height: 100vh;
+  max-width: 900px;
+  max-height: 100vh;
+  margin: 15vh auto 0 auto;
+  align-items: center;
+  justify-content: flex-start;
 `;
 
 const PanelsContainer = styled.div<{ maxContentLength: number }>`
   display: grid;
-  grid-template-columns: repeat(2, 350px);
-  grid-template-rows: repeat(2, ${props => Math.max(350, props.maxContentLength * 8)}px);
-  gap: 16px;
-  justify-content: center;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 15px;
+  width: 100%;
+  max-width: 700px;
+  max-height: 400px;
+  aspect-ratio: 2;
+  justify-items: center;
+  align-items: start;
 `;
 
 const TextContainer = styled.div`
-  flex: 0 0 300px;
-  padding: 16px;
+  width: 100%;
+  max-width: 600px;
+  padding: 20px;
   background: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  height: 716px;
-  overflow-y: auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid #e0e0e0;
 `;
 
 const StoryText = styled.div`
-  margin-bottom: 16px;
-  padding: 8px;
-  border-radius: 4px;
+  margin-bottom: 15px;
+  padding: 12px;
+  border-radius: 8px;
   background: #f8f9fa;
+  border-left: 4px solid #4A90E2;
+  font-size: 16px;
+  line-height: 1.5;
+  
   &:last-child {
     margin-bottom: 0;
   }
 `;
 
-const PanelContainer = styled.div<{ contentLength: number }>`
+const PanelContainer = styled.div<{ highlight?: boolean; contentLength: number }>`
   background: white;
-  padding: 16px;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid #e0e0e0;
   position: relative;
   width: 100%;
-  min-height: ${props => Math.max(400, props.contentLength * 2 + 350)}px;
-  max-height: 80vh;
+  height: 330px;
+  max-height: 330px;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  ${({ highlight }) =>
+    highlight &&
+    `
+      border: 3px solid #e53935 !important;
+      box-shadow: 0 0 0 4px rgba(229,57,53,0.15);
+    `}
+`;
+
+const PanelStoryText = styled.div`
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #f8f9fa;
+  border-left: 3px solid #4A90E2;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #333;
+  flex-shrink: 0;
 `;
 
 const PanelNumber = styled.div`
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: 12px;
+  right: 12px;
   width: 28px;
   height: 28px;
-  background: #4A5568;
+  background: #4A90E2;
   color: white;
   border-radius: 50%;
   display: flex;
@@ -85,19 +121,20 @@ const PanelNumber = styled.div`
   font-size: 16px;
   font-weight: bold;
   z-index: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 `;
 
 const PanelGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   grid-template-rows: repeat(5, 1fr);
-  gap: 2px;
-  width: 300px;
-  height: 300px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  gap: 3px;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
 `;
 
 const Tile = styled.div<{ type: TileType }>`
@@ -116,7 +153,7 @@ const Tile = styled.div<{ type: TileType }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 12px;
   aspect-ratio: 1;
   padding: 4px;
   text-align: center;
@@ -124,6 +161,7 @@ const Tile = styled.div<{ type: TileType }>`
   white-space: pre-wrap;
   line-height: 1.2;
   min-height: 100%;
+  border-radius: 4px;
   
   /* 호버 시 툴팁 스타일 */
   position: relative;
@@ -134,17 +172,32 @@ const Tile = styled.div<{ type: TileType }>`
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.9);
     color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
     white-space: nowrap;
     z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 `;
 
-export const FourSceneComic: React.FC<FourSceneComicProps> = ({ panels }) => {
+const StoryTitle = styled.h3`
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #333;
+  text-align: center;
+`;
+
+const PanelNumberText = styled.span`
+  font-weight: bold;
+  color: #4A90E2;
+  margin-right: 8px;
+`;
+
+export const TabletFourSceneComic: React.FC<TabletFourSceneComicProps> = ({ panels, focusedPanel }) => {
   // 모든 패널의 스토리 길이를 계산하여 최대 길이 찾기
   const allContentLengths = Object.values(panels).map(panel => 
     panel?.content?.length || 0
@@ -157,11 +210,18 @@ export const FourSceneComic: React.FC<FourSceneComicProps> = ({ panels }) => {
       <PanelsContainer maxContentLength={maxContentLength}>
         {['panel1', 'panel2', 'panel3', 'panel4'].map((panelId, index) => {
           const panel = panels[panelId];
+          if (!panel) {
+            return null; // 패널이 null이면 아예 렌더링하지 않음
+          }
+          const highlight = focusedPanel === panelId;
           return (
-            <PanelContainer key={panelId} contentLength={panel.content.length}>
-              <PanelNumber>{index + 1}</PanelNumber>
+            <PanelContainer key={panelId} highlight={highlight} contentLength={panel.content?.length || 0}>
+              <PanelStoryText>
+                <PanelNumberText>{index + 1}.</PanelNumberText>
+                {!panel.content?.startsWith('null') && panel.content}
+              </PanelStoryText>
               <PanelGrid>
-                {panel.grid.map((row, y) =>
+                {panel.grid && panel.grid.map((row, y) =>
                   row.map((tile, x) => (
                     <Tile
                       key={`${x}-${y}`}
@@ -177,18 +237,8 @@ export const FourSceneComic: React.FC<FourSceneComicProps> = ({ panels }) => {
           );
         })}
       </PanelsContainer>
-      
-      <TextContainer>
-        <h3 className="text-lg font-bold mb-4">스토리</h3>
-        {['panel1', 'panel2', 'panel3', 'panel4'].map((panelId, index) => (
-          <StoryText key={panelId}>
-            <span className="font-bold">{index + 1}. </span>
-            {panels[panelId].content}
-          </StoryText>
-        ))}
-      </TextContainer>
     </ComicContainer>
   );
 };
 
-export default FourSceneComic; 
+export default TabletFourSceneComic; 

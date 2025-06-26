@@ -48,6 +48,7 @@ class ScenePanel {
 
   constructor(content: string) {
     this.content = content;
+    // 항상 5x5 grid 유지
     this.grid = Array(5).fill(null).map((_, y) =>
       Array(5).fill(null).map((_, x) => ({
         type: 'empty',
@@ -247,14 +248,20 @@ JUDGMENT RULES
    - "찼다/차다/발로" → figure ↔ object: beside, below
    - "던졌다/날아갔다" → figure → object: below; object → obstacle: above
    - "피했다/숨었다" → figure → shelter: above; shelter → threat: below
-2. location can add background elements (담장, 운동장 …)
+2. location can add background elements (담장, 운동장, 의자 등)
    - "A 너머 B" means A is below B, B is above A
    - "A 밑 B" means A is above B, B is below A
+   - "A 밑에 숨었다" → figure → A: above (figure is under A)
+   - "A 위에 올라갔다" → figure → A: below (figure is on top of A)
 3. 대화 / tell / 생각 / think
    - Create "말풍선" for tell, "생각" for think
    - Speaker ↔ balloon/cloud: beside, below, above (all apply)
 4. Multiple figures default to beside unless text says otherwise
 5. If multiple objects exist, output every unordered pair exactly once
+6. IMPORTANT: When location contains spatial relationships (밑, 위, 옆, 앞, 뒤), treat the reference object as a separate element
+   - "의자 밑" → treat "의자" as an object element
+   - "테이블 위" → treat "테이블" as an object element
+   - "문 앞" → treat "문" as an object element
 
 Below is a worked example; follow the same schema.
 
@@ -286,6 +293,15 @@ OUTPUT
 [
 {"target 1":"나, 친구","target 2":"버스정류장","topology":"above"},
 {"target 1":"버스정류장","target 2":"비","topology":"above"}
+]
+
+EXAMPLE 4
+INPUT  
+{"panel":"2","act":"숨었다","figure":"나","object":"","location":"의자 밑"}
+OUTPUT  
+[
+{"target 1":"나","target 2":"의자","topology":"above"},
+{"target 1":"의자","target 2":"나","topology":"below"}
 ]`;
 
     const userPrompt = `Convert below elements to the topology:
@@ -460,25 +476,7 @@ Expected output:
   {"type": "object", "content": "수건", "position": [2, 2]}
 ]
 
-Example 3:
-Input elements:
-[
-  {"type": "figure", "content": "나"},
-  {"type": "figure", "content": "선생님"},
-  {"type": "object", "content": "숨바꼭질"}
-]
-Input topology:
-[
-  {"target 1": "나", "target 2": "선생님", "topology": "beside"},
-  {"target 1": "나", "target 2": "숨바꼭질", "topology": "beside"},
-  {"target 1": "선생님", "target 2": "숨바꼭질", "topology": "beside"}
-]
-Expected output:
-[
-  {"type": "figure", "content": "나", "position": [1, 2]},
-  {"type": "figure", "content": "선생님", "position": [2, 2]},
-  {"type": "object", "content": "숨바꼭질", "position": [3, 2]}
-]
+
 
 Return only a JSON array of grid positions. Use ONLY the elements provided in the input.`;
 

@@ -13,6 +13,8 @@
 import { Route as rootRoute } from './routes/__root'
 import { Route as SigninImport } from './routes/signin'
 import { Route as ProtectedIndexImport } from './routes/_protected/index'
+import { Route as ProtectedTabletComicChatbotImport } from './routes/_protected/tablet-comic-chatbot'
+import { Route as ProtectedTabletImport } from './routes/_protected/tablet'
 import { Route as ProtectedComicChatbotImport } from './routes/_protected/comic-chatbot'
 import { Route as ProtectedComicImport } from './routes/_protected/comic'
 import { Route as ProtectedLayoutImport } from './routes/_protected/_layout'
@@ -33,6 +35,19 @@ const SigninRoute = SigninImport.update({
 const ProtectedIndexRoute = ProtectedIndexImport.update({
   id: '/_protected/',
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const ProtectedTabletComicChatbotRoute =
+  ProtectedTabletComicChatbotImport.update({
+    id: '/_protected/tablet-comic-chatbot',
+    path: '/tablet-comic-chatbot',
+    getParentRoute: () => rootRoute,
+  } as any)
+
+const ProtectedTabletRoute = ProtectedTabletImport.update({
+  id: '/_protected/tablet',
+  path: '/tablet',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -118,6 +133,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedComicChatbotImport
       parentRoute: typeof rootRoute
     }
+    '/_protected/tablet': {
+      id: '/_protected/tablet'
+      path: '/tablet'
+      fullPath: '/tablet'
+      preLoaderRoute: typeof ProtectedTabletImport
+      parentRoute: typeof rootRoute
+    }
+    '/_protected/tablet-comic-chatbot': {
+      id: '/_protected/tablet-comic-chatbot'
+      path: '/tablet-comic-chatbot'
+      fullPath: '/tablet-comic-chatbot'
+      preLoaderRoute: typeof ProtectedTabletComicChatbotImport
+      parentRoute: typeof rootRoute
+    }
     '/_protected/': {
       id: '/_protected/'
       path: '/'
@@ -192,6 +221,8 @@ export interface FileRoutesByFullPath {
   '': typeof ProtectedLayoutRouteWithChildren
   '/comic': typeof ProtectedComicRoute
   '/comic-chatbot': typeof ProtectedComicChatbotRoute
+  '/tablet': typeof ProtectedTabletRoute
+  '/tablet-comic-chatbot': typeof ProtectedTabletComicChatbotRoute
   '/': typeof ProtectedIndexRoute
   '/dyads/list': typeof ProtectedLayoutDyadsListRoute
   '/dyads': typeof ProtectedLayoutDyadsIndexRoute
@@ -205,6 +236,8 @@ export interface FileRoutesByTo {
   '': typeof ProtectedLayoutRouteWithChildren
   '/comic': typeof ProtectedComicRoute
   '/comic-chatbot': typeof ProtectedComicChatbotRoute
+  '/tablet': typeof ProtectedTabletRoute
+  '/tablet-comic-chatbot': typeof ProtectedTabletComicChatbotRoute
   '/': typeof ProtectedIndexRoute
   '/dyads/list': typeof ProtectedLayoutDyadsListRoute
   '/dyads': typeof ProtectedLayoutDyadsIndexRoute
@@ -219,6 +252,8 @@ export interface FileRoutesById {
   '/_protected/_layout': typeof ProtectedLayoutRouteWithChildren
   '/_protected/comic': typeof ProtectedComicRoute
   '/_protected/comic-chatbot': typeof ProtectedComicChatbotRoute
+  '/_protected/tablet': typeof ProtectedTabletRoute
+  '/_protected/tablet-comic-chatbot': typeof ProtectedTabletComicChatbotRoute
   '/_protected/': typeof ProtectedIndexRoute
   '/_protected/_layout/dyads/list': typeof ProtectedLayoutDyadsListRoute
   '/_protected/_layout/dyads/': typeof ProtectedLayoutDyadsIndexRoute
@@ -234,6 +269,8 @@ export interface FileRouteTypes {
     | ''
     | '/comic'
     | '/comic-chatbot'
+    | '/tablet'
+    | '/tablet-comic-chatbot'
     | '/'
     | '/dyads/list'
     | '/dyads'
@@ -246,6 +283,8 @@ export interface FileRouteTypes {
     | ''
     | '/comic'
     | '/comic-chatbot'
+    | '/tablet'
+    | '/tablet-comic-chatbot'
     | '/'
     | '/dyads/list'
     | '/dyads'
@@ -258,6 +297,8 @@ export interface FileRouteTypes {
     | '/_protected/_layout'
     | '/_protected/comic'
     | '/_protected/comic-chatbot'
+    | '/_protected/tablet'
+    | '/_protected/tablet-comic-chatbot'
     | '/_protected/'
     | '/_protected/_layout/dyads/list'
     | '/_protected/_layout/dyads/'
@@ -272,6 +313,8 @@ export interface RootRouteChildren {
   ProtectedLayoutRoute: typeof ProtectedLayoutRouteWithChildren
   ProtectedComicRoute: typeof ProtectedComicRoute
   ProtectedComicChatbotRoute: typeof ProtectedComicChatbotRoute
+  ProtectedTabletRoute: typeof ProtectedTabletRoute
+  ProtectedTabletComicChatbotRoute: typeof ProtectedTabletComicChatbotRoute
   ProtectedIndexRoute: typeof ProtectedIndexRoute
 }
 
@@ -280,6 +323,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProtectedLayoutRoute: ProtectedLayoutRouteWithChildren,
   ProtectedComicRoute: ProtectedComicRoute,
   ProtectedComicChatbotRoute: ProtectedComicChatbotRoute,
+  ProtectedTabletRoute: ProtectedTabletRoute,
+  ProtectedTabletComicChatbotRoute: ProtectedTabletComicChatbotRoute,
   ProtectedIndexRoute: ProtectedIndexRoute,
 }
 
@@ -297,6 +342,8 @@ export const routeTree = rootRoute
         "/_protected/_layout",
         "/_protected/comic",
         "/_protected/comic-chatbot",
+        "/_protected/tablet",
+        "/_protected/tablet-comic-chatbot",
         "/_protected/"
       ]
     },
@@ -318,6 +365,12 @@ export const routeTree = rootRoute
     },
     "/_protected/comic-chatbot": {
       "filePath": "_protected/comic-chatbot.tsx"
+    },
+    "/_protected/tablet": {
+      "filePath": "_protected/tablet.tsx"
+    },
+    "/_protected/tablet-comic-chatbot": {
+      "filePath": "_protected/tablet-comic-chatbot.tsx"
     },
     "/_protected/": {
       "filePath": "_protected/index.tsx"
