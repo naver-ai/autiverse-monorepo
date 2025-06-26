@@ -8,6 +8,9 @@
     },
     {
       "path": "./libs/ts-core"
+    },
+    {
+      "path": "./apps/mobile"
     }
   ],
   "compilerOptions": {

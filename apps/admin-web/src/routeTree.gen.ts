@@ -8,100 +8,170 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-// Import Routes
-
-import { Route as rootRoute } from './routes/__root'
-import { Route as SigninImport } from './routes/signin'
-import { Route as ProtectedIndexImport } from './routes/_protected/index'
-import { Route as ProtectedTabletComicChatbotImport } from './routes/_protected/tablet-comic-chatbot'
-import { Route as ProtectedTabletImport } from './routes/_protected/tablet'
-import { Route as ProtectedComicChatbotImport } from './routes/_protected/comic-chatbot'
-import { Route as ProtectedComicImport } from './routes/_protected/comic'
-import { Route as ProtectedLayoutImport } from './routes/_protected/_layout'
-import { Route as ProtectedLayoutDyadsIndexImport } from './routes/_protected/_layout.dyads.index'
-import { Route as ProtectedLayoutDyadsListImport } from './routes/_protected/_layout.dyads.list'
-import { Route as ProtectedLayoutDyadsDyadIdIndexImport } from './routes/_protected/_layout.dyads.$dyadId.index'
-import { Route as ProtectedLayoutDyadsDyadIdJournalIndexImport } from './routes/_protected/_layout.dyads.$dyadId.journal.index'
-import { Route as ProtectedLayoutDyadsDyadIdJournalJournalIdImport } from './routes/_protected/_layout.dyads.$dyadId.journal.$journalId'
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as SigninRouteImport } from './routes/signin'
+import { Route as ProtectedIndexRouteImport } from './routes/_protected/index'
+import { Route as ProtectedComicChatbotRouteImport } from './routes/_protected/comic-chatbot'
+import { Route as ProtectedComicRouteImport } from './routes/_protected/comic'
+import { Route as ProtectedTabletComicChatbotRouteImport } from './routes/_protected/tablet-comic-chatbot'
+import { Route as ProtectedTabletRouteImport } from './routes/_protected/tablet'
+import { Route as ProtectedLayoutRouteImport } from './routes/_protected/_layout'
+import { Route as ProtectedLayoutDyadsIndexRouteImport } from './routes/_protected/_layout.dyads.index'
+import { Route as ProtectedLayoutDyadsListRouteImport } from './routes/_protected/_layout.dyads.list'
+import { Route as ProtectedLayoutDyadsDyadIdIndexRouteImport } from './routes/_protected/_layout.dyads.$dyadId.index'
+import { Route as ProtectedLayoutDyadsDyadIdJournalIndexRouteImport } from './routes/_protected/_layout.dyads.$dyadId.journal.index'
+import { Route as ProtectedLayoutDyadsDyadIdJournalJournalIdRouteImport } from './routes/_protected/_layout.dyads.$dyadId.journal.$journalId'
 
 // Create/Update Routes
 
-const SigninRoute = SigninImport.update({
+const SigninRoute = SigninRouteImport.update({
   id: '/signin',
   path: '/signin',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const ProtectedIndexRoute = ProtectedIndexImport.update({
+const ProtectedIndexRoute = ProtectedIndexRouteImport.update({
   id: '/_protected/',
   path: '/',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 const ProtectedTabletComicChatbotRoute =
-  ProtectedTabletComicChatbotImport.update({
+  ProtectedTabletComicChatbotRouteImport.update({
     id: '/_protected/tablet-comic-chatbot',
     path: '/tablet-comic-chatbot',
-    getParentRoute: () => rootRoute,
+    getParentRoute: () => rootRouteImport,
   } as any)
 
-const ProtectedTabletRoute = ProtectedTabletImport.update({
+const ProtectedTabletRoute = ProtectedTabletRouteImport.update({
   id: '/_protected/tablet',
   path: '/tablet',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 
-const ProtectedComicChatbotRoute = ProtectedComicChatbotImport.update({
+const ProtectedComicChatbotRoute = ProtectedComicChatbotRouteImport.update({
   id: '/_protected/comic-chatbot',
   path: '/comic-chatbot',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const ProtectedComicRoute = ProtectedComicImport.update({
+const ProtectedComicRoute = ProtectedComicRouteImport.update({
   id: '/_protected/comic',
   path: '/comic',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const ProtectedLayoutRoute = ProtectedLayoutImport.update({
+const ProtectedLayoutRoute = ProtectedLayoutRouteImport.update({
   id: '/_protected/_layout',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const ProtectedLayoutDyadsIndexRoute = ProtectedLayoutDyadsIndexImport.update({
-  id: '/dyads/',
-  path: '/dyads/',
-  getParentRoute: () => ProtectedLayoutRoute,
-} as any)
-
-const ProtectedLayoutDyadsListRoute = ProtectedLayoutDyadsListImport.update({
-  id: '/dyads/list',
-  path: '/dyads/list',
-  getParentRoute: () => ProtectedLayoutRoute,
-} as any)
-
+const ProtectedLayoutDyadsIndexRoute =
+  ProtectedLayoutDyadsIndexRouteImport.update({
+    id: '/dyads/',
+    path: '/dyads/',
+    getParentRoute: () => ProtectedLayoutRoute,
+  } as any)
+const ProtectedLayoutDyadsListRoute =
+  ProtectedLayoutDyadsListRouteImport.update({
+    id: '/dyads/list',
+    path: '/dyads/list',
+    getParentRoute: () => ProtectedLayoutRoute,
+  } as any)
 const ProtectedLayoutDyadsDyadIdIndexRoute =
-  ProtectedLayoutDyadsDyadIdIndexImport.update({
+  ProtectedLayoutDyadsDyadIdIndexRouteImport.update({
     id: '/dyads/$dyadId/',
     path: '/dyads/$dyadId/',
     getParentRoute: () => ProtectedLayoutRoute,
   } as any)
-
 const ProtectedLayoutDyadsDyadIdJournalIndexRoute =
-  ProtectedLayoutDyadsDyadIdJournalIndexImport.update({
+  ProtectedLayoutDyadsDyadIdJournalIndexRouteImport.update({
     id: '/dyads/$dyadId/journal/',
     path: '/dyads/$dyadId/journal/',
     getParentRoute: () => ProtectedLayoutRoute,
   } as any)
-
 const ProtectedLayoutDyadsDyadIdJournalJournalIdRoute =
-  ProtectedLayoutDyadsDyadIdJournalJournalIdImport.update({
+  ProtectedLayoutDyadsDyadIdJournalJournalIdRouteImport.update({
     id: '/dyads/$dyadId/journal/$journalId',
     path: '/dyads/$dyadId/journal/$journalId',
     getParentRoute: () => ProtectedLayoutRoute,
   } as any)
 
-// Populate the FileRoutesByPath interface
+export interface FileRoutesByFullPath {
+  '/signin': typeof SigninRoute
+  '/comic': typeof ProtectedComicRoute
+  '/comic-chatbot': typeof ProtectedComicChatbotRoute
+  '/': typeof ProtectedIndexRoute
+  '/dyads/list': typeof ProtectedLayoutDyadsListRoute
+  '/dyads': typeof ProtectedLayoutDyadsIndexRoute
+  '/dyads/$dyadId': typeof ProtectedLayoutDyadsDyadIdIndexRoute
+  '/dyads/$dyadId/journal/$journalId': typeof ProtectedLayoutDyadsDyadIdJournalJournalIdRoute
+  '/dyads/$dyadId/journal': typeof ProtectedLayoutDyadsDyadIdJournalIndexRoute
+}
+export interface FileRoutesByTo {
+  '/signin': typeof SigninRoute
+  '/comic': typeof ProtectedComicRoute
+  '/comic-chatbot': typeof ProtectedComicChatbotRoute
+  '/': typeof ProtectedIndexRoute
+  '/dyads/list': typeof ProtectedLayoutDyadsListRoute
+  '/dyads': typeof ProtectedLayoutDyadsIndexRoute
+  '/dyads/$dyadId': typeof ProtectedLayoutDyadsDyadIdIndexRoute
+  '/dyads/$dyadId/journal/$journalId': typeof ProtectedLayoutDyadsDyadIdJournalJournalIdRoute
+  '/dyads/$dyadId/journal': typeof ProtectedLayoutDyadsDyadIdJournalIndexRoute
+}
+export interface FileRoutesById {
+  __root__: typeof rootRouteImport
+  '/signin': typeof SigninRoute
+  '/_protected/_layout': typeof ProtectedLayoutRouteWithChildren
+  '/_protected/comic': typeof ProtectedComicRoute
+  '/_protected/comic-chatbot': typeof ProtectedComicChatbotRoute
+  '/_protected/': typeof ProtectedIndexRoute
+  '/_protected/_layout/dyads/list': typeof ProtectedLayoutDyadsListRoute
+  '/_protected/_layout/dyads/': typeof ProtectedLayoutDyadsIndexRoute
+  '/_protected/_layout/dyads/$dyadId/': typeof ProtectedLayoutDyadsDyadIdIndexRoute
+  '/_protected/_layout/dyads/$dyadId/journal/$journalId': typeof ProtectedLayoutDyadsDyadIdJournalJournalIdRoute
+  '/_protected/_layout/dyads/$dyadId/journal/': typeof ProtectedLayoutDyadsDyadIdJournalIndexRoute
+}
+export interface FileRouteTypes {
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | '/signin'
+    | '/comic'
+    | '/comic-chatbot'
+    | '/'
+    | '/dyads/list'
+    | '/dyads'
+    | '/dyads/$dyadId'
+    | '/dyads/$dyadId/journal/$journalId'
+    | '/dyads/$dyadId/journal'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/signin'
+    | '/comic'
+    | '/comic-chatbot'
+    | '/'
+    | '/dyads/list'
+    | '/dyads'
+    | '/dyads/$dyadId'
+    | '/dyads/$dyadId/journal/$journalId'
+    | '/dyads/$dyadId/journal'
+  id:
+    | '__root__'
+    | '/signin'
+    | '/_protected/_layout'
+    | '/_protected/comic'
+    | '/_protected/comic-chatbot'
+    | '/_protected/'
+    | '/_protected/_layout/dyads/list'
+    | '/_protected/_layout/dyads/'
+    | '/_protected/_layout/dyads/$dyadId/'
+    | '/_protected/_layout/dyads/$dyadId/journal/$journalId'
+    | '/_protected/_layout/dyads/$dyadId/journal/'
+  fileRoutesById: FileRoutesById
+}
+export interface RootRouteChildren {
+  SigninRoute: typeof SigninRoute
+  ProtectedLayoutRoute: typeof ProtectedLayoutRouteWithChildren
+  ProtectedComicRoute: typeof ProtectedComicRoute
+  ProtectedComicChatbotRoute: typeof ProtectedComicChatbotRoute
+  ProtectedIndexRoute: typeof ProtectedIndexRoute
+}
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
@@ -109,90 +179,88 @@ declare module '@tanstack/react-router' {
       id: '/signin'
       path: '/signin'
       fullPath: '/signin'
-      preLoaderRoute: typeof SigninImport
-      parentRoute: typeof rootRoute
-    }
-    '/_protected/_layout': {
-      id: '/_protected/_layout'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof ProtectedLayoutImport
-      parentRoute: typeof rootRoute
-    }
-    '/_protected/comic': {
-      id: '/_protected/comic'
-      path: '/comic'
-      fullPath: '/comic'
-      preLoaderRoute: typeof ProtectedComicImport
-      parentRoute: typeof rootRoute
-    }
-    '/_protected/comic-chatbot': {
-      id: '/_protected/comic-chatbot'
-      path: '/comic-chatbot'
-      fullPath: '/comic-chatbot'
-      preLoaderRoute: typeof ProtectedComicChatbotImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof SigninRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_protected/tablet': {
       id: '/_protected/tablet'
       path: '/tablet'
       fullPath: '/tablet'
-      preLoaderRoute: typeof ProtectedTabletImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedTabletRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_protected/tablet-comic-chatbot': {
       id: '/_protected/tablet-comic-chatbot'
       path: '/tablet-comic-chatbot'
       fullPath: '/tablet-comic-chatbot'
-      preLoaderRoute: typeof ProtectedTabletComicChatbotImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedTabletComicChatbotRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_protected/': {
       id: '/_protected/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof ProtectedIndexImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_protected/_layout/dyads/list': {
-      id: '/_protected/_layout/dyads/list'
-      path: '/dyads/list'
-      fullPath: '/dyads/list'
-      preLoaderRoute: typeof ProtectedLayoutDyadsListImport
-      parentRoute: typeof ProtectedLayoutImport
+    '/_protected/comic-chatbot': {
+      id: '/_protected/comic-chatbot'
+      path: '/comic-chatbot'
+      fullPath: '/comic-chatbot'
+      preLoaderRoute: typeof ProtectedComicChatbotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_protected/comic': {
+      id: '/_protected/comic'
+      path: '/comic'
+      fullPath: '/comic'
+      preLoaderRoute: typeof ProtectedComicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_protected/_layout': {
+      id: '/_protected/_layout'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof ProtectedLayoutRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_protected/_layout/dyads/': {
       id: '/_protected/_layout/dyads/'
       path: '/dyads'
       fullPath: '/dyads'
-      preLoaderRoute: typeof ProtectedLayoutDyadsIndexImport
-      parentRoute: typeof ProtectedLayoutImport
+      preLoaderRoute: typeof ProtectedLayoutDyadsIndexRouteImport
+      parentRoute: typeof ProtectedLayoutRoute
+    }
+    '/_protected/_layout/dyads/list': {
+      id: '/_protected/_layout/dyads/list'
+      path: '/dyads/list'
+      fullPath: '/dyads/list'
+      preLoaderRoute: typeof ProtectedLayoutDyadsListRouteImport
+      parentRoute: typeof ProtectedLayoutRoute
     }
     '/_protected/_layout/dyads/$dyadId/': {
       id: '/_protected/_layout/dyads/$dyadId/'
       path: '/dyads/$dyadId'
       fullPath: '/dyads/$dyadId'
-      preLoaderRoute: typeof ProtectedLayoutDyadsDyadIdIndexImport
-      parentRoute: typeof ProtectedLayoutImport
-    }
-    '/_protected/_layout/dyads/$dyadId/journal/$journalId': {
-      id: '/_protected/_layout/dyads/$dyadId/journal/$journalId'
-      path: '/dyads/$dyadId/journal/$journalId'
-      fullPath: '/dyads/$dyadId/journal/$journalId'
-      preLoaderRoute: typeof ProtectedLayoutDyadsDyadIdJournalJournalIdImport
-      parentRoute: typeof ProtectedLayoutImport
+      preLoaderRoute: typeof ProtectedLayoutDyadsDyadIdIndexRouteImport
+      parentRoute: typeof ProtectedLayoutRoute
     }
     '/_protected/_layout/dyads/$dyadId/journal/': {
       id: '/_protected/_layout/dyads/$dyadId/journal/'
       path: '/dyads/$dyadId/journal'
       fullPath: '/dyads/$dyadId/journal'
-      preLoaderRoute: typeof ProtectedLayoutDyadsDyadIdJournalIndexImport
-      parentRoute: typeof ProtectedLayoutImport
+      preLoaderRoute: typeof ProtectedLayoutDyadsDyadIdJournalIndexRouteImport
+      parentRoute: typeof ProtectedLayoutRoute
+    }
+    '/_protected/_layout/dyads/$dyadId/journal/$journalId': {
+      id: '/_protected/_layout/dyads/$dyadId/journal/$journalId'
+      path: '/dyads/$dyadId/journal/$journalId'
+      fullPath: '/dyads/$dyadId/journal/$journalId'
+      preLoaderRoute: typeof ProtectedLayoutDyadsDyadIdJournalJournalIdRouteImport
+      parentRoute: typeof ProtectedLayoutRoute
     }
   }
 }
-
-// Create and export the route tree
 
 interface ProtectedLayoutRouteChildren {
   ProtectedLayoutDyadsListRoute: typeof ProtectedLayoutDyadsListRoute
@@ -216,108 +284,6 @@ const ProtectedLayoutRouteWithChildren = ProtectedLayoutRoute._addFileChildren(
   ProtectedLayoutRouteChildren,
 )
 
-export interface FileRoutesByFullPath {
-  '/signin': typeof SigninRoute
-  '': typeof ProtectedLayoutRouteWithChildren
-  '/comic': typeof ProtectedComicRoute
-  '/comic-chatbot': typeof ProtectedComicChatbotRoute
-  '/tablet': typeof ProtectedTabletRoute
-  '/tablet-comic-chatbot': typeof ProtectedTabletComicChatbotRoute
-  '/': typeof ProtectedIndexRoute
-  '/dyads/list': typeof ProtectedLayoutDyadsListRoute
-  '/dyads': typeof ProtectedLayoutDyadsIndexRoute
-  '/dyads/$dyadId': typeof ProtectedLayoutDyadsDyadIdIndexRoute
-  '/dyads/$dyadId/journal/$journalId': typeof ProtectedLayoutDyadsDyadIdJournalJournalIdRoute
-  '/dyads/$dyadId/journal': typeof ProtectedLayoutDyadsDyadIdJournalIndexRoute
-}
-
-export interface FileRoutesByTo {
-  '/signin': typeof SigninRoute
-  '': typeof ProtectedLayoutRouteWithChildren
-  '/comic': typeof ProtectedComicRoute
-  '/comic-chatbot': typeof ProtectedComicChatbotRoute
-  '/tablet': typeof ProtectedTabletRoute
-  '/tablet-comic-chatbot': typeof ProtectedTabletComicChatbotRoute
-  '/': typeof ProtectedIndexRoute
-  '/dyads/list': typeof ProtectedLayoutDyadsListRoute
-  '/dyads': typeof ProtectedLayoutDyadsIndexRoute
-  '/dyads/$dyadId': typeof ProtectedLayoutDyadsDyadIdIndexRoute
-  '/dyads/$dyadId/journal/$journalId': typeof ProtectedLayoutDyadsDyadIdJournalJournalIdRoute
-  '/dyads/$dyadId/journal': typeof ProtectedLayoutDyadsDyadIdJournalIndexRoute
-}
-
-export interface FileRoutesById {
-  __root__: typeof rootRoute
-  '/signin': typeof SigninRoute
-  '/_protected/_layout': typeof ProtectedLayoutRouteWithChildren
-  '/_protected/comic': typeof ProtectedComicRoute
-  '/_protected/comic-chatbot': typeof ProtectedComicChatbotRoute
-  '/_protected/tablet': typeof ProtectedTabletRoute
-  '/_protected/tablet-comic-chatbot': typeof ProtectedTabletComicChatbotRoute
-  '/_protected/': typeof ProtectedIndexRoute
-  '/_protected/_layout/dyads/list': typeof ProtectedLayoutDyadsListRoute
-  '/_protected/_layout/dyads/': typeof ProtectedLayoutDyadsIndexRoute
-  '/_protected/_layout/dyads/$dyadId/': typeof ProtectedLayoutDyadsDyadIdIndexRoute
-  '/_protected/_layout/dyads/$dyadId/journal/$journalId': typeof ProtectedLayoutDyadsDyadIdJournalJournalIdRoute
-  '/_protected/_layout/dyads/$dyadId/journal/': typeof ProtectedLayoutDyadsDyadIdJournalIndexRoute
-}
-
-export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/signin'
-    | ''
-    | '/comic'
-    | '/comic-chatbot'
-    | '/tablet'
-    | '/tablet-comic-chatbot'
-    | '/'
-    | '/dyads/list'
-    | '/dyads'
-    | '/dyads/$dyadId'
-    | '/dyads/$dyadId/journal/$journalId'
-    | '/dyads/$dyadId/journal'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/signin'
-    | ''
-    | '/comic'
-    | '/comic-chatbot'
-    | '/tablet'
-    | '/tablet-comic-chatbot'
-    | '/'
-    | '/dyads/list'
-    | '/dyads'
-    | '/dyads/$dyadId'
-    | '/dyads/$dyadId/journal/$journalId'
-    | '/dyads/$dyadId/journal'
-  id:
-    | '__root__'
-    | '/signin'
-    | '/_protected/_layout'
-    | '/_protected/comic'
-    | '/_protected/comic-chatbot'
-    | '/_protected/tablet'
-    | '/_protected/tablet-comic-chatbot'
-    | '/_protected/'
-    | '/_protected/_layout/dyads/list'
-    | '/_protected/_layout/dyads/'
-    | '/_protected/_layout/dyads/$dyadId/'
-    | '/_protected/_layout/dyads/$dyadId/journal/$journalId'
-    | '/_protected/_layout/dyads/$dyadId/journal/'
-  fileRoutesById: FileRoutesById
-}
-
-export interface RootRouteChildren {
-  SigninRoute: typeof SigninRoute
-  ProtectedLayoutRoute: typeof ProtectedLayoutRouteWithChildren
-  ProtectedComicRoute: typeof ProtectedComicRoute
-  ProtectedComicChatbotRoute: typeof ProtectedComicChatbotRoute
-  ProtectedTabletRoute: typeof ProtectedTabletRoute
-  ProtectedTabletComicChatbotRoute: typeof ProtectedTabletComicChatbotRoute
-  ProtectedIndexRoute: typeof ProtectedIndexRoute
-}
-
 const rootRouteChildren: RootRouteChildren = {
   SigninRoute: SigninRoute,
   ProtectedLayoutRoute: ProtectedLayoutRouteWithChildren,
@@ -327,74 +293,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProtectedTabletComicChatbotRoute: ProtectedTabletComicChatbotRoute,
   ProtectedIndexRoute: ProtectedIndexRoute,
 }
-
-export const routeTree = rootRoute
+export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-/* ROUTE_MANIFEST_START
-{
-  "routes": {
-    "__root__": {
-      "filePath": "__root.tsx",
-      "children": [
-        "/signin",
-        "/_protected/_layout",
-        "/_protected/comic",
-        "/_protected/comic-chatbot",
-        "/_protected/tablet",
-        "/_protected/tablet-comic-chatbot",
-        "/_protected/"
-      ]
-    },
-    "/signin": {
-      "filePath": "signin.tsx"
-    },
-    "/_protected/_layout": {
-      "filePath": "_protected/_layout.tsx",
-      "children": [
-        "/_protected/_layout/dyads/list",
-        "/_protected/_layout/dyads/",
-        "/_protected/_layout/dyads/$dyadId/",
-        "/_protected/_layout/dyads/$dyadId/journal/$journalId",
-        "/_protected/_layout/dyads/$dyadId/journal/"
-      ]
-    },
-    "/_protected/comic": {
-      "filePath": "_protected/comic.tsx"
-    },
-    "/_protected/comic-chatbot": {
-      "filePath": "_protected/comic-chatbot.tsx"
-    },
-    "/_protected/tablet": {
-      "filePath": "_protected/tablet.tsx"
-    },
-    "/_protected/tablet-comic-chatbot": {
-      "filePath": "_protected/tablet-comic-chatbot.tsx"
-    },
-    "/_protected/": {
-      "filePath": "_protected/index.tsx"
-    },
-    "/_protected/_layout/dyads/list": {
-      "filePath": "_protected/_layout.dyads.list.tsx",
-      "parent": "/_protected/_layout"
-    },
-    "/_protected/_layout/dyads/": {
-      "filePath": "_protected/_layout.dyads.index.tsx",
-      "parent": "/_protected/_layout"
-    },
-    "/_protected/_layout/dyads/$dyadId/": {
-      "filePath": "_protected/_layout.dyads.$dyadId.index.tsx",
-      "parent": "/_protected/_layout"
-    },
-    "/_protected/_layout/dyads/$dyadId/journal/$journalId": {
-      "filePath": "_protected/_layout.dyads.$dyadId.journal.$journalId.tsx",
-      "parent": "/_protected/_layout"
-    },
-    "/_protected/_layout/dyads/$dyadId/journal/": {
-      "filePath": "_protected/_layout.dyads.$dyadId.journal.index.tsx",
-      "parent": "/_protected/_layout"
-    }
-  }
-}
-ROUTE_MANIFEST_END */

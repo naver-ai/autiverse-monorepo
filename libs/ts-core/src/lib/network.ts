@@ -5,6 +5,8 @@ import axios, { AxiosInstance } from 'axios';
  */
 export class NetworkHelper {
   private static baseUrl = '';
+  private static getTimezone: (() => string | undefined) | null = null;
+
   private static axiosInstance: AxiosInstance | null = null;
 
   private static readonly ENDPOINT_PREFIX = '/api/v1/admin';
@@ -36,7 +38,11 @@ export class NetworkHelper {
     APP: {
       AUTH: {
         LOGIN: '/api/v1/app/auth/login',
+        LOGOUT: '/api/v1/app/auth/logout',
         VERIFY: '/api/v1/app/auth/verify',
+      },
+      PROFILE: {
+        INFO: '/api/v1/app/profile/info',
       }
     }
   };
@@ -45,8 +51,11 @@ export class NetworkHelper {
    * Initialize NetworkHelper with base URL
    * @param baseUrl - The base URL for API requests
    */
-  public static init(baseUrl: string): void {
+  public static init(baseUrl: string, getTimezone: () => string | undefined): void {
     this.baseUrl = baseUrl;
+    this.getTimezone = getTimezone;
+
+    console.log("NetworkHelper initialized with baseUrl:", baseUrl);
   }
 
   /**
@@ -61,6 +70,13 @@ export class NetworkHelper {
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    if (this.getTimezone) {
+      const timezone = this.getTimezone();
+      if (timezone) {
+        headers['X-timezone'] = timezone;
+      }
     }
 
     return headers;

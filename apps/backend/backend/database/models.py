@@ -86,6 +86,17 @@ class Dyad(SQLModel, DyadInfo, table=True):
 
     def to_sharable(self) -> 'SharableDyad':
         return SharableDyad(
+            **self.model_dump(include={"id", 
+                                                 "passcode", "alias", 
+                                                 "created_at", "updated_at", 
+                                                 "locale", "caregiver_type", 
+                                                 "child_gender", "child_name", "child_age"
+                                                 }),
+        )
+    
+    @property
+    def dyad_info(self) -> DyadInfo:
+        return DyadInfo(
             **self.model_dump(exclude={"interests", "places", "people"}),
             interests=[interest for interest in self.interests],
             places=[place.to_sharable() for place in self.places],

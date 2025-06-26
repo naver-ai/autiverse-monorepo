@@ -52,18 +52,29 @@ npm run setup # Prepare OpenAI API Key.
 nx run backend:test_langchain
 ```
 
-### Backend (Python) - Not Working Yet
+### Backend (Python)
 
 Run development server:
 ```bash
 nx run backend:run-dev
 ```
 
-### Frontend (Web) - Not Working Yet
-
-Run development server:
+Run admin web server:
 ```bash
-nx serve frontend
+nx serve admin-web
+```
+
+You can run both in a single terminal tab:
+```bash
+npm run dev
+```
+
+### Mobile App 
+
+Run development mode:
+```bash
+nx run-ios mobile #iOS
+nx run-android mobile #Android
 ```
 
 ## Project Structure

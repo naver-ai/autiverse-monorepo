@@ -1,2 +1,3 @@
-export * from './lib/types.js';
-export *  from './lib/network.js'
+export * from './lib/types';
+export *  from './lib/network'
+export * from './lib/i18n'
