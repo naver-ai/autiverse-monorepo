@@ -37,7 +37,7 @@ class Revision2Stage:
         )
         
         # 첫 번째 수정 질문 생성
-        initial_question = "수정하거나 추가하고 싶은 부분 있어? 🤔"
+        initial_question = "우와앙~ 우리가 같이 만든 그림일기다! 지금부터 내용이 제대로 들어갔는지 확인해보자~ 수정하거나 추가하고 싶은 부분 있어? 🤔"
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             initial_question, MessageRole.Assistant

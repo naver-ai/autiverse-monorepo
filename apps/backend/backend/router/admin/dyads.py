@@ -115,16 +115,30 @@ async def delete_place(dyad_id: str, place_id: str, db: Annotated[AsyncSession, 
 
 @router.post("/{dyad_id}/agents/add", response_model=Agent)
 async def add_agent(dyad_id: str, args: AgentCreate, db: Annotated[AsyncSession, Depends(with_db_session)]):
-    entity_orm = Agent(
-        interest=args.interest,
-        agent_name=args.agent_name,
-        agent_config=args.agent_config,
-        dyad_id=dyad_id
-    )
-    db.add(entity_orm)
-    await db.commit()
-    await db.refresh(entity_orm)
-    return entity_orm
+    # 기존 agent가 있는지 확인
+    existing_agent = (await db.exec(
+        select(Agent).where(Agent.dyad_id == dyad_id, Agent.interest == args.interest)
+    )).first()
+    
+    if existing_agent:
+        # 기존 agent 업데이트
+        existing_agent.agent_name = args.agent_name
+        existing_agent.agent_config = args.agent_config
+        await db.commit()
+        await db.refresh(existing_agent)
+        return existing_agent
+    else:
+        # 새로운 agent 생성
+        entity_orm = Agent(
+            interest=args.interest,
+            agent_name=args.agent_name,
+            agent_config=args.agent_config,
+            dyad_id=dyad_id
+        )
+        db.add(entity_orm)
+        await db.commit()
+        await db.refresh(entity_orm)
+        return entity_orm
 
 @router.delete("/{dyad_id}/agents/{agent_id}")
 async def delete_agent(dyad_id: str, agent_id: str, db: Annotated[AsyncSession, Depends(with_db_session)]):

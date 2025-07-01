@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { Router } from 'expo-router';
 
@@ -123,18 +124,71 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([]);
   const [useApiData, setUseApiData] = useState(false);
-  
-  const scrollViewRef = useRef<ScrollView>(null);
+  const [agentConfig, setAgentConfig] = useState<any>(null);
+  const [agentName, setAgentName] = useState<string>('도도');
+
+  // 이미지 매핑 함수
+  const getImageSource = (imageName: string) => {
+    switch (imageName) {
+      case 'robot':
+        return require('../../../../assets/robot.png');
+      case 'doll':
+          return require('../../../../assets/doll.png');
+      default:
+        return require('../../../../assets/icon.png');
+    }
+  };
+
+
 
   useEffect(() => {
     if (dyadId && dyadName) {
       console.log('Dyad authenticated:', { dyadId, dyadName, passcode });
       // dyad의 places 로드
       loadPlaces();
+      // agent 정보 로드
+      loadAgentInfo();
     }
   }, [dyadId, dyadName, passcode]);
 
   // API 함수들
+  const loadAgentInfo = async () => {
+    if (!dyadId || !passcode) return;
+    
+    try {
+      // 먼저 dyad 정보를 가져와서 agent_id를 얻습니다
+      const dyadResponse = await fetch(`http://10.66.106.38:3000/api/v1/app/dyads/${dyadId}`, {
+        headers: {
+          'Authorization': `Bearer ${passcode}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (dyadResponse.ok) {
+        const dyadData = await dyadResponse.json();
+        if (dyadData.agent_id) {
+          // agent 정보를 가져옵니다
+          const agentResponse = await fetch(`http://10.66.106.38:3000/api/v1/app/agents/${dyadData.agent_id}`, {
+            headers: {
+              'Authorization': `Bearer ${passcode}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (agentResponse.ok) {
+            const agentData = await agentResponse.json();
+            setAgentConfig(agentData.agent_config);
+            setAgentName(agentData.name || '도도');
+            console.log('Loaded agent config:', agentData.agent_config);
+            console.log('Loaded agent name:', agentData.name);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading agent info:', error);
+    }
+  };
+
   const loadPlaces = async () => {
     if (!dyadId) return;
     
@@ -215,11 +269,7 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
     }
   };
 
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-  };
+
 
   const startChatbot = async (preset?: Preset) => {
     console.log('startChatbot called with preset:', preset);
@@ -524,7 +574,7 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
       return (
         <View className="flex-1 items-center justify-center">
           <Text className="text-lg text-gray-600 text-center">
-            어떤 이야기로 오늘 만화 일기를 쓸지 도도와 이야기해보자!
+            네가 말해준 내용으로 내가 여기에 조금 이따 4컷 만화를 그릴거야~
           </Text>
         </View>
       );
@@ -698,21 +748,38 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
           // 선택 화면 (전체 화면)
           <View className="flex-1 p-6">
             <ScrollView className="flex-1">
-              {/* 웹 버전과 동일한 환영 메시지 */}
-              <View className="items-center justify-center py-8">
-                <Text className="text-3xl font-bold text-gray-800 mb-6 text-center">
-                  만화일기 챗봇에 오신 것을 환영합니다! 🎨
-                </Text>
-                <Text className="text-lg text-gray-600 mb-8 text-center leading-6">
-                  오늘 있었던 일을 이야기해주시면 4컷 만화로 만들어드릴게요!
-                </Text>
+              {/* 상단 메시지 */}
+              <View className="pt-8 pb-20">
+                <View className="bg-white rounded-3xl p-6 shadow-lg w-full">
+                  <View className="flex-row items-center">
+                    <Image 
+                      source={
+                        agentConfig?.avatar_image 
+                          ? (agentConfig.avatar_image.startsWith('http') 
+                              ? { uri: agentConfig.avatar_image }
+                              : getImageSource(agentConfig.avatar_image))
+                          : require('../../../../assets/robot.png')
+                      }
+                      style={{
+                        width: 50,
+                        height: 50,
+                        borderRadius: 25,
+                        resizeMode: 'cover',
+                        marginRight: 12
+                      }}
+                    />
+                    <Text className="text-xl text-gray-800 leading-relaxed flex-1 text-center" style={{ fontFamily: 'NanumSquareNeo-dEb' }}>
+                      {selectionStep === 'location' 
+                        ? '오늘은 어디서 있었던 일을 그림 일기로 써볼까?'
+                        : '거기서 누구랑 있었던 일을 그림 일기로 써볼까? 여러명이면 여러명을 선택해!'
+                      }
+                    </Text>
+                  </View>
+                </View>
               </View>
 
               {selectionStep === 'location' ? (
                 <>
-                  <Text className="text-xl font-bold mb-4 text-gray-800 text-center">
-                    어디서 일어난 일인가요?
-                  </Text>
                   
                   {/* 장소 선택 그리드 */}
                   <View className="grid grid-cols-2 gap-4 mb-6">
@@ -775,9 +842,6 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
                     </Text>
                   </View>
                   
-                  <Text className="text-xl font-bold mb-4 text-gray-800 text-center">
-                    누구와 함께 있었나요? (여러 명 선택 가능)
-                  </Text>
                   
                   {/* 사람 선택 그리드 */}
                   <View className="grid grid-cols-2 gap-4 mb-6">
@@ -872,7 +936,7 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
                 ) : (
                   <View className="flex-1 items-center justify-center">
                     <Text className="text-lg text-gray-600 text-center">
-                      어떤 이야기로 오늘 만화 일기를 쓸지 도도와 이야기해보자!
+                    네가 말해준 내용으로 내가 여기에 조금 이따 4컷 만화를 그릴거야~
                     </Text>
                   </View>
                 )}
@@ -883,59 +947,54 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
             <View className="flex-1 bg-white">
               {/* 채팅 헤더 */}
               <View className="bg-blue-500 p-4">
-                <Text className="text-xl font-bold text-white">💬 도도와 대화하기</Text>
+                <Text className="text-xl font-bold text-white">💬 {agentName}와 대화하기</Text>
               </View>
 
-              {/* 채팅 메시지 */}
-              <ScrollView 
-                ref={scrollViewRef}
-                className="flex-1 p-3 bg-gray-50"
-                onContentSizeChange={scrollToBottom}
-              >
-                {messages.length === 0 ? (
-                  <View className="items-center justify-center py-8">
-                    <Text className="text-base text-gray-600 text-center">
-                      왼쪽에서 시작하기를 눌러주세요!
-                    </Text>
-                  </View>
-                ) : (
-                  <>
-                    {messages.map((message) => (
-                      <View
-                        key={message.id}
-                        className={`mb-3 ${message.isUser ? 'items-end' : 'items-start'}`}
-                      >
-                        <View
-                          className={`max-w-[80%] p-3 rounded-lg ${
-                            message.isUser
-                              ? 'bg-blue-500'
-                              : 'bg-white border border-gray-200'
-                          }`}
-                        >
-                          <Text
-                            className={`text-sm ${
-                              message.isUser ? 'text-white' : 'text-gray-800'
-                            }`}
-                          >
-                            {message.text}
-                          </Text>
-                        </View>
+              {/* 현재 Agent 메시지 */}
+              <View className="flex-1 p-3 bg-gray-50">
+                {(() => {
+                  const lastBotMessage = messages
+                    .filter(m => !m.isUser)
+                    .pop();
+                  
+                  if (messages.length === 0) {
+                    return (
+                      <View className="items-center justify-center py-8">
+                        <Text className="text-base text-gray-600 text-center">
+                          왼쪽에서 시작하기를 눌러주세요!
+                        </Text>
                       </View>
-                    ))}
-                    
-                    {isLoading && (
-                      <View className="items-start mb-3">
+                    );
+                  }
+                  
+                  if (isLoading) {
+                    return (
+                      <View className="items-start">
                         <View className="bg-white border border-gray-200 p-3 rounded-lg">
                           <View className="flex-row items-center">
                             <ActivityIndicator size="small" color="#666" />
-                            <Text className="text-gray-600 ml-2 text-sm">도도가 생각 중...</Text>
+                            <Text className="text-gray-600 ml-2 text-sm">{agentName}가 생각 중...</Text>
                           </View>
                         </View>
                       </View>
-                    )}
-                  </>
-                )}
-              </ScrollView>
+                    );
+                  }
+                  
+                  if (lastBotMessage) {
+                    return (
+                      <View className="items-start">
+                        <View className="bg-white border border-gray-200 p-3 rounded-lg max-w-[90%]">
+                          <Text className="text-sm text-gray-800">
+                            {lastBotMessage.text}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  }
+                  
+                  return null;
+                })()}
+              </View>
 
               {/* 입력 영역 */}
               <View className="p-4 border-t-2 border-gray-200">

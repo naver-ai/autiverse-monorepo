@@ -345,9 +345,9 @@ CONVERSATION:
     def _generate_intro_message(self, location: str = None, people: List[str] = None) -> str:
         """초기 인사 메시지 생성"""
         if location and people:
-            return f"안녕! 오늘 {location}에서 {', '.join(people)}와 뭐 했어? 😊"
+            return f"오늘 {location}에서 {', '.join(people)}랑 무슨 일이 있었는지 너무 궁금해! 나한테 다 이야기해줘! 😊"
         else:
-            return "안녕! 오늘 뭐 했어? 😊"
+            return "오늘 뭐 했어? 😊"
     
     def _generate_response(self, user_message: str) -> str:
         """사용자 메시지에 대한 응답 생성"""

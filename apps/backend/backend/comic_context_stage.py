@@ -536,7 +536,7 @@ answer: "{answer}"
         """다음 질문 생성"""
         try:
             if not self.story_analysis:
-                return "다음에 대해 말해줘!"
+                return "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래??"
             
             # 문제점이 있는지 확인 (빈 문자열이 아닌 실제 문제가 있는지 체크)
             has_issues = [
@@ -784,7 +784,7 @@ Please generate a question that addresses the FIRST missing information gap."""
 
                 result = response.choices[0].message.content
                 question_data = json.loads(result)
-                return generated_question
+                return question_data["question"]
                 
             except Exception as e:
                 print(f"[DEBUG] comic_context: Error generating question: {e}")

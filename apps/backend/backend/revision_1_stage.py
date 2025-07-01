@@ -57,7 +57,7 @@ class Revision1Stage:
         )
         
         # 첫 번째 수정 질문 생성
-        initial_question = "여기서 틀린 부분 있어? 🤔"
+        initial_question = "그럼 네가 지금 말해준 내용으로 오늘의 그림일기를 써보자! 먼저 내가 잘 들었는지 확인해줘~ 내가 틀리게 들은 부분이 있을까? 🤔"
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             initial_question, MessageRole.Assistant

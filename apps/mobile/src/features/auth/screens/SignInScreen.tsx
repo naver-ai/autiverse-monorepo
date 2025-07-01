@@ -89,9 +89,9 @@ export const SignInScreen = () => {
                 try {
                     const data = JSON.parse(responseText);
                     console.log('Parsed data:', data);
-                    // Navigate directly to tablet-comic-chatbot screen with dyad info
+                    // Navigate to agent intro screen first
                     router.push({
-                        pathname: "/(app)/tablet-comic-chatbot",
+                        pathname: "/(app)/agent-intro",
                         params: { 
                             dyadId: data.dyad.id,
                             dyadName: data.dyad.alias,
