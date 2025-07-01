@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { NetworkHelper, Dyad, DyadInfo, Place } from '@autiverse-monorepo/ts-core';
+import { NetworkHelper, Dyad, DyadInfo, Place, Agent } from '@autiverse-monorepo/ts-core';
 
 export const getAllDyadsApi = async (): Promise<Array<Dyad>> => {
     const token = localStorage.getItem('auth_token') || undefined;
@@ -26,12 +26,12 @@ export const createDyadApi = async (data: DyadInfo) => {
     return response.data;
 }; 
 
-export const createInterestApi = async (args: {dyadId: string, data: { name: string }}) => {
+export const createAgentApi = async (args: {dyadId: string, data: { interest: string, agent_name: string, agent_config?: Record<string, any> }}) => {
     const token = localStorage.getItem('auth_token') || undefined;
     
     console.log(args)
     const response = await NetworkHelper.axiosClient.post(
-        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getAddInterestEndpoint(args.dyadId),
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getAddAgentEndpoint(args.dyadId),
         args.data,
         {
             headers: NetworkHelper.getHeaders(token)
@@ -40,25 +40,25 @@ export const createInterestApi = async (args: {dyadId: string, data: { name: str
     return response.data;
 };
 
-export const deleteInterestApi = async (args: {dyadId: string, interestId: string}) => {
+export const deleteAgentApi = async (args: {dyadId: string, agentId: string}) => {
     const token = localStorage.getItem('auth_token') || undefined;
     const response = await NetworkHelper.axiosClient.delete(
-        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getDeleteInterestEndpoint(args.dyadId, args.interestId),
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getDeleteAgentEndpoint(args.dyadId, args.agentId),
         { headers: NetworkHelper.getHeaders(token) }
     );
     return response.data;
 }
 
-export const useCreateInterestMutation = () => {
+export const useCreateAgentMutation = () => {
 
     const queryClient = useQueryClient();
     const mutation = useMutation({
-        mutationFn: createInterestApi,
+        mutationFn: createAgentApi,
         onSuccess: (data, args) => {
             queryClient.setQueryData(['dyads'], (old: Dyad[]) => {
                 return old.map(dyad => {
                     if (dyad.id === args.dyadId) {
-                        return { ...dyad, interests: [...dyad.interests, data] }
+                        return { ...dyad, agents: [...dyad.agents, data] }
                     }
                     return dyad
                 })
@@ -69,15 +69,15 @@ export const useCreateInterestMutation = () => {
     return mutation
 }
 
-export const useDeleteInterestMutation = () => {
+export const useDeleteAgentMutation = () => {
     const queryClient = useQueryClient();
     const mutation = useMutation({
-        mutationFn: deleteInterestApi,
+        mutationFn: deleteAgentApi,
         onSuccess: (data, args) => {
             queryClient.setQueryData(['dyads'], (old: Dyad[]) => {
                 return old.map(dyad => {
                     if (dyad.id === args.dyadId) {
-                        return { ...dyad, interests: dyad.interests.filter(interest => interest.id !== args.interestId) }
+                        return { ...dyad, agents: dyad.agents.filter(agent => agent.id !== args.agentId) }
                     }
                     return dyad
                 })
@@ -88,7 +88,7 @@ export const useDeleteInterestMutation = () => {
     return mutation
 }
 
-export const createPersonApi = async (args: {dyadId: string, data: { name: string }}) => {
+export const createPersonApi = async (args: {dyadId: string, data: { name: string, avatar_config?: Record<string, any> }}) => {
     const token = localStorage.getItem('auth_token') || undefined;
     const response = await NetworkHelper.axiosClient.post(
         NetworkHelper.ENDPOINTS.ADMIN.DYADS.getAddPersonEndpoint(args.dyadId),

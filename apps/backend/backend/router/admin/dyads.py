@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.database.engine import with_db_session, engine
 from backend.database.models import Dyad, Person, Place, PlacePersonLink, UserLocale, CaregiverType, ChildGender, SharableDyad, SharablePlace
-from backend.database.models import Interest
+from backend.database.models import Agent
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -50,11 +50,21 @@ async def get_dyad(dyad_id: str, db: Annotated[AsyncSession, Depends(with_db_ses
 
 class ContextEntityCreate(BaseModel):
     name: str
+
+class PersonCreate(BaseModel):
+    name: str
+    avatar_config: Optional[dict] = None
+
+class AgentCreate(BaseModel):
+    interest: str
+    agent_name: str
+    agent_config: Optional[dict] = None
  
 @router.post("/{dyad_id}/people/add", response_model=Person)
-async def add_person(dyad_id: str, args: ContextEntityCreate, db: Annotated[AsyncSession, Depends(with_db_session)]):
+async def add_person(dyad_id: str, args: PersonCreate, db: Annotated[AsyncSession, Depends(with_db_session)]):
     entity_orm = Person(
         name=args.name,
+        avatar_config=args.avatar_config,
         dyad_id=dyad_id
     )
     db.add(entity_orm)
@@ -74,14 +84,26 @@ async def delete_person(dyad_id: str, person_id: str, db: Annotated[AsyncSession
 
 @router.post("/{dyad_id}/places/add", response_model=SharablePlace)
 async def add_place(dyad_id: str, args: ContextEntityCreate, db: Annotated[AsyncSession, Depends(with_db_session)]):
-    entity_orm = Place(
-        name=args.name,
-        dyad_id=dyad_id
-    )
-    db.add(entity_orm)
-    await db.commit()
-    await db.refresh(entity_orm)
-    return entity_orm.to_sharable()
+    try:
+        entity_orm = Place(
+            name=args.name,
+            dyad_id=dyad_id
+        )
+        db.add(entity_orm)
+        await db.commit()
+        await db.refresh(entity_orm)
+        return entity_orm.to_sharable()
+    except Exception as e:
+        await db.rollback()
+        if "UNIQUE constraint failed" in str(e) and "place.name" in str(e):
+            raise HTTPException(
+                status_code=409, 
+                detail=f"Place with name '{args.name}' already exists in this dyad"
+            )
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create place"
+        )
 
 @router.delete("/{dyad_id}/places/{place_id}")
 async def delete_place(dyad_id: str, place_id: str, db: Annotated[AsyncSession, Depends(with_db_session)]):
@@ -91,10 +113,12 @@ async def delete_place(dyad_id: str, place_id: str, db: Annotated[AsyncSession, 
     await db.delete(entity_orm)
     await db.commit()
 
-@router.post("/{dyad_id}/interests/add", response_model=Interest)
-async def add_interest(dyad_id: str, args: ContextEntityCreate, db: Annotated[AsyncSession, Depends(with_db_session)]):
-    entity_orm = Interest(
-        name=args.name,
+@router.post("/{dyad_id}/agents/add", response_model=Agent)
+async def add_agent(dyad_id: str, args: AgentCreate, db: Annotated[AsyncSession, Depends(with_db_session)]):
+    entity_orm = Agent(
+        interest=args.interest,
+        agent_name=args.agent_name,
+        agent_config=args.agent_config,
         dyad_id=dyad_id
     )
     db.add(entity_orm)
@@ -102,15 +126,14 @@ async def add_interest(dyad_id: str, args: ContextEntityCreate, db: Annotated[As
     await db.refresh(entity_orm)
     return entity_orm
 
-@router.delete("/{dyad_id}/interests/{interest_id}")
-async def delete_interest(dyad_id: str, interest_id: str, db: Annotated[AsyncSession, Depends(with_db_session)]):
-    entity_orm = await db.get(Interest, interest_id)
+@router.delete("/{dyad_id}/agents/{agent_id}")
+async def delete_agent(dyad_id: str, agent_id: str, db: Annotated[AsyncSession, Depends(with_db_session)]):
+    entity_orm = await db.get(Agent, agent_id)
     if not entity_orm or entity_orm.dyad_id != dyad_id:
-        raise HTTPException(status_code=404, detail="Interest not found")
+        raise HTTPException(status_code=404, detail="Agent not found")
     await db.delete(entity_orm)
     await db.commit()
     return entity_orm
-
 
 class PlaceScheduleCreate(BaseModel):
     day_of_week: int # 0-6, 0 is sunday

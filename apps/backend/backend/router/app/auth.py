@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.database.engine import with_db_session
-from backend.database.models import Dyad, DyadInfo
+from backend.database.models import Dyad, DyadInfo, SharableDyad
 import jwt
 from backend.router.app.common import get_signed_in_dyad
 from backend.utils.environment import EnvironmentVariables, get_env_variable
@@ -20,6 +20,13 @@ class AuthenticationResult(BaseModel):
 
 class AuthenticationResultWithDyad(AuthenticationResult):
     dyad: DyadInfo
+
+class PasscodeAuthRequest(BaseModel):
+    passcode: str
+
+class PasscodeAuthResponse(BaseModel):
+    dyad: SharableDyad
+    message: str
 
 def generate_jwt_token(dyad: Dyad) -> str:
     issued_at = get_timestamp()/1000
@@ -78,3 +85,25 @@ async def verify_user(dyad: Annotated[Dyad, Depends(get_signed_in_dyad)]):
     If the user is authenticated, it returns a 200 OK response.
     """
     return AuthenticationResult(jwt=generate_jwt_token(dyad))
+
+@router.post("/passcode", response_model=PasscodeAuthResponse)
+async def authenticate_by_passcode(
+    request: PasscodeAuthRequest, 
+    db: Annotated[AsyncSession, Depends(with_db_session)]
+):
+    """Authenticate dyad by passcode"""
+    # Find dyad by passcode
+    dyad = (await db.exec(
+        select(Dyad).where(Dyad.passcode == request.passcode)
+    )).first()
+    
+    if not dyad:
+        raise HTTPException(
+            status_code=401, 
+            detail="Invalid passcode"
+        )
+    
+    return PasscodeAuthResponse(
+        dyad=dyad.to_sharable(),
+        message="Authentication successful"
+    )

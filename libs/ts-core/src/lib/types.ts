@@ -36,19 +36,24 @@ export interface Dyad extends DBModel {
     child_name: string;
     child_age: number;
 
-    interests: Interest[];
+    agents: Agent[];
     people: Person[];
     places: Place[];
 }
 
-export type DyadInfo = Omit<Dyad, keyof DBModel | "interests" | "people" | "places" | "passcode">;
+export type DyadInfo = Omit<Dyad, keyof DBModel | "agents" | "people" | "places" | "passcode">;
 
 export interface ContextEntity extends DBModel {
     name: string;
     dyad_id: string;
 }
 
-export interface Interest extends ContextEntity {}
+export interface Agent extends DBModel {
+    interest: string;
+    agent_name: string;
+    agent_config?: Record<string, any>;
+    dyad_id: string;
+}
 
 export interface Person extends ContextEntity {
     avatar_config: {} | undefined

@@ -13,10 +13,20 @@ interface NewPersonModalProps {
 
 interface PersonFormData {
     name: string;
+    avatar_config?: string;
 }
 
 const schema = yup.object({
-    name: yup.string().required('Please input the person name')
+    name: yup.string().required('Please input the person name'),
+    avatar_config: yup.string().test('is-json', 'Please enter valid JSON', function(value) {
+        if (!value) return true;
+        try {
+            JSON.parse(value);
+            return true;
+        } catch {
+            return false;
+        }
+    })
 }).required();
 
 export const NewPersonModal = ({ isOpen, dyadId, onClose }: NewPersonModalProps) => {
@@ -29,9 +39,14 @@ export const NewPersonModal = ({ isOpen, dyadId, onClose }: NewPersonModalProps)
 
     const onSubmit = async (data: PersonFormData) => {
         if (dyadId) {
+            const avatarConfig = data.avatar_config ? JSON.parse(data.avatar_config) : undefined;
+            
             createPersonMutation.mutate({
                 dyadId,
-                data
+                data: {
+                    name: data.name,
+                    avatar_config: avatarConfig
+                }
             }, {
                 onSuccess: () => {
                     message.success('Person added successfully');
@@ -69,6 +84,16 @@ export const NewPersonModal = ({ isOpen, dyadId, onClose }: NewPersonModalProps)
                     label="Person Name"
                 >
                     <Input autoFocus placeholder="Enter person name"/>
+                </FormItem>
+                <FormItem
+                    control={control}
+                    name="avatar_config"
+                    label="Avatar Config (JSON)"
+                >
+                    <Input.TextArea 
+                        placeholder="Enter avatar configuration as JSON (optional)"
+                        rows={4}
+                    />
                 </FormItem>
                 <div className="flex justify-end gap-2 mt-4">
                     <Button

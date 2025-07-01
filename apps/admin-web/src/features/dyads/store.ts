@@ -1,19 +1,19 @@
 import { create } from 'zustand';
 
 // Define store state interface
-interface InterestModalState {
+interface AgentModalState {
   isOpen: boolean;
   selectedDyadId: string | null;
-  openInterestModal: (dyadId: string) => void;
-  closeInterestModal: () => void;
+  openAgentModal: (dyadId: string) => void;
+  closeAgentModal: () => void;
 }
 
-// Create interest modal store
-export const useInterestModalStore = create<InterestModalState>((set) => ({
+// Create agent modal store
+export const useAgentModalStore = create<AgentModalState>((set) => ({
   isOpen: false,
   selectedDyadId: null,
-  openInterestModal: (dyadId) => set({ isOpen: true, selectedDyadId: dyadId }),
-  closeInterestModal: () => set({ isOpen: false, selectedDyadId: null }),
+  openAgentModal: (dyadId) => set({ isOpen: true, selectedDyadId: dyadId }),
+  closeAgentModal: () => set({ isOpen: false, selectedDyadId: null }),
 }));
 
 // Define person modal store state interface

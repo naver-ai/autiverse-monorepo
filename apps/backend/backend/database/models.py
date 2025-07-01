@@ -6,9 +6,10 @@ from pydantic import BaseModel, ConfigDict
 from sqlmodel import DateTime, Relationship, SQLModel, Field, func, UniqueConstraint, Column, JSON
 import json
 from backend.utils.time import get_timestamp
+import uuid
 
 def generate_id() -> str:
-    return generate()
+    return str(uuid.uuid4())
 
 class IdTimestampMixin(BaseModel):
     id: str = Field(primary_key=True, default_factory=generate_id)
@@ -72,13 +73,13 @@ class SharableDyad(DyadInfo):
 
     people: list['Person'] = Field(default_factory=list)
     places: list[SharablePlace] = Field(default_factory=list)
-    interests: list['Interest'] = Field(default_factory=list)
+    agents: list['Agent'] = Field(default_factory=list)
 
 class Dyad(SQLModel, DyadInfo, table=True):
     alias: str = Field(nullable=False)
     passcode: str = Field(unique=True, allow_mutation=False, default_factory=lambda: generate('0123456789', size=6))
     
-    interests: list['Interest'] = Relationship(back_populates="dyad", sa_relationship_kwargs={'lazy': 'selectin'}, cascade_delete=True)
+    agents: list['Agent'] = Relationship(back_populates="dyad", sa_relationship_kwargs={'lazy': 'selectin'}, cascade_delete=True)
     places: list['Place'] = Relationship(back_populates="dyad", sa_relationship_kwargs={'lazy': 'selectin'}, cascade_delete=True)
     people: list['Person'] = Relationship(back_populates="dyad", sa_relationship_kwargs={'lazy': 'selectin'}, cascade_delete=True)
 
@@ -92,13 +93,16 @@ class Dyad(SQLModel, DyadInfo, table=True):
                                                  "locale", "caregiver_type", 
                                                  "child_gender", "child_name", "child_age"
                                                  }),
+            places=[place.to_sharable() for place in self.places],
+            agents=[agent for agent in self.agents],
+            people=[person for person in self.people]
         )
     
     @property
     def dyad_info(self) -> DyadInfo:
         return DyadInfo(
-            **self.model_dump(exclude={"interests", "places", "people"}),
-            interests=[interest for interest in self.interests],
+            **self.model_dump(exclude={"agents", "places", "people"}),
+            agents=[agent for agent in self.agents],
             places=[place.to_sharable() for place in self.places],
             people=[person for person in self.people]
         )
@@ -118,12 +122,16 @@ class ContextEntityBase(BaseModel):
 
     name: str = Field(nullable=False)
 
-class Interest(SQLModel, ContextEntityBase, IdTimestampMixin, DyadIdMixin, table=True):
+class Agent(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
     __table_args__ = (
-        UniqueConstraint("name", "dyad_id", name="uix_interest_name_dyad_id"),
+        UniqueConstraint("interest", "dyad_id", name="uix_agent_interest_dyad_id"),
     )
-    dyad: Dyad = Relationship(back_populates="interests", sa_relationship_kwargs={'lazy': 'selectin'})
-
+    
+    interest: str = Field(nullable=False)
+    agent_name: str = Field(nullable=False)
+    agent_config: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    
+    dyad: Dyad = Relationship(back_populates="agents", sa_relationship_kwargs={'lazy': 'selectin'})
 
 class Place(SQLModel, ContextEntityBase, IdTimestampMixin, DyadIdMixin, table=True):
 
@@ -181,18 +189,20 @@ class JournalEntryStatus(StrEnum):
 
 class JournalEntryStage(StrEnum):
     Prelim="prelim"
-    Drawing="drawing"
-    Debriefing="debriefing"
+    Intro="intro"
+    Revision1="revision_1"
+    ComicContext="comic_context"
+    Revision2="revision_2"
+    Complete="complete"
 
 class JournalEntry(SQLModel, IdTimestampMixin, TimezoneTimestampMixin, DyadIdMixin, table=True):
     model_config = ConfigDict(use_enum_values=True)
     
     status: JournalEntryStatus = Field(nullable=False, default=JournalEntryStatus.Initial)
-
     stage: Optional[JournalEntryStage] = Field(nullable=True, default=None)
+    whole_audio: Optional[str] = Field(nullable=True, default=None)
 
     interaction_turns: list['InteractionTurn'] = Relationship(back_populates="journal_entry", sa_relationship_kwargs={'lazy': 'selectin'}, cascade_delete=True)
-
     dyad: Dyad = Relationship(back_populates="journal_entries", sa_relationship_kwargs={'lazy': 'selectin'})
     messages: list['Message'] = Relationship(back_populates="journal_entry", sa_relationship_kwargs={'lazy': 'selectin'}, cascade_delete=True)
     
@@ -204,7 +214,6 @@ class InteractionTurn(SQLModel, IdTimestampMixin, JournalEntryIdMixin, table=Tru
     stage: JournalEntryStage = Field(nullable=False)
 
     journal_entry: JournalEntry = Relationship(back_populates="interaction_turns", sa_relationship_kwargs={'lazy': 'selectin'})
-
     messages: list['Message'] = Relationship(back_populates="interaction_turn", sa_relationship_kwargs={'lazy': 'selectin'}, cascade_delete=True)
 
     context_metadata: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
@@ -222,11 +231,9 @@ class Message(SQLModel, IdTimestampMixin, JournalEntryIdMixin, InteractionTurnId
 
     content: str = Field(nullable=False)
     role: MessageRole = Field(nullable=False)
-
     audio_filename: Optional[str] = Field(nullable=True, default=None)
     
     interaction_turn: InteractionTurn = Relationship(back_populates="messages", sa_relationship_kwargs={'lazy': 'selectin'})
-
     journal_entry: JournalEntry = Relationship(back_populates="messages", sa_relationship_kwargs={'lazy': 'selectin'})
 
     metadata_json: Optional[dict] = Field(sa_column=Column(JSON, name='metadata', nullable=True), default=None)
@@ -234,3 +241,31 @@ class Message(SQLModel, IdTimestampMixin, JournalEntryIdMixin, InteractionTurnId
     @property
     def stage(self)->JournalEntryStage:
         return self.interaction_turn.stage
+
+class Journal(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
+    location: Optional[str] = Field(nullable=True, default=None)
+    people: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    events: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    summary: Optional[str] = Field(nullable=True, default=None)
+    revision_count: int = Field(nullable=False)
+    max_revisions: int = Field(nullable=False)
+    comic_intro: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    revision_1: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    comic_context: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    revision_2: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    journal_entry_id: str = Field(foreign_key="journalentry.id")
+
+class JournalIdMixin(BaseModel):
+    journal_id: str = Field(foreign_key=f"{Journal.__tablename__}.id")
+
+class Comic(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
+    first_panel1: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    first_panel2: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    first_panel3: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    first_panel4: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    second_panel1: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    second_panel2: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    second_panel3: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    second_panel4: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    journal_entry_id: str = Field(foreign_key="journalentry.id")
+    journal_id: str = Field(foreign_key="journal.id")

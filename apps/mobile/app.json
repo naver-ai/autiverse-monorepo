@@ -48,6 +48,7 @@
         }
       ]
     ],
-    "userInterfaceStyle": "light"
+    "userInterfaceStyle": "light",
+    "scheme": "autiverse-mobile"
   }
 }

@@ -2,21 +2,21 @@ import { Dyad } from "@autiverse-monorepo/ts-core"
 import { XMarkIcon } from "@heroicons/react/20/solid"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Button, Card, Collapse, Descriptions } from "antd"
-import { deleteInterestApi } from "../api"
-import { useInterestModalStore, usePersonModalStore, usePlaceModalStore } from "../store"
+import { deleteAgentApi } from "../api"
+import { useAgentModalStore, usePersonModalStore, usePlaceModalStore } from "../store"
 import { PersonView } from "./PersonView"
 import { PlaceView } from "./PlaceView"
 
 export const DyadCard = (props: {
     dyad: Dyad
 }) => {
-    const { openInterestModal } = useInterestModalStore();
+    const { openAgentModal } = useAgentModalStore();
     const { openPersonModal } = usePersonModalStore();
     const { openPlaceModal } = usePlaceModalStore();
     const queryClient = useQueryClient();
 
-    const deleteInterestMutation = useMutation({
-        mutationFn: deleteInterestApi,
+    const deleteAgentMutation = useMutation({
+        mutationFn: deleteAgentApi,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['dyads'] });
         }
@@ -54,24 +54,24 @@ export const DyadCard = (props: {
             children: props.dyad.passcode
         },
         {
-            key: 'interests',
-            label: 'Interests',
+            key: 'agents',
+            label: 'Agents',
             children: <div className="flex gap-2 flex-wrap">
             {
-                props.dyad.interests?.map(interest => <Button className="group" key={interest.id} type="text" size="small" onClick={() => {
-                    if(window.confirm('Are you sure you want to delete this interest?')) {
-                    deleteInterestMutation.mutate({
+                props.dyad.agents?.map(agent => <Button className="group" key={agent.id} type="text" size="small" onClick={() => {
+                    if(window.confirm('Are you sure you want to delete this agent?')) {
+                    deleteAgentMutation.mutate({
                             dyadId: props.dyad.id,
-                            interestId: interest.id
+                            agentId: agent.id
                         })
                     }
-                }} loading={deleteInterestMutation.isPending}><span className="text-sm">
-                    {`${interest.name}`}</span>
+                }} loading={deleteAgentMutation.isPending}><span className="text-sm">
+                    {`${agent.interest} (${agent.agent_name})`}</span>
                     <XMarkIcon className="w-4 h-4 group-hover:opacity-100 opacity-0 transition-opacity" />
-                    </Button>) || 'No interests'
+                    </Button>) || 'No agents'
             }
-            <Button type="link" size="small" onClick={() => openInterestModal(props.dyad.id)}>
-                Add Interest
+            <Button type="link" size="small" onClick={() => openAgentModal(props.dyad.id)}>
+                Add Agent
             </Button>
         </div> 
         }

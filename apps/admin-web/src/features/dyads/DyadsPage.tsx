@@ -1,14 +1,14 @@
 import { getAllDyadsApi } from "./api";
 import { useQuery } from "@tanstack/react-query";
 import { NewDyadPanel } from "./components/NewDyadPanel";
-import { NewInterestModal } from "./components/NewInterestModal";
+import { NewAgentModal } from "./components/NewAgentModal";
 import { NewPersonModal } from "./components/NewPersonModal";
 import { NewPlaceModal } from "./components/NewPlaceModal";
 import { DyadCard } from "./components/DyadCard";
-import { useInterestModalStore, usePersonModalStore, usePlaceModalStore } from "./store";
+import { useAgentModalStore, usePersonModalStore, usePlaceModalStore } from "./store";
 
 export const DyadsPage = () => {
-    const { isOpen: isInterestModalOpen, selectedDyadId: selectedInterestDyadId, closeInterestModal } = useInterestModalStore();
+    const { isOpen: isAgentModalOpen, selectedDyadId: selectedAgentDyadId, closeAgentModal } = useAgentModalStore();
     const { isOpen: isPersonModalOpen, selectedDyadId: selectedPersonDyadId, closePersonModal } = usePersonModalStore();
     const { isOpen: isPlaceModalOpen, selectedDyadId: selectedPlaceDyadId, closePlaceModal } = usePlaceModalStore();
 
@@ -26,10 +26,10 @@ export const DyadsPage = () => {
             ))
         }
         </div>
-        <NewInterestModal
-            isOpen={isInterestModalOpen}
-            dyadId={selectedInterestDyadId}
-            onClose={closeInterestModal}
+        <NewAgentModal
+            isOpen={isAgentModalOpen}
+            dyadId={selectedAgentDyadId}
+            onClose={closeAgentModal}
         />
         <NewPersonModal
             isOpen={isPersonModalOpen}

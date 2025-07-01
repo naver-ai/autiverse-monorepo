@@ -1,251 +1,189 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 import asyncio
 import json
 import sys
 import os
+from sqlalchemy.orm import Session
 
 # Add the backend directory to the path so we can import the modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from comic_intro import Chatbot, EventAnalysis
-from comic_context import ComicContextGenerator
-from revision_1 import ComicRevisionSystem as Revision1System
-from revision_2 import ComicRevisionSystem as Revision2System
+from backend.database.engine import get_session
+from backend.database.crud.chatbot import get_dyad_by_id, get_dyad_places, get_place_people
+from backend.chatbot_controller import ChatbotController
 
 router = APIRouter()
 
-class ChatMessage(BaseModel):
-    message: str
-    session_id: Optional[str] = None
+class StartChatbotRequest(BaseModel):
+    dyad_id: str
+    location: Optional[str] = None
+    people: Optional[List[str]] = None
 
-class ChatResponse(BaseModel):
+class SendMessageRequest(BaseModel):
+    journal_entry_id: str
+    message: str
+
+class ChatbotResponse(BaseModel):
+    journal_entry_id: str
     response: str
-    session_id: str
     stage: str
     data: Optional[Dict[str, Any]] = None
 
-class ComicData(BaseModel):
-    panels: Dict[str, Any]
-    session_id: str
-
-# Store active sessions
-sessions: Dict[str, Dict[str, Any]] = {}
-
-@router.post("/start", response_model=ChatResponse)
-async def start_chatbot():
-    """Start a new chatbot session"""
-    session_id = f"session_{len(sessions) + 1}"
-    
-    # Initialize chatbot
-    chatbot = Chatbot()
-    
-    sessions[session_id] = {
-        "chatbot": chatbot,
-        "stage": "intro",
-        "events": [],
-        "summary": "",
-        "comic_data": None,
-        "revision_count": 0
-    }
-    
-    # Get initial message
-    initial_response = await chatbot.process_message("")
-    
-    return ChatResponse(
-        response=initial_response,
-        session_id=session_id,
-        stage="intro"
-    )
-
-@router.post("/message", response_model=ChatResponse)
-async def send_message(message: ChatMessage):
-    """Send a message to the chatbot"""
-    if not message.session_id or message.session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
-    
-    session = sessions[message.session_id]
-    chatbot = session["chatbot"]
-    
-    # Process message based on current stage
-    if session["stage"] == "intro":
-        response = await chatbot.process_message(message.message)
+@router.post("/start", response_model=ChatbotResponse)
+def start_chatbot(
+    request: StartChatbotRequest,
+    db: Session = Depends(get_session)
+):
+    """챗봇 시작"""
+    try:
+        controller = ChatbotController(db)
+        result = controller.start_chatbot(
+            dyad_id=request.dyad_id,
+            location=request.location,
+            people=request.people
+        )
         
-        # Check if intro is complete
-        if chatbot.is_conversation_complete():
-            session["stage"] = "revision_1"
-            session["events"] = chatbot.context.events
-            session["summary"] = chatbot.get_final_summary()
-            
-            # Generate initial comic data
-            comic_generator = ComicContextGenerator(
-                json.dumps({
-                    "panel1": {"content": None, "missing_content": "이벤트 1"},
-                    "panel2": {"content": None, "missing_content": "이벤트 2"},
-                    "panel3": {"content": None, "missing_content": "이벤트 3"},
-                    "panel4": {"content": None, "missing_content": "감정"}
-                })
-            )
-            
-            # Complete the comic
-            await comic_generator.run_comic_conversation()
-            session["comic_data"] = comic_generator.get_final_result()
-            
-            return ChatResponse(
-                response="좋아! 이제 만화를 만들어볼게. 먼저 틀린 부분이 있는지 확인해보자! 🤔",
-                session_id=message.session_id,
-                stage="revision_1",
-                data={
-                    "panels": session["comic_data"],
-                    "events": session["events"],
-                    "summary": session["summary"]
+        return ChatbotResponse(
+            journal_entry_id=result["journal_entry_id"],
+            response=result["response"],
+            stage=result["stage"],
+            data=result.get("data")
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.post("/send", response_model=ChatbotResponse)
+def send_message(
+    request: SendMessageRequest,
+    db: Session = Depends(get_session)
+):
+    """메시지 전송"""
+    try:
+        controller = ChatbotController(db)
+        result = controller.send_message(
+            journal_entry_id=request.journal_entry_id,
+            message=request.message
+        )
+        
+        return ChatbotResponse(
+            journal_entry_id=request.journal_entry_id,
+            response=result["response"],
+            stage=result["stage"],
+            data=result.get("data")
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.get("/session/{journal_entry_id}")
+def get_session_info(
+    journal_entry_id: str,
+    db: Session = Depends(get_session)
+):
+    """세션 정보 조회"""
+    try:
+        controller = ChatbotController(db)
+        return controller.get_session_info(journal_entry_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.post("/reset/{journal_entry_id}")
+def reset_session(
+    journal_entry_id: str,
+    db: Session = Depends(get_session)
+):
+    """세션 초기화"""
+    try:
+        controller = ChatbotController(db)
+        result = controller.reset_session(journal_entry_id)
+        
+        return ChatbotResponse(
+            journal_entry_id=journal_entry_id,
+            response=result["response"],
+            stage=result["stage"]
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.get("/dyad/{dyad_id}/places")
+def get_places(
+    dyad_id: str,
+    db: Session = Depends(get_session)
+):
+    """dyad의 places 조회"""
+    try:
+        # dyad 존재 확인
+        dyad = get_dyad_by_id(db, dyad_id)
+        if not dyad:
+            raise HTTPException(status_code=404, detail="Dyad not found")
+        
+        places = get_dyad_places(db, dyad_id)
+        return {
+            "dyad_id": dyad_id,
+            "places": [
+                {
+                    "id": place.id,
+                    "name": place.name,
+                    "monday": place.monday,
+                    "tuesday": place.tuesday,
+                    "wednesday": place.wednesday,
+                    "thursday": place.thursday,
+                    "friday": place.friday,
+                    "saturday": place.saturday,
+                    "sunday": place.sunday
                 }
-            )
-        
-        return ChatResponse(
-            response=response,
-            session_id=message.session_id,
-            stage="intro"
-        )
-    
-    elif session["stage"] == "revision_1":
-        # Handle revision 1
-        revision_system = Revision1System(json.dumps(session["comic_data"]))
-        
-        if message.message.lower() in ['아니', '아니요', 'no', 'n']:
-            session["stage"] = "comic_context"
-            return ChatResponse(
-                response="좋아! 그럼 이제 만화를 더 완성해볼게! 🎨",
-                session_id=message.session_id,
-                stage="comic_context",
-                data={"panels": session["comic_data"]}
-            )
-        elif message.message.lower() in ['응', '네', 'yes', 'y']:
-            session["stage"] = "revision_1_correction"
-            return ChatResponse(
-                response="어디가 어떻게 틀렸어? 😅",
-                session_id=message.session_id,
-                stage="revision_1_correction",
-                data={"panels": session["comic_data"]}
-            )
-        else:
-            return ChatResponse(
-                response="응 아니 중에 골라줘! 😅",
-                session_id=message.session_id,
-                stage="revision_1",
-                data={"panels": session["comic_data"]}
-            )
-    
-    elif session["stage"] == "revision_1_correction":
-        # Apply revision 1 correction
-        revision_system = Revision1System(json.dumps(session["comic_data"]))
-        await revision_system._apply_revision(message.message)
-        session["comic_data"] = revision_system.comic_generator.get_final_result()
-        session["stage"] = "revision_1"
-        
-        return ChatResponse(
-            response="네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까? 🤔",
-            session_id=message.session_id,
-            stage="revision_1",
-            data={"panels": session["comic_data"]}
-        )
-    
-    elif session["stage"] == "comic_context":
-        # Handle comic context completion
-        comic_generator = ComicContextGenerator(json.dumps(session["comic_data"]))
-        
-        # Process the message to complete missing panels
-        await comic_generator.reconstruct_panel(message.message, "사용자 입력")
-        
-        if comic_generator.is_complete():
-            session["comic_data"] = comic_generator.get_final_result()
-            session["stage"] = "revision_2"
-            
-            return ChatResponse(
-                response="완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔",
-                session_id=message.session_id,
-                stage="revision_2",
-                data={"panels": session["comic_data"]}
-            )
-        else:
-            # Get next question
-            next_question = await comic_generator.get_next_question()
-            return ChatResponse(
-                response=next_question or "다음에 대해 말해줘!",
-                session_id=message.session_id,
-                stage="comic_context",
-                data={"panels": session["comic_data"]}
-            )
-    
-    elif session["stage"] == "revision_2":
-        # Handle revision 2
-        if message.message.lower() in ['아니', '아니요', 'no', 'n']:
-            session["stage"] = "complete"
-            return ChatResponse(
-                response="완벽하네! 만화일기 완성이닷! 🏅",
-                session_id=message.session_id,
-                stage="complete",
-                data={"panels": session["comic_data"]}
-            )
-        elif message.message.lower() in ['응', '네', 'yes', 'y']:
-            session["stage"] = "revision_2_correction"
-            return ChatResponse(
-                response="어디를 어떻게 수정해볼까?? 🤔",
-                session_id=message.session_id,
-                stage="revision_2_correction",
-                data={"panels": session["comic_data"]}
-            )
-        else:
-            return ChatResponse(
-                response="응 아니 중에 골라줘! 😅",
-                session_id=message.session_id,
-                stage="revision_2",
-                data={"panels": session["comic_data"]}
-            )
-    
-    elif session["stage"] == "revision_2_correction":
-        # Apply revision 2 correction
-        revision_system = Revision2System(json.dumps(session["comic_data"]))
-        await revision_system._apply_revision(message.message)
-        session["comic_data"] = revision_system.comic_generator.get_final_result()
-        session["stage"] = "revision_2"
-        
-        return ChatResponse(
-            response="네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까? 🤔",
-            session_id=message.session_id,
-            stage="revision_2",
-            data={"panels": session["comic_data"]}
-        )
-    
-    else:
-        return ChatResponse(
-            response="만화가 완성되었어! 새로운 만화를 시작하려면 /start를 사용해줘! 🎉",
-            session_id=message.session_id,
-            stage="complete",
-            data={"panels": session["comic_data"]}
-        )
+                for place in places
+            ]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.get("/sessions/{session_id}")
-async def get_session(session_id: str):
-    """Get session data"""
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
-    
-    session = sessions[session_id]
-    return {
-        "session_id": session_id,
-        "stage": session["stage"],
-        "events": session["events"],
-        "summary": session["summary"],
-        "comic_data": session["comic_data"]
-    }
+@router.get("/place/{place_id}/people")
+def get_people(
+    place_id: str,
+    db: Session = Depends(get_session)
+):
+    """place에 연결된 people 조회"""
+    try:
+        people = get_place_people(db, place_id)
+        return {
+            "place_id": place_id,
+            "people": [
+                {
+                    "id": person.id,
+                    "name": person.name,
+                    "avatar_config": person.avatar_config
+                }
+                for person in people
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.delete("/sessions/{session_id}")
-async def delete_session(session_id: str):
-    """Delete a session"""
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
-    
-    del sessions[session_id]
-    return {"message": "Session deleted"} 
+@router.delete("/session/{journal_entry_id}")
+def delete_session(
+    journal_entry_id: str,
+    db: Session = Depends(get_session)
+):
+    """세션 삭제"""
+    try:
+        controller = ChatbotController(db)
+        success = controller.delete_session(journal_entry_id)
+        
+        if success:
+            return {"message": "Session deleted successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="Session not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 

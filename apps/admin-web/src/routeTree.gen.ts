@@ -11,18 +11,16 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SigninRouteImport } from './routes/signin'
 import { Route as ProtectedIndexRouteImport } from './routes/_protected/index'
-import { Route as ProtectedComicChatbotRouteImport } from './routes/_protected/comic-chatbot'
-import { Route as ProtectedComicRouteImport } from './routes/_protected/comic'
 import { Route as ProtectedTabletComicChatbotRouteImport } from './routes/_protected/tablet-comic-chatbot'
 import { Route as ProtectedTabletRouteImport } from './routes/_protected/tablet'
+import { Route as ProtectedComicChatbotRouteImport } from './routes/_protected/comic-chatbot'
+import { Route as ProtectedComicRouteImport } from './routes/_protected/comic'
 import { Route as ProtectedLayoutRouteImport } from './routes/_protected/_layout'
 import { Route as ProtectedLayoutDyadsIndexRouteImport } from './routes/_protected/_layout.dyads.index'
 import { Route as ProtectedLayoutDyadsListRouteImport } from './routes/_protected/_layout.dyads.list'
 import { Route as ProtectedLayoutDyadsDyadIdIndexRouteImport } from './routes/_protected/_layout.dyads.$dyadId.index'
 import { Route as ProtectedLayoutDyadsDyadIdJournalIndexRouteImport } from './routes/_protected/_layout.dyads.$dyadId.journal.index'
 import { Route as ProtectedLayoutDyadsDyadIdJournalJournalIdRouteImport } from './routes/_protected/_layout.dyads.$dyadId.journal.$journalId'
-
-// Create/Update Routes
 
 const SigninRoute = SigninRouteImport.update({
   id: '/signin',
@@ -34,20 +32,17 @@ const ProtectedIndexRoute = ProtectedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-
 const ProtectedTabletComicChatbotRoute =
   ProtectedTabletComicChatbotRouteImport.update({
     id: '/_protected/tablet-comic-chatbot',
     path: '/tablet-comic-chatbot',
     getParentRoute: () => rootRouteImport,
   } as any)
-
 const ProtectedTabletRoute = ProtectedTabletRouteImport.update({
   id: '/_protected/tablet',
   path: '/tablet',
   getParentRoute: () => rootRouteImport,
 } as any)
-
 const ProtectedComicChatbotRoute = ProtectedComicChatbotRouteImport.update({
   id: '/_protected/comic-chatbot',
   path: '/comic-chatbot',
@@ -97,6 +92,8 @@ export interface FileRoutesByFullPath {
   '/signin': typeof SigninRoute
   '/comic': typeof ProtectedComicRoute
   '/comic-chatbot': typeof ProtectedComicChatbotRoute
+  '/tablet': typeof ProtectedTabletRoute
+  '/tablet-comic-chatbot': typeof ProtectedTabletComicChatbotRoute
   '/': typeof ProtectedIndexRoute
   '/dyads/list': typeof ProtectedLayoutDyadsListRoute
   '/dyads': typeof ProtectedLayoutDyadsIndexRoute
@@ -108,6 +105,8 @@ export interface FileRoutesByTo {
   '/signin': typeof SigninRoute
   '/comic': typeof ProtectedComicRoute
   '/comic-chatbot': typeof ProtectedComicChatbotRoute
+  '/tablet': typeof ProtectedTabletRoute
+  '/tablet-comic-chatbot': typeof ProtectedTabletComicChatbotRoute
   '/': typeof ProtectedIndexRoute
   '/dyads/list': typeof ProtectedLayoutDyadsListRoute
   '/dyads': typeof ProtectedLayoutDyadsIndexRoute
@@ -121,6 +120,8 @@ export interface FileRoutesById {
   '/_protected/_layout': typeof ProtectedLayoutRouteWithChildren
   '/_protected/comic': typeof ProtectedComicRoute
   '/_protected/comic-chatbot': typeof ProtectedComicChatbotRoute
+  '/_protected/tablet': typeof ProtectedTabletRoute
+  '/_protected/tablet-comic-chatbot': typeof ProtectedTabletComicChatbotRoute
   '/_protected/': typeof ProtectedIndexRoute
   '/_protected/_layout/dyads/list': typeof ProtectedLayoutDyadsListRoute
   '/_protected/_layout/dyads/': typeof ProtectedLayoutDyadsIndexRoute
@@ -134,6 +135,8 @@ export interface FileRouteTypes {
     | '/signin'
     | '/comic'
     | '/comic-chatbot'
+    | '/tablet'
+    | '/tablet-comic-chatbot'
     | '/'
     | '/dyads/list'
     | '/dyads'
@@ -145,6 +148,8 @@ export interface FileRouteTypes {
     | '/signin'
     | '/comic'
     | '/comic-chatbot'
+    | '/tablet'
+    | '/tablet-comic-chatbot'
     | '/'
     | '/dyads/list'
     | '/dyads'
@@ -157,6 +162,8 @@ export interface FileRouteTypes {
     | '/_protected/_layout'
     | '/_protected/comic'
     | '/_protected/comic-chatbot'
+    | '/_protected/tablet'
+    | '/_protected/tablet-comic-chatbot'
     | '/_protected/'
     | '/_protected/_layout/dyads/list'
     | '/_protected/_layout/dyads/'
@@ -170,6 +177,8 @@ export interface RootRouteChildren {
   ProtectedLayoutRoute: typeof ProtectedLayoutRouteWithChildren
   ProtectedComicRoute: typeof ProtectedComicRoute
   ProtectedComicChatbotRoute: typeof ProtectedComicChatbotRoute
+  ProtectedTabletRoute: typeof ProtectedTabletRoute
+  ProtectedTabletComicChatbotRoute: typeof ProtectedTabletComicChatbotRoute
   ProtectedIndexRoute: typeof ProtectedIndexRoute
 }
 
@@ -182,11 +191,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SigninRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_protected/tablet': {
-      id: '/_protected/tablet'
-      path: '/tablet'
-      fullPath: '/tablet'
-      preLoaderRoute: typeof ProtectedTabletRouteImport
+    '/_protected/': {
+      id: '/_protected/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof ProtectedIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_protected/tablet-comic-chatbot': {
@@ -196,11 +205,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedTabletComicChatbotRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_protected/': {
-      id: '/_protected/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof ProtectedIndexRouteImport
+    '/_protected/tablet': {
+      id: '/_protected/tablet'
+      path: '/tablet'
+      fullPath: '/tablet'
+      preLoaderRoute: typeof ProtectedTabletRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_protected/comic-chatbot': {

@@ -22,8 +22,8 @@ export class NetworkHelper {
       DYADS: {
         LIST: `${this.ENDPOINT_PREFIX}/dyads/all`,
         CREATE: `${this.ENDPOINT_PREFIX}/dyads/new`,
-        getAddInterestEndpoint: (dyadId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/interests/add`,
-        getDeleteInterestEndpoint: (dyadId: string, interestId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/interests/${interestId}`,
+        getAddAgentEndpoint: (dyadId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/agents/add`,
+        getDeleteAgentEndpoint: (dyadId: string, agentId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/agents/${agentId}`,
         getSetScheduleEndpoint: (dyadId: string, placeId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/places/${placeId}/schedule`,
         getAddPersonEndpoint: (dyadId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/people/add`,
         getDeletePersonEndpoint: (dyadId: string, personId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/people/${personId}`,
