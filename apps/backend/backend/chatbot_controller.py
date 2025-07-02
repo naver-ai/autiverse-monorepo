@@ -124,8 +124,20 @@ class ChatbotController:
         revision_stage = Revision1Stage(self.db, journal_entry_id)
         response = revision_stage.process_message(message)
         
-        # 다음 단계로 전환할지 확인
-        if "좋아! 그럼 이제 만화를 더 완성해볼게! 🎨" in response:
+        # 만화 생성 시작 신호인지 확인
+        if response == "COMIC_GENERATION_START":
+            # 만화 생성 시작 (프론트엔드에서 모니터링할 수 있도록)
+            revision_stage._generate_comic_panels()
+            
+            # 만화 생성 시작 메시지 반환
+            return {
+                "response": "다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~",
+                "stage": "revision_1",
+                "auto_comic_generation": True
+            }
+        
+        # 만화 생성 완료 신호인지 확인
+        if response == "COMIC_GENERATION_COMPLETE":
             # comic_context 단계로 전환
             context_stage = ComicContextStage(self.db, journal_entry_id)
             context_response = context_stage.start_context_analysis()
@@ -145,15 +157,16 @@ class ChatbotController:
         context_stage = ComicContextStage(self.db, journal_entry_id)
         response = context_stage.process_message(message)
         
-        # 완료되었는지 확인
-        if context_stage.is_complete():
-            # revision_2 단계로 전환
-            revision2_stage = Revision2Stage(self.db, journal_entry_id)
-            revision2_response = revision2_stage.start_revision()
+        # 만화 생성 시작 신호인지 확인
+        if response == "COMIC_GENERATION_START":
+            # 만화 생성 시작 (프론트엔드에서 모니터링할 수 있도록)
+            context_stage._generate_final_comic_panels()
             
+            # 만화 생성 시작 메시지 반환
             return {
-                "response": revision2_response,
-                "stage": "revision_2"
+                "response": "내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~",
+                "stage": "comic_context",
+                "auto_comic_generation": True
             }
         
         return {
@@ -257,4 +270,92 @@ class ChatbotController:
     
     def delete_session(self, journal_entry_id: str) -> bool:
         """세션 삭제"""
-        return delete_journal_entry(self.db, journal_entry_id) 
+        return delete_journal_entry(self.db, journal_entry_id)
+    
+    def start_auto_comic_generation(self, journal_entry_id: str) -> Dict[str, Any]:
+        """자동 만화 생성 시작"""
+        journal_entry = get_journal_entry(self.db, journal_entry_id)
+        if not journal_entry:
+            raise ValueError("Journal entry not found")
+        
+        current_stage = journal_entry.stage
+        
+        if current_stage == JournalEntryStage.Revision1:
+            # 만화 생성이 완료될 때까지 기다림 (더 빠른 확인)
+            import time
+            import requests
+            
+            max_wait_time = 60  # 최대 60초 대기
+            wait_interval = 0.5  # 0.5초마다 확인 (더 빠른 응답)
+            
+            for _ in range(int(max_wait_time / wait_interval)):
+                try:
+                    # 만화 생성 상태 확인
+                    status_response = requests.get(
+                        f'http://localhost:3000/api/v1/app/comic-generation/status/{journal_entry_id}'
+                    )
+                    
+                    if status_response.status_code == 200:
+                        status_data = status_response.json()
+                        if status_data.get('status') == 'completed':
+                            print(f"[DEBUG] revision_1: Comic generation completed for {journal_entry_id}")
+                            break
+                        elif status_data.get('status') == 'failed':
+                            print(f"[DEBUG] revision_1: Comic generation failed for {journal_entry_id}")
+                            break
+                    
+                    time.sleep(wait_interval)
+                except Exception as e:
+                    print(f"[DEBUG] revision_1: Error checking comic generation status: {e}")
+                    time.sleep(wait_interval)
+            
+            # comic_context로 전환
+            context_stage = ComicContextStage(self.db, journal_entry_id)
+            context_response = context_stage.start_context_analysis()
+            
+            return {
+                "response": context_response,
+                "stage": "comic_context"
+            }
+        elif current_stage == JournalEntryStage.ComicContext:
+            # 만화 생성이 완료될 때까지 기다림 (더 빠른 확인)
+            import time
+            import requests
+            
+            max_wait_time = 60  # 최대 60초 대기
+            wait_interval = 0.5  # 0.5초마다 확인 (더 빠른 응답)
+            
+            for _ in range(int(max_wait_time / wait_interval)):
+                try:
+                    # 만화 생성 상태 확인
+                    status_response = requests.get(
+                        f'http://localhost:3000/api/v1/app/comic-generation/status/{journal_entry_id}'
+                    )
+                    
+                    if status_response.status_code == 200:
+                        status_data = status_response.json()
+                        if status_data.get('status') == 'completed':
+                            print(f"[DEBUG] comic_context: Comic generation completed for {journal_entry_id}")
+                            break
+                        elif status_data.get('status') == 'failed':
+                            print(f"[DEBUG] comic_context: Comic generation failed for {journal_entry_id}")
+                            break
+                    
+                    time.sleep(wait_interval)
+                except Exception as e:
+                    print(f"[DEBUG] comic_context: Error checking comic generation status: {e}")
+                    time.sleep(wait_interval)
+            
+            # revision_2로 전환
+            revision2_stage = Revision2Stage(self.db, journal_entry_id)
+            revision2_response = revision2_stage.start_revision()
+            
+            return {
+                "response": revision2_response,
+                "stage": "revision_2"
+            }
+        else:
+            return {
+                "response": "만화 생성을 시작할 수 없습니다.",
+                "stage": "error"
+            } 

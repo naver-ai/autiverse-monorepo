@@ -31,6 +31,14 @@ class ComicContextStage:
         self.agent_interests = self._get_agent_interests()
         self.story_analysis = None
         self.comic_context_history: List[Dict[str, str]] = []
+        self.final_comic_generation_started = False
+        self.current_panels = None  # 메모리상의 최신 패널 상태
+        
+        # 기존 comic_context가 있으면 메모리에 로드
+        journal = get_journal(self.db, self.journal_entry_id)
+        if journal and journal.comic_context:
+            self.current_panels = journal.comic_context
+        
         print(f"[DEBUG] comic_context: initialized with child_name={self.child_name}, agent_name={self.agent_name}")
     
     def _get_child_name(self) -> str:
@@ -110,9 +118,6 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             # Journal entry stage 업데이트
             update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.ComicContext)
             
-            # comic_context 시작 시 만화 패널 생성
-            self._generate_initial_comic_panels()
-            
             # 새로운 interaction turn 생성
             interaction_turn = create_interaction_turn(
                 self.db, self.journal_entry_id, JournalEntryStage.ComicContext
@@ -146,14 +151,26 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             
             # 첫 번째 메시지인 경우 분석 수행
             print(f"[DEBUG] comic_context: story_analysis = {self.story_analysis}")
-            if not self.story_analysis:
+            
+            # 데이터베이스에서 기존 comic_context가 있는지 확인
+            journal = get_journal(self.db, self.journal_entry_id)
+            has_existing_context = journal and journal.comic_context
+            
+            if not self.story_analysis and not has_existing_context:
+                # 첫 번째 메시지: 분석 후 재구성
                 self.story_analysis = self._analyze_story_flow()
                 print(f"[DEBUG] comic_context: story_analysis created: {self.story_analysis}")
                 self._reconstruct_panel(user_message, "", True)
             else:
+                # 이후 메시지: 먼저 재구성 후 분석 업데이트
                 self._reconstruct_panel(user_message, "사용자 입력", False)
-                # 재구성 후 분석 업데이트
                 self.story_analysis = self._analyze_story_flow()
+                print(f"[DEBUG] comic_context: story_analysis updated: {self.story_analysis}")
+            
+            # 완료 상태 확인
+            if self.is_complete():
+                # 만화 생성 시작 신호 반환 (실제 만화 생성은 controller에서 처리)
+                return "COMIC_GENERATION_START"
             
             # 다음 질문 생성
             next_question = self._get_next_question()
@@ -177,8 +194,13 @@ You're having a friendly conversation with your autistic best friend, {self.chil
         if not journal:
             return {"A": [], "B": [], "C": [], "D": [], "Order": []}
         
-        # comic_context가 있으면 그것을 사용, 없으면 revision_1 사용
-        panels_content = journal.comic_context if journal.comic_context else journal.revision_1
+        # 메모리상의 최신 패널 상태를 우선적으로 사용
+        if self.current_panels:
+            panels_content = self.current_panels
+        else:
+            # 메모리에 없으면 데이터베이스에서 가져오기
+            panels_content = journal.comic_context if journal.comic_context else journal.revision_1
+            
         if not panels_content:
             return {"A": [], "B": [], "C": [], "D": [], "Order": []}
         
@@ -516,6 +538,9 @@ answer: "{answer}"
         try:
             reconstructed_panels = json.loads(result)
             
+            # 메모리에 최신 패널 상태 저장
+            self.current_panels = reconstructed_panels
+            
             # Journal에 재구성된 데이터 저장
             update_journal_data(
                 self.db, self.journal_entry_id,
@@ -554,8 +579,7 @@ answer: "{answer}"
             )
             
             if not has_real_issues:
-                # comic_context 완료 시 최종 만화 생성
-                self._generate_final_comic_panels()
+                # comic_context 완료 시 다음 단계로 넘어감
                 update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Revision2)
                 return "완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔"
             
@@ -816,6 +840,7 @@ Please generate a question that addresses the FIRST missing information gap."""
     def is_complete(self) -> bool:
         """분석이 완료되었는지 확인"""
         if not self.story_analysis:
+            print(f"[DEBUG] comic_context: is_complete - no story_analysis")
             return False
         
         # 문제점이 있는지 확인 (빈 문자열이 아닌 실제 문제가 있는지 체크)
@@ -827,57 +852,25 @@ Please generate a question that addresses the FIRST missing information gap."""
             self.story_analysis.get("Order", [])
         ]
         
+        print(f"[DEBUG] comic_context: is_complete - has_issues: {has_issues}")
+        
         # 각 카테고리에서 빈 문자열이 아닌 실제 문제가 있는지 확인
         has_real_issues = any(
             any(issue.strip() for issue in issues if issue.strip())
             for issues in has_issues
         )
         
+        print(f"[DEBUG] comic_context: is_complete - has_real_issues: {has_real_issues}")
+        
         is_complete = not has_real_issues
         
-        # 완료되었고 아직 최종 만화 패널이 생성되지 않았다면 생성
-        if is_complete:
-            self._generate_final_comic_panels()
+        print(f"[DEBUG] comic_context: is_complete - is_complete: {is_complete}")
         
         return is_complete
     
-    def _generate_initial_comic_panels(self) -> None:
-        """comic_context 시작 시 초기 만화 패널 생성 및 Comic 테이블에 저장"""
-        try:
-            
-            # revision_1 데이터 가져오기
-            journal = get_journal(self.db, self.journal_entry_id)
-            if not journal or not journal.revision_1:
-                return
-            
-            # 패널 내용 추출 (Null은 빈 문자열로 처리)
-            panel_contents = {
-                "panel1": journal.revision_1.get("panel1", "") if journal.revision_1.get("panel1") != "null" else "",
-                "panel2": journal.revision_1.get("panel2", "") if journal.revision_1.get("panel2") != "null" else "",
-                "panel3": journal.revision_1.get("panel3", "") if journal.revision_1.get("panel3") != "null" else "",
-                "panel4": journal.revision_1.get("panel4", "") if journal.revision_1.get("panel4") != "null" else ""
-            }
-            
-            
-            # ComicGridGenerator로 만화 생성
-            from .utils.comic_grid_generator import ComicGridGenerator
-            generator = ComicGridGenerator()
-            comic_data = generator.generate_comic_grids(panel_contents)
-            
-            # Comic 테이블에 저장 (first_panel1~4에 저장)
-            update_comic_data(
-                self.db, self.journal_entry_id,
-                first_panel1=comic_data.get("panel1"),
-                first_panel2=comic_data.get("panel2"),
-                first_panel3=comic_data.get("panel3"),
-                first_panel4=comic_data.get("panel4")
-            )
-            
-            
-        except Exception as e:
-            print(f"[DEBUG] comic_context: Error generating initial comic panels: {e}")
-            import traceback
-            traceback.print_exc()
+
+    
+
     
     def _generate_final_comic_panels(self) -> None:
         """comic_context 완료 시 최종 만화 패널 생성 및 Comic 테이블에 저장"""
@@ -895,21 +888,26 @@ Please generate a question that addresses the FIRST missing information gap."""
                 "panel4": journal.comic_context.get("panel4", "") if journal.comic_context.get("panel4") != "null" else ""
             }
             
-            
-            # ComicGridGenerator로 만화 생성
-            from .utils.comic_grid_generator import ComicGridGenerator
-            generator = ComicGridGenerator()
-            comic_data = generator.generate_comic_grids(panel_contents)
-            
-            
-            # Comic 테이블에 저장 (second_panel1~4에 저장)
-            update_comic_data(
-                self.db, self.journal_entry_id,
-                second_panel1=comic_data.get("panel1"),
-                second_panel2=comic_data.get("panel2"),
-                second_panel3=comic_data.get("panel3"),
-                second_panel4=comic_data.get("panel4")
-            )
+            # API를 사용하여 만화 생성 (진행률 추적 포함)
+            import requests
+            try:
+                # 만화 생성 시작 (두 번째 만화 생성)
+                start_response = requests.post(
+                    'http://localhost:3000/api/v1/app/comic-generation/start',
+                    json={
+                        'journal_entry_id': self.journal_entry_id,
+                        'panel_contents': panel_contents,
+                        'is_first_generation': False
+                    }
+                )
+                
+                if start_response.status_code == 200:
+                    print(f"[DEBUG] comic_context: Comic generation started for {self.journal_entry_id}")
+                else:
+                    print(f"[DEBUG] comic_context: Failed to start comic generation: {start_response.status_code}")
+                    
+            except Exception as e:
+                print(f"[DEBUG] comic_context: Error starting comic generation: {e}")
             
         except Exception as e:
             print(f"[DEBUG] comic_context: Error generating final comic panels: {e}")

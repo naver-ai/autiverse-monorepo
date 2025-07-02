@@ -19,6 +19,25 @@ const getImageSource = (imageName: string) => {
   }
 };
 
+// 한글 조사 처리 함수 (종성에 따라 '아'/'야' 선택)
+const getKoreanJosa = (name: string): string => {
+  if (!name) return '야';
+  
+  const lastName = name.charAt(name.length - 1);
+  const lastNameCode = lastName.charCodeAt(0);
+  
+  // 한글 유니코드 범위: 44032 ~ 55203
+  if (lastNameCode >= 44032 && lastNameCode <= 55203) {
+    // 한글 유니코드에서 종성 계산: (유니코드 - 44032) % 28
+    const jongseong = (lastNameCode - 44032) % 28;
+    // 종성이 있으면 (0이 아니면) '아', 없으면 (0이면) '야'
+    return jongseong === 0 ? '야' : '아';
+  }
+  
+  // 한글이 아닌 경우 기본값
+  return '야';
+};
+
 interface DyadData {
   id: string;
   alias: string;
@@ -153,9 +172,12 @@ export default function AgentIntroScreen() {
   }
 
   const isFirstVisit = dyadData.visit_count <= 1;
+  const childJosa = getKoreanJosa(dyadData.child_name);
+  const agentJosa = getKoreanJosa(agentData.name);
+  
   const greetingText = isFirstVisit 
-    ? `안녕, ${dyadData.child_name}아. 나는 2주간 너와 함께 그림 일기를 쓸 ${agentData.name}야. 만나서 반가워!`
-    : `안녕, ${dyadData.child_name}아. 또 만나니 너무 좋다.`;
+    ? `안녕, ${dyadData.child_name}${childJosa}. 나는 2주간 너와 함께 그림 일기를 쓸 ${agentData.name}${agentJosa}. 만나서 반가워!`
+    : `안녕, ${dyadData.child_name}${childJosa}. 또 만나니 너무 좋다.`;
 
 
 

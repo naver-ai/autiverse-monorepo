@@ -79,6 +79,11 @@ class Revision1Stage:
         # 봇 응답 생성
         bot_response = self._generate_response(user_message)
         
+        # 만화 생성 시작 신호인지 확인
+        if bot_response == "COMIC_GENERATION_START":
+            # 만화 생성 시작 신호만 반환
+            return "COMIC_GENERATION_START"
+        
         # 봇 응답 저장
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
@@ -95,26 +100,22 @@ class Revision1Stage:
             if self._is_negative_response(user_message):
                 return "아앗;; 어디가 어떻게 틀렸어? 😅"
             elif self._is_positive_response(user_message):
-                # 수정 완료, 만화 패널 생성 후 다음 단계로
-                self._generate_comic_panels()
-                update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.ComicContext)
-                return "좋아! 그럼 이제 만화를 더 완성해볼게! 🎨"
+                # 수정 완료, 만화 생성 시작 메시지 전송
+                return "COMIC_GENERATION_START"
             else:
                 return "응 아니 중에 골라줘! 😅"
         
         # "여기서 틀린 부분 있어?" 질문에 대한 답변 처리
         if self.revision_count == 0:
             if self._is_negative_response(user_message):
-                # 수정할 부분이 없다면 comic_intro를 revision_1에 저장하고 만화 패널 생성 후 다음 단계로
+                # 수정할 부분이 없다면 comic_intro를 revision_1에 저장하고 만화 생성 시작 메시지 전송
                 journal = get_journal(self.db, self.journal_entry_id)
                 if journal and journal.comic_intro:
                     update_journal_data(
                         self.db, self.journal_entry_id,
                         revision_1=journal.comic_intro
                     )
-                self._generate_comic_panels()
-                update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.ComicContext)
-                return "좋아! 그럼 이제 만화를 더 완성해볼게! 🎨"
+                return "COMIC_GENERATION_START"
             elif self._is_positive_response(user_message):
                 new_count = self.revision_count + 1
                 self._update_revision_count(new_count)
@@ -270,28 +271,47 @@ User's correction request: {correction}
             return create_interaction_turn(self.db, self.journal_entry_id, stage)
 
     def _generate_comic_panels(self) -> None:
-        """revision_1 단계가 끝날 때 만화 패널 생성"""
+        """revision_1 단계가 끝날 때 만화 패널 생성 (프로그레스바와 함께)"""
         try:
-            from .utils.comic_grid_generator import ComicGridGenerator
-            
             journal = get_journal(self.db, self.journal_entry_id)
             if not journal or not journal.revision_1:
                 return
             
-            # revision_1 데이터를 사용하여 만화 패널 생성
-            generator = ComicGridGenerator()
-            comic_grids = generator.generate_comic_grids(journal.revision_1)
+            # 패널 내용 추출 (Null은 빈 문자열로 처리)
+            panel_contents = {
+                "panel1": journal.revision_1.get("panel1", "") if journal.revision_1.get("panel1") != "null" else "",
+                "panel2": journal.revision_1.get("panel2", "") if journal.revision_1.get("panel2") != "null" else "",
+                "panel3": journal.revision_1.get("panel3", "") if journal.revision_1.get("panel3") != "null" else "",
+                "panel4": journal.revision_1.get("panel4", "") if journal.revision_1.get("panel4") != "null" else ""
+            }
             
-            # Comic 테이블에 저장
-            update_comic_data(
-                self.db, self.journal_entry_id,
-                first_panel1=comic_grids.get('panel1'),
-                first_panel2=comic_grids.get('panel2'),
-                first_panel3=comic_grids.get('panel3'),
-                first_panel4=comic_grids.get('panel4')
-            )
+            # API를 사용하여 만화 생성 (진행률 추적 포함)
+            import requests
+            try:
+                # 만화 생성 시작 (첫 번째 만화 생성)
+                start_response = requests.post(
+                    'http://localhost:3000/api/v1/app/comic-generation/start',
+                    json={
+                        'journal_entry_id': self.journal_entry_id,
+                        'panel_contents': panel_contents,
+                        'is_first_generation': True
+                    }
+                )
+                
+                if start_response.status_code == 200:
+                    print(f"[DEBUG] revision_1: Comic generation started for {self.journal_entry_id}")
+                else:
+                    print(f"[DEBUG] revision_1: Failed to start comic generation: {start_response.status_code}")
+                    
+            except Exception as e:
+                print(f"[DEBUG] revision_1: Error starting comic generation: {e}")
+            
         except Exception as e:
             print(f"[DEBUG] revision_1: Error generating comic panels: {e}")
+            import traceback
+            traceback.print_exc()
+    
+
     
     def get_initial_question(self) -> str:
         """첫 번째 수정 질문을 반환합니다."""

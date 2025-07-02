@@ -36,6 +36,28 @@ class Revision2Stage:
             self.db, self.journal_entry_id, JournalEntryStage.Revision2
         )
         
+        # Comic 테이블에서 second_panel 데이터 불러오기
+        from .database.crud.chatbot import get_comic
+        comic = get_comic(self.db, self.journal_entry_id)
+        
+        if comic:
+            # second_panel 데이터가 있으면 Journal의 revision_2에 저장
+            second_panels = {}
+            for i in range(1, 5):
+                panel_data = getattr(comic, f"second_panel{i}", None)
+                if panel_data and isinstance(panel_data, dict):
+                    second_panels[f"panel{i}"] = panel_data.get("content", "")
+                else:
+                    second_panels[f"panel{i}"] = ""
+            
+            # Journal의 revision_2 필드에 저장
+            if any(second_panels.values()):
+                update_journal_data(
+                    self.db, self.journal_entry_id,
+                    revision_2=second_panels
+                )
+                print(f"[DEBUG] revision_2: Loaded second_panel data: {second_panels}")
+        
         # 첫 번째 수정 질문 생성
         initial_question = "우와앙~ 우리가 같이 만든 그림일기다! 지금부터 내용이 제대로 들어갔는지 확인해보자~ 수정하거나 추가하고 싶은 부분 있어? 🤔"
         create_message(
@@ -139,7 +161,7 @@ class Revision2Stage:
     def _apply_user_correction(self, correction: str) -> None:
         """사용자 수정 내용 적용"""
         journal = get_journal(self.db, self.journal_entry_id)
-        if not journal or not journal.comic_context:
+        if not journal or not journal.revision_2:
             return
         
         # OpenAI로 수정 적용
@@ -182,7 +204,7 @@ REVISION RULES:
 14. Write in natural Korean
 15. **IMPORTANT**: Make sure the story remains coherent and logical after revision"""
 
-        current_panels = journal.comic_context
+        current_panels = journal.revision_2
         user_prompt = f"""Current comic panels:
 "panel1": "{current_panels.get('panel1', 'null')}",
 "panel2": "{current_panels.get('panel2', 'null')}",
@@ -230,13 +252,6 @@ User's correction request: {correction}
         from .database.models import JournalEntryStatus
         
         try:
-            # Journal entry를 완료 상태로 업데이트
-            update_journal_entry_stage(
-                self.db, self.journal_entry_id, 
-                JournalEntryStage.Complete, 
-                JournalEntryStatus.Completed
-            )
-            
             # 최종 수정사항 적용 (revision_2를 comic_context에 반영)
             journal = get_journal(self.db, self.journal_entry_id)
             if journal and journal.revision_2:
@@ -244,10 +259,19 @@ User's correction request: {correction}
                     self.db, self.journal_entry_id,
                     comic_context=journal.revision_2
                 )
+            
+            # Journal entry를 완료 상태로 업데이트
+            update_journal_entry_stage(
+                self.db, self.journal_entry_id, 
+                JournalEntryStage.Complete, 
+                JournalEntryStatus.Completed
+            )
                 
         except Exception as e:
             print(f"[DEBUG] revision_2: Error in _complete_journal_entry: {e}")
             raise
+    
+
     
     def _get_or_create_interaction_turn(self, stage: JournalEntryStage) -> Any:
         """현재 단계의 interaction turn 가져오기 또는 생성"""

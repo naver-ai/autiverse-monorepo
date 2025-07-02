@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Animated,
 } from 'react-native';
 import { Router } from 'expo-router';
+import { ProgressLoadingOverlay } from '../../../components/ProgressLoadingOverlay';
+import { useComicGeneration } from '../hooks/useComicGeneration';
 
 const { width, height } = Dimensions.get('window');
 
@@ -127,6 +130,39 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
   const [agentConfig, setAgentConfig] = useState<any>(null);
   const [agentName, setAgentName] = useState<string>('도도');
 
+  // 만화 생성 완료 플래그 (무한 루프 방지)
+  const [isComicCompleted, setIsComicCompleted] = useState(false);
+
+  // 만화 생성 훅
+  const { status: comicGenerationStatus, startGeneration, checkGenerationStatus } = useComicGeneration({
+    journalEntryId: sessionId,
+    onComplete: (comicData) => {
+      console.log('Comic generation completed:', comicData);
+      
+      // 무한 루프 방지를 위해 플래그 설정
+      setIsComicCompleted(true);
+      
+      // 만화 생성이 완료되면 고정 메시지들을 제거
+      setMessages(prev => {
+        const filteredMessages = prev.filter(msg => 
+          msg.text !== '다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~' &&
+          msg.text !== '내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~'
+        );
+        console.log('Removed fixed messages after comic completion, remaining messages:', filteredMessages);
+        return filteredMessages;
+      });
+      
+      // 세션 정보를 다시 로드하여 최신 만화 데이터 가져오기
+      setTimeout(() => {
+        loadSessionInfo();
+        setIsComicCompleted(false);
+      }, 100);
+    }
+  });
+
+  // 프로그레스바 애니메이션
+  const progressAnimation = useRef(new Animated.Value(0)).current;
+
   // 이미지 매핑 함수
   const getImageSource = (imageName: string) => {
     switch (imageName) {
@@ -150,6 +186,15 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
       loadAgentInfo();
     }
   }, [dyadId, dyadName, passcode]);
+
+  // 프로그레스바 애니메이션 업데이트
+  useEffect(() => {
+    Animated.timing(progressAnimation, {
+      toValue: comicGenerationStatus.progress,
+      duration: 500,
+      useNativeDriver: false,
+    }).start();
+  }, [comicGenerationStatus.progress]);
 
   // API 함수들
   const loadAgentInfo = async () => {
@@ -261,6 +306,11 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
         } else {
           setFocusedPanel(null);
         }
+        
+        // comic_context 단계에서는 만화 생성 상태 확인 제거 (무한 루프 방지)
+        // if (data.stage === 'comic_context') {
+        //   await checkGenerationStatus();
+        // }
       } else {
         console.error('Failed to load session info, status:', response.status);
       }
@@ -340,6 +390,21 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
     setInputText('');
     setIsLoading(true);
 
+    // Revision_1에서 다음 단계로 넘어가는 기준이 달성될 때 고정 메시지를 먼저 추가
+    if (currentStage === 'revision_1' && 
+        ((messageText === '아니' || messageText === '아니요') || 
+         (messageText === '응' || messageText === '네'))) {
+      
+      // 고정 메시지를 즉시 추가
+      const fixedMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: '다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~',
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, fixedMessage]);
+    }
+
     try {
       const response = await fetch('http://10.66.106.38:3000/api/v1/app/chatbot/send', {
         method: 'POST',
@@ -355,17 +420,92 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
         setCurrentStage(data.stage);
         
         const botMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
+          id: (Date.now() + 2).toString(),
           text: data.response,
           isUser: false,
           timestamp: new Date(),
         };
 
-        setMessages(prev => [...prev, botMessage]);
+        // comic_context 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 "다행이다~" 메시지가 제거됨)
+        if (data.stage === 'comic_context') {
+          console.log('Comic context message detected, adding immediately...');
+          setMessages(prev => [...prev, botMessage]);
+        } else if (data.stage === 'revision_2' && data.response.includes('완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔')) {
+          // Revision_2에서 만화 생성이 시작될 때 고정 메시지 추가
+          console.log('Revision_2 comic generation detected, adding fixed message...');
+          
+          const fixedMessage: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            text: '내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~',
+            isUser: false,
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, fixedMessage]);
+          
+          // revision_2 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 고정 메시지가 제거됨)
+          setMessages(prev => [...prev, botMessage]);
+        } else {
+          // 다른 메시지들은 바로 표시
+          setMessages(prev => [...prev, botMessage]);
+        }
         
-        // 세션 정보에서 최신 패널 데이터 가져오기
-        console.log('Loading session info after message sent...');
-        await loadSessionInfo();
+        // 세션 정보에서 최신 패널 데이터 가져오기 (만화 생성이 진행 중이지 않을 때만)
+        if (comicGenerationStatus.status !== 'generating' && !isComicCompleted) {
+          console.log('Loading session info after message sent...');
+          await loadSessionInfo();
+        } else {
+          console.log('Skipping session info load - comic generation in progress or completed');
+        }
+        
+        // 만화 생성 상태 확인 (한 번만 호출)
+        if (data.stage === 'comic_context' || data.stage === 'revision_2') {
+          console.log('Checking comic generation status for stage:', data.stage);
+          await checkGenerationStatus();
+        }
+        
+        // auto_comic_generation 플래그 확인
+        console.log('Response data:', data);
+        console.log('auto_comic_generation flag:', data.auto_comic_generation);
+        if (data.auto_comic_generation) {
+          console.log('Auto comic generation detected, starting in 0.5 seconds...');
+          
+          // 만화 생성 상태 모니터링 시작
+          setTimeout(async () => {
+            try {
+              // 만화 생성 상태 확인 시작
+              await checkGenerationStatus();
+              
+              // auto-comic-generation API 호출
+              const autoResponse = await fetch(`http://10.66.106.38:3000/api/v1/app/chatbot/auto-comic-generation/${sessionId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+              });
+
+              if (autoResponse.ok) {
+                const autoData = await autoResponse.json();
+                
+                // 만화가 화면에 렌더링될 시간을 주기 위해 0.2초 대기
+                setTimeout(async () => {
+                  setCurrentStage(autoData.stage);
+                  
+                  const autoBotMessage: ChatMessage = {
+                    id: (Date.now() + 3).toString(),
+                    text: autoData.response,
+                    isUser: false,
+                    timestamp: new Date(),
+                  };
+                  
+                  setMessages(prev => [...prev, autoBotMessage]);
+                  
+                  // 세션 정보 다시 로드
+                  await loadSessionInfo();
+                }, 200); // 만화 렌더링을 위한 0.2초 대기
+              }
+            } catch (error) {
+              console.error('Failed to start auto comic generation:', error);
+            }
+          }, 200);
+        }
         
         // 만화 데이터 상태 확인
         setTimeout(() => {
@@ -743,6 +883,8 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
       style={{ flex: 1 }} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      {/* 만화 생성 로딩 오버레이 - 제거하고 왼쪽 만화일기 섹션에서 표시 */}
+      
       <View className="flex-1 bg-gray-100">
         {showPresetSelection ? (
           // 선택 화면 (전체 화면)
@@ -930,14 +1072,65 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
               </View>
               
               {/* 만화 콘텐츠 */}
-              <View className="flex-1">
-                {comicData && (currentStage === 'revision_1' || currentStage === 'comic_context' || currentStage === 'revision_2' || currentStage === 'complete') ? (
-                  renderComicPanels()
-                ) : (
-                  <View className="flex-1 items-center justify-center">
-                    <Text className="text-lg text-gray-600 text-center">
-                    네가 말해준 내용으로 내가 여기에 조금 이따 4컷 만화를 그릴거야~
-                    </Text>
+              <View className="flex-1 relative">
+                {/* 기존 만화 또는 기본 메시지 */}
+                <View className={`flex-1 ${comicGenerationStatus.status === 'generating' ? 'opacity-30' : ''}`}>
+                  {comicData && (currentStage === 'revision_1' || currentStage === 'comic_context' || currentStage === 'revision_2' || currentStage === 'complete') ? (
+                    renderComicPanels()
+                  ) : (
+                    <View className="flex-1 items-center justify-center">
+                      <Text className="text-lg text-gray-600 text-center">
+                      네가 말해준 내용으로 내가 여기에 조금 이따 4컷 만화를 그릴거야~
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                
+                {/* 만화 생성 중일 때 반투명 오버레이와 프로그레스 바 */}
+                {comicGenerationStatus.status === 'generating' && (
+                  <View className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center">
+                    <View className="bg-white p-6 rounded-xl shadow-lg max-w-sm w-4/5">
+                      {/* 로딩 애니메이션 */}
+                      <View className="flex-row justify-center mb-4">
+                        <View className="flex-row space-x-1">
+                          {[0, 1, 2].map((i) => (
+                            <View
+                              key={i}
+                              className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"
+                              style={{
+                                opacity: 0.6,
+                                transform: [{ scale: 0.8 }],
+                              }}
+                            />
+                          ))}
+                        </View>
+                      </View>
+
+                      {/* 메시지 */}
+                      <Text className="text-center mb-4 text-lg font-semibold text-gray-800">
+                        {comicGenerationStatus.message}
+                      </Text>
+
+                      {/* 프로그레스 바 */}
+                      <View className="w-full bg-gray-200 rounded-full h-2 mb-2 overflow-hidden">
+                        <Animated.View
+                          className="bg-blue-500 h-2 rounded-full"
+                          style={{
+                            width: progressAnimation.interpolate({
+                              inputRange: [0, 100],
+                              outputRange: ['0%', '100%'],
+                            }),
+                          }}
+                        />
+                      </View>
+
+                      {/* 프로그레스 퍼센트 */}
+                      <Text className="text-center text-sm text-gray-600">
+                        {Math.round(comicGenerationStatus.progress)}% 완료
+                      </Text>
+
+                      {/* 추가 설명 */}
+                    </View>
                   </View>
                 )}
               </View>
@@ -963,6 +1156,21 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
                         <Text className="text-base text-gray-600 text-center">
                           왼쪽에서 시작하기를 눌러주세요!
                         </Text>
+                      </View>
+                    );
+                  }
+                  
+                  // Revision_1에서 고정 메시지가 이미 추가되었는지 확인
+                  const showFixedMessage = false; // 이제 sendMessage에서 직접 추가하므로 여기서는 표시하지 않음
+                  
+                  if (showFixedMessage) {
+                    return (
+                      <View className="items-start">
+                        <View className="bg-white border border-gray-200 p-3 rounded-lg max-w-[90%]">
+                          <Text className="text-sm text-gray-800">
+                            다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~
+                          </Text>
+                        </View>
                       </View>
                     );
                   }
@@ -1053,14 +1261,14 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
                     value={inputText}
                     onChangeText={setInputText}
                     onSubmitEditing={() => sendMessage(inputText)}
-                    editable={!isLoading}
+                    editable={!isLoading && comicGenerationStatus.status !== 'generating'}
                   />
                   <TouchableOpacity
                     className={`px-6 py-3 rounded-xl ${
-                      isLoading || !inputText.trim() ? 'bg-gray-400' : 'bg-blue-500'
+                      isLoading || !inputText.trim() || comicGenerationStatus.status === 'generating' ? 'bg-gray-400' : 'bg-blue-500'
                     }`}
                     onPress={() => sendMessage(inputText)}
-                    disabled={isLoading || !inputText.trim()}
+                    disabled={isLoading || !inputText.trim() || comicGenerationStatus.status === 'generating'}
                   >
                     <Text className="text-white font-semibold text-base">전송</Text>
                   </TouchableOpacity>

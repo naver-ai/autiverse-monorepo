@@ -30,6 +30,7 @@ class ChatbotResponse(BaseModel):
     response: str
     stage: str
     data: Optional[Dict[str, Any]] = None
+    auto_comic_generation: Optional[bool] = None
 
 @router.post("/start", response_model=ChatbotResponse)
 def start_chatbot(
@@ -49,7 +50,8 @@ def start_chatbot(
             journal_entry_id=result["journal_entry_id"],
             response=result["response"],
             stage=result["stage"],
-            data=result.get("data")
+            data=result.get("data"),
+            auto_comic_generation=result.get("auto_comic_generation")
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -73,7 +75,8 @@ def send_message(
             journal_entry_id=request.journal_entry_id,
             response=result["response"],
             stage=result["stage"],
-            data=result.get("data")
+            data=result.get("data"),
+            auto_comic_generation=result.get("auto_comic_generation")
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -107,7 +110,8 @@ def reset_session(
         return ChatbotResponse(
             journal_entry_id=journal_entry_id,
             response=result["response"],
-            stage=result["stage"]
+            stage=result["stage"],
+            auto_comic_generation=result.get("auto_comic_generation")
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -185,5 +189,27 @@ def delete_session(
             return {"message": "Session deleted successfully"}
         else:
             raise HTTPException(status_code=404, detail="Session not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.post("/auto-comic-generation/{journal_entry_id}", response_model=ChatbotResponse)
+def start_auto_comic_generation(
+    journal_entry_id: str,
+    db: Session = Depends(get_session)
+):
+    """자동 만화 생성 시작"""
+    try:
+        controller = ChatbotController(db)
+        result = controller.start_auto_comic_generation(journal_entry_id)
+        
+        return ChatbotResponse(
+            journal_entry_id=journal_entry_id,
+            response=result["response"],
+            stage=result["stage"],
+            data=result.get("data"),
+            auto_comic_generation=result.get("auto_comic_generation")
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 

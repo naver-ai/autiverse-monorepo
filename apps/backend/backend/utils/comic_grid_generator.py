@@ -10,13 +10,13 @@ class ComicGridGenerator:
             api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
         )
 
-    def generate_comic_grids(self, panel_contents: Dict[str, str]) -> Dict[str, Any]:
+    def generate_comic_grids(self, panel_contents: Dict[str, str], progress_callback=None) -> Dict[str, Any]:
         """동기적으로 만화 그리드 생성"""
         try:
             # FourSceneComic 인스턴스 생성
             comic_generator = FourSceneComic(panel_contents)
             # 비동기 함수를 동기적으로 실행
-            return asyncio.run(comic_generator.generate())
+            return asyncio.run(comic_generator.generate(progress_callback))
         except Exception as e:
             print(f"Error in ComicGridGenerator: {e}")
             return {
@@ -159,28 +159,40 @@ Panel 4: "{self.panels.get('panel4', '')}"
 
         return json.loads(response.choices[0].message.content or '[]')
 
-    async def generate(self) -> Dict[str, Any]:
+    async def generate(self, progress_callback=None) -> Dict[str, Any]:
         """Generate comic panels with grid layouts"""
         try:
             # 1단계: 전체 스토리 분석 (admin-web과 동일한 로그)
+            if progress_callback:
+                progress_callback(20, "어떻게 그릴지 고민중이다~")
             story_analysis = await self._analyze_story()
             print(f"Story Analysis Result: {json.dumps(story_analysis, ensure_ascii=False, indent=2)}")
             
             # 2단계: 각 패널의 위치 관계 결정
+            if progress_callback:
+                progress_callback(40, "오케이! 이렇게 그려보겠어!")
             result = {}
-            for panel_id in ['panel1', 'panel2', 'panel3', 'panel4']:
+            for i, panel_id in enumerate(['panel1', 'panel2', 'panel3', 'panel4']):
                 panel_content = self.panels.get(panel_id, '')
                 if panel_content and panel_content.strip():  # 내용이 있고 비어있지 않은 경우만
+                    if progress_callback:
+                        progress_callback(60 + (i * 10), f"{i+1}번째 컷 그리는 중~")
                     grid_layout = await self._determine_topology(panel_id, story_analysis)
                     result[panel_id] = {
                         "content": panel_content,
                         "grid": grid_layout  # layout 데이터를 그대로 저장
                     }
                 else:
+                    # 빈 패널도 완료된 것으로 처리
+                    if progress_callback:
+                        progress_callback(60 + (i * 10), f"{i+1}번째 컷 처리 중~")
                     result[panel_id] = {
                         "content": "",
                         "grid": []  # 빈 배열로 저장
                     }
+            
+            if progress_callback:
+                progress_callback(100, "완성이닷!")
             return result
         except Exception as e:
             print(f"Error generating comic: {e}")
