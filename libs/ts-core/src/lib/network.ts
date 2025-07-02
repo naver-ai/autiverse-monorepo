@@ -43,6 +43,11 @@ export class NetworkHelper {
       },
       PROFILE: {
         INFO: '/api/v1/app/profile/info',
+      },
+      COMIC_GENERATION: {
+        START: '/api/v1/app/comic-generation/start',
+        getStatusEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/${journalEntryId}/status`,
+        getCancelEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/${journalEntryId}/cancel`,
       }
     }
   };

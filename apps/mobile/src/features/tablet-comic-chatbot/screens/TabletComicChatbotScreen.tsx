@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import { Router } from 'expo-router';
 import { ProgressLoadingOverlay } from '../../../components/ProgressLoadingOverlay';
-import { useComicGeneration } from '../hooks/useComicGeneration';
+import { useComicGeneration } from '../hooks/useComicGenerationQuery';
+import { useChatbot } from '../hooks/useChatbot';
 import PraiseSection from '../../../components/PraiseSection';
 import FarewellSection from '../../../components/FarewellSection';
 
@@ -91,13 +92,8 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
   const [showPresetSelection, setShowPresetSelection] = useState(true);
   
   // 새로운 API 기반 state
-  const [places, setPlaces] = useState<Place[]>([]);
-  const [people, setPeople] = useState<Person[]>([]);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([]);
-  const [useApiData, setUseApiData] = useState(false);
-  const [agentConfig, setAgentConfig] = useState<any>(null);
-  const [agentName, setAgentName] = useState<string>('도도');
 
   // 만화 생성 완료 플래그 (무한 루프 방지)
   const [isComicCompleted, setIsComicCompleted] = useState(false);
@@ -105,8 +101,25 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
   // 칭찬 섹션 관련 상태
   const [showPraiseSection, setShowPraiseSection] = useState(false);
   const [showFarewellSection, setShowFarewellSection] = useState(false);
-  const [childName, setChildName] = useState<string>('');
   const [completionMessage, setCompletionMessage] = useState<string>('');
+
+  // Chatbot 훅 사용
+  const {
+    places,
+    people,
+    agentName,
+    agentConfig,
+    childName,
+    useApiData,
+    loadAgentInfo: loadAgentInfoFromHook,
+    loadPlaces: loadPlacesFromHook,
+    loadPeople: loadPeopleFromHook,
+    loadSessionInfo: loadSessionInfoFromHook,
+    startChatbot: startChatbotFromHook,
+    startChatbotWithSuggestion: startChatbotWithSuggestionFromHook,
+    sendMessage: sendMessageFromHook,
+    startAutoComicGeneration: startAutoComicGenerationFromHook
+  } = useChatbot(dyadId || '', passcode || '');
 
   // 칭찬 섹션 완료 콜백
   const handlePraiseComplete = () => {
@@ -125,14 +138,18 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
     }
   };
 
-  // 만화 생성 훅
-  const { status: comicGenerationStatus, startGeneration, checkGenerationStatus } = useComicGeneration({
-    journalEntryId: sessionId,
-    onComplete: (comicData) => {
-      console.log('Comic generation completed:', comicData);
-      
-      // 무한 루프 방지를 위해 플래그 설정
-      setIsComicCompleted(true);
+  // 만화 생성 훅 (React Query 기반)
+  const { 
+    status: comicGenerationStatus, 
+    startGeneration, 
+    isLoading: isComicGenerating,
+    startError: comicGenerationError 
+  } = useComicGeneration(sessionId || null);
+
+  // 만화 생성 완료 처리
+  useEffect(() => {
+    if (comicGenerationStatus.status === 'completed' && comicGenerationStatus.comic_data) {
+      console.log('Comic generation completed:', comicGenerationStatus.comic_data);
       
       // 만화 생성이 완료되면 고정 메시지들을 제거
       setMessages(prev => {
@@ -140,17 +157,15 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
           msg.text !== '다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~' &&
           msg.text !== '내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~'
         );
-        console.log('Removed fixed messages after comic completion, remaining messages:', filteredMessages);
         return filteredMessages;
       });
       
       // 세션 정보를 다시 로드하여 최신 만화 데이터 가져오기
       setTimeout(() => {
         loadSessionInfo();
-        setIsComicCompleted(false);
       }, 100);
     }
-  });
+  }, [comicGenerationStatus.status]);
 
   // 프로그레스바 애니메이션
   const progressAnimation = useRef(new Animated.Value(0)).current;
@@ -173,139 +188,55 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
     if (dyadId && dyadName) {
       console.log('Dyad authenticated:', { dyadId, dyadName, passcode });
       // dyad의 places 로드
-      loadPlaces();
+      loadPlacesFromHook();
       // agent 정보 로드
-      loadAgentInfo();
+      loadAgentInfoFromHook();
     }
-  }, [dyadId, dyadName, passcode]);
+  }, [dyadId, dyadName, passcode, loadPlacesFromHook, loadAgentInfoFromHook]);
 
   // 프로그레스바 애니메이션 업데이트
   useEffect(() => {
-    Animated.timing(progressAnimation, {
-      toValue: comicGenerationStatus.progress,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-  }, [comicGenerationStatus.progress]);
+    if (comicGenerationStatus.status === 'generating') {
+      console.log('Progress animation update:', comicGenerationStatus.progress);
+      Animated.timing(progressAnimation, {
+        toValue: comicGenerationStatus.progress,
+        duration: 500,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [comicGenerationStatus.progress, comicGenerationStatus.status]);
 
-  // API 함수들
-  const loadAgentInfo = async () => {
-    if (!dyadId || !passcode) return;
-    
-    try {
-      // 먼저 dyad 정보를 가져와서 agent_id를 얻습니다
-      const dyadResponse = await fetch(`http://10.66.106.38:3000/api/v1/app/dyads/${dyadId}`, {
-        headers: {
-          'Authorization': `Bearer ${passcode}`,
-          'Content-Type': 'application/json',
-        },
+  // 만화 생성 상태 디버깅 (개발 모드에서만)
+  useEffect(() => {
+    if (__DEV__) {
+      console.log('Comic generation status changed:', {
+        status: comicGenerationStatus.status,
+        progress: comicGenerationStatus.progress,
+        message: comicGenerationStatus.message,
+        has_comic_data: !!comicGenerationStatus.comic_data
       });
-      
-      if (dyadResponse.ok) {
-        const dyadData = await dyadResponse.json();
-        setChildName(dyadData.child_name || '사용자');
-        if (dyadData.agent_id) {
-          // agent 정보를 가져옵니다
-          const agentResponse = await fetch(`http://10.66.106.38:3000/api/v1/app/agents/${dyadData.agent_id}`, {
-            headers: {
-              'Authorization': `Bearer ${passcode}`,
-              'Content-Type': 'application/json',
-            },
-          });
-          
-          if (agentResponse.ok) {
-            const agentData = await agentResponse.json();
-            setAgentConfig(agentData.agent_config);
-            setAgentName(agentData.name || '도도');
-            console.log('Loaded agent config:', agentData.agent_config);
-            console.log('Loaded agent name:', agentData.name);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error loading agent info:', error);
     }
-  };
+  }, [comicGenerationStatus.status, comicGenerationStatus.progress, comicGenerationStatus.message]);
 
-  const loadPlaces = async () => {
-    if (!dyadId) return;
-    
-    try {
-      const response = await fetch(`http://10.66.106.38:3000/api/v1/app/chatbot/dyad/${dyadId}/places`);
-      if (response.ok) {
-        const data = await response.json();
-        setPlaces(data.places);
-        console.log('Loaded places:', data.places);
-      } else {
-        console.log('Failed to load places, using preset data');
-        setUseApiData(false);
-      }
-    } catch (error) {
-      console.error('Error loading places:', error);
-      setUseApiData(false);
-    }
-  };
 
-  const loadPeople = async (placeId: string) => {
-    try {
-      const response = await fetch(`http://10.66.106.38:3000/api/v1/app/chatbot/place/${placeId}/people`);
-      if (response.ok) {
-        const data = await response.json();
-        setPeople(data.people);
-        console.log('Loaded people:', data.people);
-      } else {
-        console.log('Failed to load people');
-      }
-    } catch (error) {
-      console.error('Error loading people:', error);
-    }
-  };
-
-  // 세션 정보 로드 (패널 데이터 포함)
+  
   const loadSessionInfo = async () => {
-    if (!sessionId) {
-      console.log('No sessionId available for loadSessionInfo');
-      return;
-    }
+    if (!sessionId) return;
     
     try {
-      console.log('Loading session info for sessionId:', sessionId);
-      const response = await fetch(`http://10.66.106.38:3000/api/v1/app/chatbot/session/${sessionId}`);
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Session info received:', data);
-        console.log('Current stage:', data.stage);
-        console.log('Panels data:', data.panels);
-        
-        // 패널 데이터 업데이트 - admin-web과 동일한 구조로 설정
+      const data = await loadSessionInfoFromHook(sessionId);
+      if (data) {
         if (data.panels) {
-          console.log('Setting comic data with panels:', data.panels);
           setComicData(data.panels);
-          console.log('Comic data updated:', data.panels);
-        } else {
-          console.log('No panels data in session info');
         }
-        
-        // 현재 단계 업데이트
         if (data.stage) {
-          console.log('Updating current stage to:', data.stage);
           setCurrentStage(data.stage);
         }
-        
-        // focusedPanel 업데이트 (comic_context 단계에서만)
         if (data.stage === 'comic_context' && data.focusedPanel) {
-          console.log('Setting focused panel to:', data.focusedPanel);
           setFocusedPanel(data.focusedPanel);
         } else {
           setFocusedPanel(null);
         }
-        
-        // comic_context 단계에서는 만화 생성 상태 확인 제거 (무한 루프 방지)
-        // if (data.stage === 'comic_context') {
-        //   await checkGenerationStatus();
-        // }
-      } else {
-        console.error('Failed to load session info, status:', response.status);
       }
     } catch (error) {
       console.error('Error loading session info:', error);
@@ -319,24 +250,8 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
     console.log('dyadId value:', dyadId);
     setIsLoading(true);
     try {
-      console.log('Making API request to start chatbot...');
-      const requestBody = {
-        dyad_id: dyadId,
-        location: preset?.location,
-        people: preset?.people
-      };
-      console.log('Request body:', requestBody);
-      const response = await fetch('http://10.66.106.38:3000/api/v1/app/chatbot/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-
-      if (response.ok) {
-        const data = await response.json();
+      const data = await startChatbotFromHook(preset);
+      if (data) {
         console.log('Response data:', data);
         setSessionId(data.journal_entry_id);
         setCurrentStage(data.stage);
@@ -356,9 +271,6 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
         
         console.log('Chatbot started successfully');
       } else {
-        console.log('Response not ok, status:', response.status);
-        const errorText = await response.text();
-        console.log('Error response:', errorText);
         Alert.alert('오류', '챗봇을 시작할 수 없습니다.');
       }
     } catch (error) {
@@ -374,22 +286,8 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
     console.log('dyadId value:', dyadId);
     setIsLoading(true);
     try {
-      console.log('Making API request to start chatbot with suggestion...');
-      const requestBody = {
-        dyad_id: dyadId
-      };
-      console.log('Request body:', requestBody);
-      const response = await fetch('http://10.66.106.38:3000/api/v1/app/chatbot/start-with-suggestion', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-
-      if (response.ok) {
-        const data = await response.json();
+      const data = await startChatbotWithSuggestionFromHook();
+      if (data) {
         console.log('Response data:', data);
         setSessionId(data.journal_entry_id);
         setCurrentStage(data.stage);
@@ -409,9 +307,6 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
         
         console.log('Chatbot started with suggestion successfully');
       } else {
-        console.log('Response not ok, status:', response.status);
-        const errorText = await response.text();
-        console.log('Error response:', errorText);
         Alert.alert('오류', '챗봇을 시작할 수 없습니다.');
       }
     } catch (error) {
@@ -452,17 +347,8 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
     }
 
     try {
-      const response = await fetch('http://10.66.106.38:3000/api/v1/app/chatbot/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          journal_entry_id: sessionId,
-          message: messageText,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      const data = await sendMessageFromHook(sessionId, messageText);
+      if (data) {
         setCurrentStage(data.stage);
         
         const botMessage: ChatMessage = {
@@ -514,32 +400,30 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
           console.log('Skipping session info load - comic generation in progress or completed');
         }
         
-        // 만화 생성 상태 확인 (한 번만 호출)
+        // React Query가 자동으로 만화 생성 상태를 폴링하므로 수동 호출 불필요
         if (data.stage === 'comic_context' || data.stage === 'revision_2') {
-          console.log('Checking comic generation status for stage:', data.stage);
-          await checkGenerationStatus();
+          console.log('Comic generation stage detected:', data.stage);
         }
         
         // auto_comic_generation 플래그 확인
         console.log('Response data:', data);
         console.log('auto_comic_generation flag:', data.auto_comic_generation);
-        if (data.auto_comic_generation) {
+        if (data.auto_comic_generation && !isComicCompleted) {
           console.log('Auto comic generation detected, starting in 0.5 seconds...');
           
           // 만화 생성 상태 모니터링 시작
           setTimeout(async () => {
             try {
-              // 만화 생성 상태 확인 시작
-              await checkGenerationStatus();
+              // 만화 생성 시작 (프로그레스바와 연결됨)
+              if (sessionId) {
+                console.log('Starting comic generation with progress tracking...');
+                // 패널 내용을 빈 객체로 시작 (실제로는 서버에서 자동 생성)
+                startGeneration({});
+              }
               
               // auto-comic-generation API 호출
-              const autoResponse = await fetch(`http://10.66.106.38:3000/api/v1/app/chatbot/auto-comic-generation/${sessionId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-              });
-
-              if (autoResponse.ok) {
-                const autoData = await autoResponse.json();
+              const autoData = await startAutoComicGenerationFromHook(sessionId);
+              if (autoData) {
                 
                 // 만화가 화면에 렌더링될 시간을 주기 위해 0.2초 대기
                 setTimeout(async () => {
@@ -554,8 +438,10 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
                   
                   setMessages(prev => [...prev, autoBotMessage]);
                   
-                  // 세션 정보 다시 로드
-                  await loadSessionInfo();
+                  // 세션 정보 다시 로드 (한 번만)
+                  if (!isComicCompleted) {
+                    await loadSessionInfo();
+                  }
                 }, 200); // 만화 렌더링을 위한 0.2초 대기
               }
             } catch (error) {
@@ -584,11 +470,7 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
     
     if (placeId) {
       // API 데이터 사용
-      loadPeople(placeId);
-      setUseApiData(true);
-    } else {
-      // 프리셋 데이터 사용
-      setUseApiData(false);
+      loadPeopleFromHook(placeId);
     }
     
     setSelectedPeople([]);
@@ -938,7 +820,7 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
   if (showPraiseSection) {
     return (
       <PraiseSection 
-        message={completionMessage}
+        childName={dyadName || "친구"}
         agentConfig={agentConfig}
         onComplete={handlePraiseComplete}
       />

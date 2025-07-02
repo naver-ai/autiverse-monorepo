@@ -6,22 +6,25 @@ import { styleTemplates } from '../styles';
 const { width, height } = Dimensions.get('window');
 
 interface PraiseSectionProps {
-  message: string; // 백엔드에서 받은 메시지
+  childName?: string; // 아이 이름
   agentConfig?: any; // agent 설정
   onComplete?: () => void;
 }
 
 
 
-export default function PraiseSection({ message, agentConfig, onComplete }: PraiseSectionProps) {
+export default function PraiseSection({ childName = "친구", agentConfig, onComplete }: PraiseSectionProps) {
   const [showStamp, setShowStamp] = useState(false);
   const [stampScale] = useState(new Animated.Value(0));
   const [hasCompleted, setHasCompleted] = useState(false);
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
   const [visibleSentences, setVisibleSentences] = useState<string[]>([]);
   
+  // 하드코딩된 칭찬 메시지
+  const praiseMessage = `우리 ${childName} 오늘 그림 일기 쓰는 모습 만점!! 오늘 있었던 일 잘 떠올리고, 질문에 답변 잘해주고, 내가 그림 그리는 거 기다려줘서 고마워~`;
+  
   // 메시지를 문장 단위로 분리
-  const sentences = message.split('.').filter(s => s.trim().length > 0).map(s => s.trim() + '.');
+  const sentences = praiseMessage.split('.').filter((s: string) => s.trim().length > 0).map((s: string) => s.trim() + '.');
   
   // 이미지 매핑 함수
   const getImageSource = (imageName: string) => {

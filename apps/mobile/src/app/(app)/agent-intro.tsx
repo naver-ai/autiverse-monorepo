@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styleTemplates } from '../../styles';
 import { TailwindButton } from '../../components/TailwindButton';
+import { useAgentIntro } from '../../features/agent-intro/hooks/useAgentIntro';
 
 const { width, height } = Dimensions.get('window');
 
@@ -55,15 +56,13 @@ interface AgentData {
 export default function AgentIntroScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [dyadData, setDyadData] = useState<DyadData | null>(null);
-  const [agentData, setAgentData] = useState<AgentData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [autoNavigate, setAutoNavigate] = useState(false);
   const [hasNavigated, setHasNavigated] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const dyadId = params.dyadId as string;
+  const passcode = params.passcode as string;
+
+  const { dyadData, agentData, isLoading, error } = useAgentIntro({ dyadId, passcode });
 
   useEffect(() => {
     if (dyadData && agentData) {
@@ -89,49 +88,6 @@ export default function AgentIntroScreen() {
       });
     }
   }, [autoNavigate, router, params, hasNavigated]);
-
-  const fetchData = async () => {
-    try {
-      const dyadId = params.dyadId as string;
-      const passcode = params.passcode as string;
-
-      // Dyad 정보 가져오기
-      const dyadResponse = await fetch(`http://10.66.106.38:3000/api/v1/app/dyads/${dyadId}`, {
-        headers: {
-          'Authorization': `Bearer ${passcode}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!dyadResponse.ok) {
-        throw new Error('Failed to fetch dyad data');
-      }
-
-      const dyadResult = await dyadResponse.json();
-      setDyadData(dyadResult);
-
-      // Agent 정보 가져오기 (dyad에 연결된 agent)
-      const agentResponse = await fetch(`http://10.66.106.38:3000/api/v1/app/agents/${dyadResult.agent_id}`, {
-        headers: {
-          'Authorization': `Bearer ${passcode}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!agentResponse.ok) {
-        throw new Error('Failed to fetch agent data');
-      }
-
-      const agentResult = await agentResponse.json();
-      setAgentData(agentResult);
-
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      Alert.alert('오류', '데이터를 불러오는데 실패했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleContinue = () => {
     if (!hasNavigated) {

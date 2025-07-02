@@ -5,12 +5,14 @@ import { SecureStorage } from '../../core/SecureStorage';
 interface AuthState {
   // State
   jwt: string | null;
+  passcode: string | null;
   isVerifyingToken: boolean;
   isSigningIn: boolean;
   
   // Actions
   clearAuth: () => void;
   setJWT: (jwt: string) => void;
+  setPasscode: (passcode: string) => void;
   setIsVerifyingToken: (isVerifyingToken: boolean) => void;
   setIsSigningIn: (isSigningIn: boolean) => void;
 }
@@ -20,6 +22,7 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       // Initial state
       jwt: null,
+      passcode: null,
       isVerifyingToken: false,
       isSigningIn: false,
 
@@ -27,6 +30,11 @@ export const useAuthStore = create<AuthState>()(
       setJWT: (jwt: string) => {
         console.log("setJWT", jwt)
         set({ jwt });
+      },
+
+      setPasscode: (passcode: string) => {
+        console.log("setPasscode", passcode)
+        set({ passcode });
       },
 
       setIsVerifyingToken: (isVerifyingToken: boolean) => {
@@ -38,14 +46,15 @@ export const useAuthStore = create<AuthState>()(
 
       clearAuth: () => {
         console.log("clearAuth")
-        set({ jwt: null });
+        set({ jwt: null, passcode: null });
       }
     }),
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => SecureStorage),
       partialize: (state) => ({
-        jwt: state.jwt
+        jwt: state.jwt,
+        passcode: state.passcode
       }),
       onRehydrateStorage: (state) => {
 

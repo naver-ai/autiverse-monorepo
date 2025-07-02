@@ -2,9 +2,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { signInAPI, signOutAPI, verifyTokenAPI } from './api';
 import { useAuthStore } from './store';
 import { useCallback } from 'react';
+import { router } from 'expo-router';
 
 export const useAuth = () => {
-  const { jwt, isVerifyingToken, isSigningIn, clearAuth, setIsVerifyingToken, setIsSigningIn, setJWT } = useAuthStore()
+  const { jwt, passcode, isVerifyingToken, isSigningIn, clearAuth, setIsVerifyingToken, setIsSigningIn, setJWT, setPasscode } = useAuthStore()
 
   const queryClient = useQueryClient();
 
@@ -15,10 +16,15 @@ export const useAuth = () => {
       console.log("signInMutation onMutate", data);
       setIsSigningIn(true);
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       console.log("signInMutation onSuccess", data);
       setJWT(data.jwt);
+      setPasscode(variables.passcode); // passcode 저장
       queryClient.setQueryData(["dyad"], data.dyad);
+      // 로그인 성공 시 약간의 지연 후 다음 페이지로 이동
+      setTimeout(() => {
+        router.replace('/(app)');
+      }, 100);
     },
     onError: (error) => {
       console.log("signInMutation onError", error);
@@ -75,7 +81,8 @@ export const useAuth = () => {
   return {
     // State
     isSignedIn: !!jwt,
-    jwt,  
+    jwt,
+    passcode,
     
     // Loading states
     isLoading: isSigningIn || isVerifyingToken,

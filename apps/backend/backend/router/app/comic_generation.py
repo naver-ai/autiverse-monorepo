@@ -96,6 +96,8 @@ def generate_comic_with_progress(journal_entry_id: str, panel_contents: Dict[str
                 second_panel4=comic_data.get("panel4")
             )
         
+
+        
     except Exception as e:
         # 에러 상태 설정
         comic_generation_status[journal_entry_id] = {
