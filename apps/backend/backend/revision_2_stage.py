@@ -23,8 +23,10 @@ class Revision2Stage:
         
         journal_entry = get_journal_entry(self.db, self.journal_entry_id)
         if journal_entry and journal_entry.dyad:
-            return journal_entry.dyad.child_name
-        return "유찬"  # fallback
+            child_name = journal_entry.dyad.child_name
+            return child_name
+        else:
+            return "사용자"  # fallback
         
     def start_revision(self) -> str:
         """두 번째 수정 단계 시작"""
@@ -99,7 +101,7 @@ class Revision2Stage:
             elif self._is_positive_response(user_message):
                 # 수정 완료, 완료 단계로
                 self._complete_journal_entry()
-                return "이제 만화일기 완성이닷 🏅"
+                return f"우와~ 이렇게 멋진 그림 일기 완성이라니! 역시 {self.child_name}야. 내가 너한테 관심이 많다보니 질문이 많았는데 잘 답변해줘서 고마워. 덕분에 {self.child_name}에게 오늘 어떤 일이 있었는지 잘 알 수 있어 정말 너무나 기뻤어!!"
             else:
                 return "응 아니 중에 골라줘! 😅"
         
@@ -108,7 +110,7 @@ class Revision2Stage:
             if self._is_negative_response(user_message):
                 # 수정할 부분이 없다면 완료
                 self._complete_journal_entry()
-                return "이제 만화일기 완성이닷 🏅"
+                return f"우와~ 이렇게 멋진 그림 일기 완성이라니! 역시 {self.child_name}야. 내가 너한테 관심이 많다보니 질문이 많았는데 잘 답변해줘서 고마워. 덕분에 {self.child_name}에게 오늘 어떤 일이 있었는지 잘 알 수 있어 정말 너무나 기뻤어!!"
             elif self._is_positive_response(user_message):
                 self.revision_count += 1
                 if self.revision_count > self.max_revisions:

@@ -16,6 +16,8 @@ import {
 import { Router } from 'expo-router';
 import { ProgressLoadingOverlay } from '../../../components/ProgressLoadingOverlay';
 import { useComicGeneration } from '../hooks/useComicGeneration';
+import PraiseSection from '../../../components/PraiseSection';
+import FarewellSection from '../../../components/FarewellSection';
 
 const { width, height } = Dimensions.get('window');
 
@@ -59,47 +61,14 @@ interface TabletComicChatbotScreenProps {
 }
 
 const DAY_INFO = {
-  'Monday': { name: '월요일', locations: ['학교', '센터', '태권도장'] },
-  'Tuesday': { name: '화요일', locations: ['학교'] },
-  'Wednesday': { name: '수요일', locations: ['학교', '센터', '태권도장'] },
-  'Thursday': { name: '목요일', locations: ['학교'] },
-  'Friday': { name: '금요일', locations: ['학교', '센터', '태권도장'] },
-  'Saturday': { name: '토요일', locations: ['애버랜드'] },
-  'Sunday': { name: '일요일', locations: ['집'] }
+  'Monday': { name: '월요일' },
+  'Tuesday': { name: '화요일' },
+  'Wednesday': { name: '수요일' },
+  'Thursday': { name: '목요일' },
+  'Friday': { name: '금요일' },
+  'Saturday': { name: '토요일' },
+  'Sunday': { name: '일요일' }
 };
-
-const PRESETS: Preset[] = [
-  {
-    location: "학교",
-    people: ["선생님", "민수", "소현", "영호"],
-    label: "학교에서 민수와",
-    dayInfo: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-  },
-  {
-    location: "센터",
-    people: ["선생님", "정은이"],
-    label: "센터에서 선생님과",
-    dayInfo: ["Monday", "Wednesday", "Friday"]
-  },
-  {
-    location: "태권도장",
-    people: ["관장님", "사범님", "미경이"],
-    label: "태권도장에서",
-    dayInfo: ["Monday", "Wednesday", "Friday"]
-  },
-  {
-    location: "집",
-    people: ["엄마", "아빠", "연선이", "할머니"],
-    label: "집에서 가족과",
-    dayInfo: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-  },
-  {
-    location: "애버랜드",
-    people: ["가족", "엄마", "아빠", "연선이"],
-    label: "애버랜드에서",
-    dayInfo: ["Sunday"]
-  }
-];
 
 export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> = ({ 
   dyadId, 
@@ -132,6 +101,29 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
 
   // 만화 생성 완료 플래그 (무한 루프 방지)
   const [isComicCompleted, setIsComicCompleted] = useState(false);
+
+  // 칭찬 섹션 관련 상태
+  const [showPraiseSection, setShowPraiseSection] = useState(false);
+  const [showFarewellSection, setShowFarewellSection] = useState(false);
+  const [childName, setChildName] = useState<string>('');
+  const [completionMessage, setCompletionMessage] = useState<string>('');
+
+  // 칭찬 섹션 완료 콜백
+  const handlePraiseComplete = () => {
+    console.log('Praise section completed');
+    setShowPraiseSection(false);
+    setShowFarewellSection(true);
+  };
+
+  // 인사말 섹션 완료 콜백 (첫 화면으로 돌아가기)
+  const handleFarewellComplete = () => {
+    console.log('Farewell section completed, navigating to home');
+    setShowFarewellSection(false);
+    // 첫 화면으로 돌아가기
+    if (router) {
+      router.replace('/');
+    }
+  };
 
   // 만화 생성 훅
   const { status: comicGenerationStatus, startGeneration, checkGenerationStatus } = useComicGeneration({
@@ -211,6 +203,7 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
       
       if (dyadResponse.ok) {
         const dyadData = await dyadResponse.json();
+        setChildName(dyadData.child_name || '사용자');
         if (dyadData.agent_id) {
           // agent 정보를 가져옵니다
           const agentResponse = await fetch(`http://10.66.106.38:3000/api/v1/app/agents/${dyadData.agent_id}`, {
@@ -376,6 +369,59 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
     }
   };
 
+  const startChatbotWithSuggestion = async () => {
+    console.log('startChatbotWithSuggestion called');
+    console.log('dyadId value:', dyadId);
+    setIsLoading(true);
+    try {
+      console.log('Making API request to start chatbot with suggestion...');
+      const requestBody = {
+        dyad_id: dyadId
+      };
+      console.log('Request body:', requestBody);
+      const response = await fetch('http://10.66.106.38:3000/api/v1/app/chatbot/start-with-suggestion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Response data:', data);
+        setSessionId(data.journal_entry_id);
+        setCurrentStage(data.stage);
+        
+        const newMessage: ChatMessage = {
+          id: Date.now().toString(),
+          text: data.response,
+          isUser: false,
+          timestamp: new Date(),
+        };
+        
+        setMessages([newMessage]);
+        setShowPresetSelection(false);
+        
+        // 세션 정보에서 패널 데이터 가져오기
+        await loadSessionInfo();
+        
+        console.log('Chatbot started with suggestion successfully');
+      } else {
+        console.log('Response not ok, status:', response.status);
+        const errorText = await response.text();
+        console.log('Error response:', errorText);
+        Alert.alert('오류', '챗봇을 시작할 수 없습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to start chatbot with suggestion:', error);
+      Alert.alert('오류', '챗봇을 시작할 수 없습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const sendMessage = async (messageText: string) => {
     if (!sessionId || !messageText.trim()) return;
 
@@ -426,8 +472,19 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
           timestamp: new Date(),
         };
 
+        // 완료 메시지 감지 (5초 후 칭찬 섹션 표시)
+        if (data.response.includes('우와~ 이렇게 멋진 그림 일기 완성이라니!')) {
+          console.log('Completion message detected, will show praise section in 5 seconds...');
+          setCompletionMessage(data.response);
+          setMessages(prev => [...prev, botMessage]);
+          
+          // 5초 후에 칭찬 섹션 표시
+          setTimeout(() => {
+            setShowPraiseSection(true);
+          }, 5000);
+        }
         // comic_context 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 "다행이다~" 메시지가 제거됨)
-        if (data.stage === 'comic_context') {
+        else if (data.stage === 'comic_context') {
           console.log('Comic context message detected, adding immediately...');
           setMessages(prev => [...prev, botMessage]);
         } else if (data.stage === 'revision_2' && data.response.includes('완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔')) {
@@ -576,7 +633,7 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
           location: selectedLocation,
           people: peopleList,
           label: `${selectedLocation}에서 ${peopleList.join(', ')}와`,
-          dayInfo: PRESETS.find(p => p.location === selectedLocation)?.dayInfo || []
+          dayInfo: []
         };
         await startChatbot(customPreset);
       }
@@ -598,28 +655,17 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
 
   // 자유롭게 시작하기 핸들러 (웹 버전과 동일)
   const handleFreeStart = async () => {
-    const todayLocations = getLocationsForToday();
-    if (todayLocations.length > 0) {
-      const recommendedLocation = todayLocations[0];
-      const today = getCurrentDay();
-      const koreanDay = DAY_INFO[today as keyof typeof DAY_INFO]?.name || '오늘';
-      
-      const customPreset: Preset = {
-        location: recommendedLocation.location,
-        people: recommendedLocation.people,
-        label: `${koreanDay} ${recommendedLocation.location}에서 ${recommendedLocation.people.join(', ')}와`,
-        dayInfo: recommendedLocation.dayInfo
-      };
-      await startChatbot(customPreset);
-    } else {
-      await startChatbot();
-    }
+    // 자유롭게 시작하기는 항상 아무 정보 없이 시작
+    await startChatbot();
   };
 
-  // 요일에 맞는 장소들 필터링 (웹 버전과 동일)
+  // 요일에 맞는 장소들 필터링 (DB 데이터 사용)
   const getLocationsForToday = () => {
     const today = getCurrentDay();
-    return PRESETS.filter(preset => preset.dayInfo?.includes(today));
+    return places.filter(place => {
+      const dayKey = today.toLowerCase() as keyof typeof place;
+      return place[dayKey] === true;
+    });
   };
 
   // ComicData를 Record<string, Panel> 형태로 변환 (admin-web과 동일한 구조)
@@ -878,6 +924,27 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
     );
   };
 
+  // 인사말 섹션이 표시되어야 하는 경우
+  if (showFarewellSection) {
+    return (
+      <FarewellSection 
+        childName={childName} 
+        onComplete={handleFarewellComplete}
+      />
+    );
+  }
+
+  // 칭찬 섹션이 표시되어야 하는 경우
+  if (showPraiseSection) {
+    return (
+      <PraiseSection 
+        message={completionMessage}
+        agentConfig={agentConfig}
+        onComplete={handlePraiseComplete}
+      />
+    );
+  }
+
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1 }} 
@@ -939,30 +1006,34 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
                         </TouchableOpacity>
                       ))
                     ) : (
-                      // 프리셋 데이터 사용
-                      PRESETS.filter(preset => (preset.dayInfo?.length || 0) >= 2).map((preset) => (
-                        <TouchableOpacity
-                          key={preset.location}
-                          className="p-6 border-2 border-gray-200 rounded-xl bg-white"
-                          onPress={() => handleLocationSelect(preset.location)}
-                        >
-                          <Text className="text-lg font-semibold text-gray-800 text-center">
-                            {preset.location}
-                          </Text>
-                        </TouchableOpacity>
-                      ))
+                      // API 데이터가 없을 때 빈 상태 표시
+                      <View className="p-6 border-2 border-gray-200 rounded-xl bg-white">
+                        <Text className="text-lg font-semibold text-gray-500 text-center">
+                          장소 정보를 불러올 수 없습니다
+                        </Text>
+                      </View>
                     )}
                   </View>
                   
-                  {/* 자유롭게 시작하기 버튼 */}
+                  {/* 자유롭게 시작하기 버튼들 */}
                   <View className="border-t-2 border-gray-200 pt-6 mt-6">
+                    <TouchableOpacity
+                      className="bg-blue-500 rounded-xl p-4"
+                      style={{ marginBottom: 20 }}
+                      onPress={startChatbotWithSuggestion}
+                      disabled={isLoading}
+                    >
+                      <Text className="text-white text-lg font-semibold text-center">
+                        {isLoading ? '시작 중...' : '뭘 쓸지 모르겠네..'}
+                      </Text>
+                    </TouchableOpacity>
                     <TouchableOpacity
                       className="bg-blue-500 rounded-xl p-4"
                       onPress={handleFreeStart}
                       disabled={isLoading}
                     >
                       <Text className="text-white text-lg font-semibold text-center">
-                        {isLoading ? '시작 중...' : '자유롭게 시작하기'}
+                        {isLoading ? '시작 중...' : '오늘은 내가 쓰고 싶은 게 있어!'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -1009,26 +1080,12 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
                         </TouchableOpacity>
                       ))
                     ) : (
-                      // 프리셋 데이터 사용
-                      selectedLocation && PRESETS.find(p => p.location === selectedLocation)?.people.map((person: string) => (
-                        <TouchableOpacity
-                          key={person}
-                          className={`p-4 border-2 rounded-xl ${
-                            selectedPeople.includes(person)
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-200 bg-white'
-                          }`}
-                          onPress={() => handlePersonToggle(person)}
-                        >
-                          <Text className={`text-center font-semibold ${
-                            selectedPeople.includes(person)
-                              ? 'text-blue-600'
-                              : 'text-gray-800'
-                          }`}>
-                            {person}
-                          </Text>
-                        </TouchableOpacity>
-                      ))
+                      // API 데이터가 없을 때 빈 상태 표시
+                      <View className="p-4 border-2 border-gray-200 rounded-xl bg-white">
+                        <Text className="text-center font-semibold text-gray-500">
+                          사람 정보를 불러올 수 없습니다
+                        </Text>
+                      </View>
                     )}
                   </View>
                   

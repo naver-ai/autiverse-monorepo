@@ -44,6 +44,34 @@ class ChatbotController:
             "stage": "intro"
         }
     
+    def start_chatbot_with_suggestion(self, dyad_id: str) -> Dict[str, Any]:
+        """챗봇 시작 (뭘 쓸지 모르겠네 버튼용)"""
+        # dyad_id로 dyad 조회
+        dyad = get_dyad_by_id(self.db, dyad_id)
+        if not dyad:
+            raise ValueError("Invalid dyad_id")
+        
+        # 새로운 journal entry 생성
+        journal_entry = create_journal_entry(self.db, dyad_id)
+        self.current_journal_entry_id = journal_entry.id
+        
+        # journal 생성 (location과 people은 DB에서 가져올 예정)
+        journal = create_journal(self.db, journal_entry.id, dyad_id, None, None)
+        
+        # Comic 테이블 생성 (comic generation을 위해 필요)
+        from .database.crud.chatbot import create_comic
+        create_comic(self.db, journal_entry.id, journal.id, dyad_id)
+        
+        # comic intro 단계 시작 (suggestion 모드)
+        intro_stage = ComicIntroStage(self.db, journal_entry.id)
+        initial_message = intro_stage.start_conversation_with_suggestion()
+        
+        return {
+            "journal_entry_id": journal_entry.id,
+            "response": initial_message,
+            "stage": "intro"
+        }
+    
     def send_message(self, journal_entry_id: str, message: str) -> Dict[str, Any]:
         """메시지 전송"""
         # journal entry 조회

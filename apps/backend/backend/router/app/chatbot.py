@@ -21,6 +21,9 @@ class StartChatbotRequest(BaseModel):
     location: Optional[str] = None
     people: Optional[List[str]] = None
 
+class StartChatbotWithSuggestionRequest(BaseModel):
+    dyad_id: str
+
 class SendMessageRequest(BaseModel):
     journal_entry_id: str
     message: str
@@ -44,6 +47,30 @@ def start_chatbot(
             dyad_id=request.dyad_id,
             location=request.location,
             people=request.people
+        )
+        
+        return ChatbotResponse(
+            journal_entry_id=result["journal_entry_id"],
+            response=result["response"],
+            stage=result["stage"],
+            data=result.get("data"),
+            auto_comic_generation=result.get("auto_comic_generation")
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.post("/start-with-suggestion", response_model=ChatbotResponse)
+def start_chatbot_with_suggestion(
+    request: StartChatbotWithSuggestionRequest,
+    db: Session = Depends(get_session)
+):
+    """챗봇 시작 (뭘 쓸지 모르겠네 버튼용)"""
+    try:
+        controller = ChatbotController(db)
+        result = controller.start_chatbot_with_suggestion(
+            dyad_id=request.dyad_id
         )
         
         return ChatbotResponse(

@@ -147,6 +147,44 @@ class ComicIntroStage:
         
         return initial_message
     
+    def start_conversation_with_suggestion(self) -> str:
+        """대화 시작 (뭘 쓸지 모르겠네 버튼용)"""
+        # Journal entry stage 업데이트
+        update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Intro)
+        
+        # Journal 데이터 업데이트 (DB에서 장소와 사람 정보 가져와서 저장)
+        journal = get_journal(self.db, self.journal_entry_id)
+        if journal:
+            # DB에서 장소와 사람 정보 가져오기
+            from .database.crud.chatbot import get_dyad_places, get_place_people
+            dyad = get_journal_entry(self.db, self.journal_entry_id).dyad
+            places = get_dyad_places(self.db, dyad.id)
+            people = get_place_people(self.db, dyad.id)
+            
+            # 첫 번째 장소와 사람 사용
+            location = places[0].name if places else None
+            people_list = [p.name for p in people[:2]] if people else []  # 최대 2명
+            
+            update_journal_data(
+                self.db, self.journal_entry_id,
+                location=location,
+                people=people_list
+            )
+        
+        # 첫 번째 interaction turn 생성
+        interaction_turn = create_interaction_turn(
+            self.db, self.journal_entry_id, JournalEntryStage.Intro
+        )
+        
+        # 초기 메시지 생성 (suggestion 모드)
+        initial_message = self._generate_suggestion_message()
+        create_message(
+            self.db, self.journal_entry_id, interaction_turn.id,
+            initial_message, MessageRole.Assistant
+        )
+        
+        return initial_message
+    
     def process_message(self, user_message: str) -> str:
         """사용자 메시지 처리"""
         # 현재 interaction turn 가져오기
@@ -347,7 +385,35 @@ CONVERSATION:
         if location and people:
             return f"오늘 {location}에서 {', '.join(people)}랑 무슨 일이 있었는지 너무 궁금해! 나한테 다 이야기해줘! 😊"
         else:
-            return "오늘 뭐 했어? 😊"
+            return "대박대박!! 딱 쓰고 싶은 게 있었구나!! 오늘 있었던 무슨 일을 일기로 써볼까? 😊"
+    
+    def _generate_suggestion_message(self) -> str:
+        """뭘 쓸지 모르겠네 버튼용 메시지 생성"""
+        # DB에서 저장된 장소 정보 가져오기
+        location = self._get_location()
+        
+        # 요일 정보 가져오기 (더 안전한 방법)
+        from datetime import datetime
+        today = datetime.now()
+        weekday = today.weekday()  # 0=월요일, 1=화요일, ..., 6=일요일
+        
+        day_mapping = {
+            0: '월요일',
+            1: '화요일', 
+            2: '수요일',
+            3: '목요일',
+            4: '금요일',
+            5: '토요일',
+            6: '일요일'
+        }
+        korean_day = day_mapping.get(weekday, '오늘')
+        
+        print(f"Debug - weekday: {weekday}, korean_day: {korean_day}")  # 디버깅용
+        
+        if location:
+            return f"오늘 {korean_day}이니 {location}에 가지 않았어?? 거기서 있었던 일을 써볼까?"
+        else:
+            return "오늘 뭐했어? 😊"
     
     def _generate_response(self, user_message: str) -> str:
         """사용자 메시지에 대한 응답 생성"""

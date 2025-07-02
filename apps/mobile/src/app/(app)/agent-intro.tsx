@@ -218,19 +218,6 @@ export default function AgentIntroScreen() {
             }}
           />
         </View>
-
-        {/* 하단 버튼 영역 */}
-        <View className="pb-8">
-          <TailwindButton 
-            title="시작하기" 
-            containerClassName="w-full" 
-            roundedClassName="rounded-full"
-            titleClassName="text-white text-lg"
-            rippleColor="#f0f0f080"
-            buttonStyleClassName="bg-gradient-to-r from-teal-500 to-blue-500"
-            onPress={handleContinue}
-          />
-        </View>
       </View>
     </SafeAreaView>
   );
