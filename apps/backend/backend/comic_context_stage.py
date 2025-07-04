@@ -11,6 +11,7 @@ from sqlmodel import Session
 import json
 import openai
 import os
+from backend.utils.network_helper import NetworkHelper
 
 
 
@@ -868,10 +869,6 @@ Please generate a question that addresses the FIRST missing information gap."""
         
         return is_complete
     
-
-    
-
-    
     def _generate_final_comic_panels(self) -> None:
         """comic_context 완료 시 최종 만화 패널 생성 및 Comic 테이블에 저장"""
         try:
@@ -888,23 +885,22 @@ Please generate a question that addresses the FIRST missing information gap."""
                 "panel4": journal.comic_context.get("panel4", "") if journal.comic_context.get("panel4") != "null" else ""
             }
             
-            # API를 사용하여 만화 생성 (진행률 추적 포함)
-            import requests
+            # NetworkHelper를 사용하여 API 호출
             try:
-                # 만화 생성 시작 (두 번째 만화 생성)
-                start_response = requests.post(
-                    'http://localhost:3000/api/v1/app/comic-generation/start',
-                    json={
-                        'journal_entry_id': self.journal_entry_id,
-                        'panel_contents': panel_contents,
-                        'is_first_generation': False
-                    }
-                )
+                endpoints = NetworkHelper.get_comic_generation_endpoints()
+                start_url = endpoints['START']
                 
-                if start_response.status_code == 200:
+                # 만화 생성 시작 (두 번째 만화 생성)
+                response = NetworkHelper.make_internal_request('POST', start_url, {
+                    'journal_entry_id': self.journal_entry_id,
+                    'panel_contents': panel_contents,
+                    'is_first_generation': False
+                })
+                
+                if response.status_code == 200:
                     print(f"[DEBUG] comic_context: Comic generation started for {self.journal_entry_id}")
                 else:
-                    print(f"[DEBUG] comic_context: Failed to start comic generation: {start_response.status_code}")
+                    print(f"[DEBUG] comic_context: Failed to start comic generation: {response.status_code}")
                     
             except Exception as e:
                 print(f"[DEBUG] comic_context: Error starting comic generation: {e}")

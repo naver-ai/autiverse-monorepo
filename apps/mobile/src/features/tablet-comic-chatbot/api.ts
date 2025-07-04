@@ -3,6 +3,7 @@ import { NetworkHelper } from '@autiverse-monorepo/ts-core';
 export interface ComicGenerationRequest {
   journal_entry_id: string;
   panel_contents: Record<string, string>;
+  is_first_generation?: boolean;
 }
 
 export interface ComicGenerationStatus {

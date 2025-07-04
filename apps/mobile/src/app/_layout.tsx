@@ -1,3 +1,4 @@
+import React from 'react';
 import '../global.css';
 import { SplashScreen, Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
