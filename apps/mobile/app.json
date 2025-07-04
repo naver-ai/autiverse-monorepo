@@ -49,6 +49,12 @@
       ]
     ],
     "userInterfaceStyle": "light",
-    "scheme": "autiverse-mobile"
+    "scheme": "autiverse-mobile",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "992ac740-4c2c-4860-85d0-6ca4ca58a949"
+      }
+    }
   }
 }

@@ -5,7 +5,7 @@ import { Button, Card, Form, Input, message, Select } from "antd"
 import { FormItem } from '../../../components/react-hook-form-antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createDyadApi } from '../api'
-import { ChildGender, DyadInfo, UserLocale, CaregiverType } from '@autiverse-monorepo/ts-core'
+import { ChildGender, SharableDyadInfo, UserLocale, CaregiverType } from '@autiverse-monorepo/ts-core'
 
 const schema = yup.object({
     alias: yup.string().required("Alias is required").trim(),
@@ -38,7 +38,7 @@ export const NewDyadPanel = () => {
         }
     });
 
-    const onSubmit = (data: DyadInfo) => {
+    const onSubmit = (data: SharableDyadInfo) => {
         createDyadMutation.mutate(data);
     }
 

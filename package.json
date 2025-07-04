@@ -11,9 +11,9 @@
   },
   "private": true,
   "devDependencies": {
-    "@expo/cli": "~0.21.8",
+    "@expo/cli": "^0.24.18",
     "@inquirer/prompts": "^7.5.3",
-    "@nx/expo": "^21.1.1",
+    "@nx/expo": "^21.2.2",
     "@nx/js": "21.1.1",
     "@nx/react": "^21.1.1",
     "@nx/vite": "21.1.1",
@@ -69,15 +69,20 @@
     "bcrypt": "^6.0.0",
     "expo": "^53.0.12",
     "expo-constants": "~17.1.6",
+    "expo-dev-client": "~5.2.1",
+    "expo-font": "~13.3.1",
     "expo-linking": "~7.1.5",
+    "expo-localization": "~16.1.5",
     "expo-router": "~5.1.0",
     "expo-secure-store": "~14.2.3",
     "expo-splash-screen": "~0.30.9",
     "expo-status-bar": "~2.2.3",
     "i18next": "^25.2.1",
     "intl-pluralrules": "^2.0.1",
+    "jwt-decode": "^4.0.0",
     "merge": "^2.1.1",
     "metro": "^0.82.0",
+    "metro-config": "^0.82.4",
     "nanoid": "^3.3.11",
     "nativewind": "^4.1.23",
     "openai": "^5.3.0",
@@ -96,9 +101,6 @@
     "socket.io-client": "^4.8.1",
     "tailwind-merge": "^3.3.0",
     "yup": "^1.6.1",
-    "zustand": "^5.0.5",
-    "expo-localization": "~16.1.5",
-    "expo-font": "~13.3.1",
-    "expo-dev-client": "~5.2.1"
+    "zustand": "^5.0.5"
   }
 }

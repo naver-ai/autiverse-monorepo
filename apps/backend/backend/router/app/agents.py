@@ -5,30 +5,15 @@ from typing import Annotated
 
 from ...database.engine import with_db_session
 from ...database.models import Agent, Dyad
+from backend.router.app.common import get_signed_in_dyad
 
 router = APIRouter()
-
-async def verify_passcode(
-    authorization: Annotated[str, Header()],
-    db: Annotated[AsyncSession, Depends(with_db_session)]
-) -> Dyad:
-    """Verify passcode from Authorization header"""
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid authorization header")
-    
-    passcode = authorization[7:]  # Remove "Bearer " prefix
-    
-    dyad = (await db.exec(select(Dyad).where(Dyad.passcode == passcode))).first()
-    if not dyad:
-        raise HTTPException(status_code=401, detail="Invalid passcode")
-    
-    return dyad
 
 @router.get("/{agent_id}")
 async def get_agent(
     agent_id: str,
     db: Annotated[AsyncSession, Depends(with_db_session)],
-    dyad: Annotated[Dyad, Depends(verify_passcode)]
+    dyad: Annotated[Dyad, Depends(get_signed_in_dyad)]
 ):
     agent = await db.get(Agent, agent_id)
     if not agent:
