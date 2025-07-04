@@ -44,6 +44,29 @@ export class NetworkHelper {
       PROFILE: {
         INFO: '/api/v1/app/profile/info',
       },
+      DYADS: {
+        getDyadEndpoint: (dyadId: string) => `/api/v1/app/dyads/${dyadId}`,
+      },
+      AGENTS: {
+        getAgentEndpoint: (agentId: string) => `/api/v1/app/agents/${agentId}`,
+      },
+      CHATBOT: {
+        START: '/api/v1/app/chatbot/start',
+        START_WITH_SUGGESTION: '/api/v1/app/chatbot/start-with-suggestion',
+        SEND: '/api/v1/app/chatbot/send',
+        getDyadPlacesEndpoint: (dyadId: string) => {
+          const url = `/api/v1/app/chatbot/dyad/${dyadId}/places`;
+          console.log('NetworkHelper: getDyadPlacesEndpoint called with dyadId:', dyadId, 'returning URL:', url);
+          return url;
+        },
+        getPlacePeopleEndpoint: (placeId: string) => {
+          const url = `/api/v1/app/chatbot/place/${placeId}/people`;
+          console.log('NetworkHelper: getPlacePeopleEndpoint called with placeId:', placeId, 'returning URL:', url);
+          return url;
+        },
+        getSessionEndpoint: (sessionId: string) => `/api/v1/app/chatbot/session/${sessionId}`,
+        getAutoComicGenerationEndpoint: (sessionId: string) => `/api/v1/app/chatbot/auto-comic-generation/${sessionId}`,
+      },
       COMIC_GENERATION: {
         START: '/api/v1/app/comic-generation/start',
         getStatusEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/${journalEntryId}/status`,
