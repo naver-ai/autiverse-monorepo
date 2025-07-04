@@ -1,14 +1,28 @@
 import requests
+import os
 from typing import Dict, Any, Optional
+from .environment import get_env_variable, EnvironmentVariables
 
 class NetworkHelper:
     """Backend NetworkHelper for internal API communication"""
     
     @staticmethod
-    # 나중에는 Env에서 base_url 가져오기
-    # base_url = os.getenv('BACKEND_BASE_URL')
-    def get_internal_client(base_url: str = "http://localhost:3000"):
+    def get_base_url() -> str:
+        """Get base URL from environment or default to localhost"""
+        try:
+            hostname = get_env_variable(EnvironmentVariables.BACKEND_HOSTNAME)
+            port = get_env_variable(EnvironmentVariables.BACKEND_PORT)
+            return f"http://{hostname}:{port}"
+        except:
+            # Fallback to localhost if env vars not set
+            return "http://localhost:3000"
+    
+    @staticmethod
+    def get_internal_client(base_url: str = None):
         """Get internal requests session for backend-to-backend communication"""
+        if base_url is None:
+            base_url = NetworkHelper.get_base_url()
+        
         session = requests.Session()
         session.headers.update({
             'Content-Type': 'application/json',
@@ -16,10 +30,11 @@ class NetworkHelper:
         return session, base_url
     
     @staticmethod
-    # 나중에는 Env에서 base_url 가져오기
-    # base_url = os.getenv('BACKEND_BASE_URL')
-    def get_comic_generation_endpoints(base_url: str = "http://localhost:3000"):
+    def get_comic_generation_endpoints(base_url: str = None):
         """Get comic generation endpoints"""
+        if base_url is None:
+            base_url = NetworkHelper.get_base_url()
+        
         return {
             'START': f'{base_url}/api/v1/app/comic-generation/start',
             'getStatusEndpoint': lambda journal_entry_id: f'{base_url}/api/v1/app/comic-generation/status/{journal_entry_id}',

@@ -5,7 +5,7 @@ from .database.crud.chatbot import (
     create_journal, get_journal, update_journal_data, 
     get_messages_by_journal_entry, delete_journal_entry, reset_journal_entry
 )
-from .database.models import JournalEntryStage, JournalEntryStatus
+from .database.models import JournalEntryStage, JournalEntryStatus, MessageRole
 from .comic_intro_stage import ComicIntroStage
 from .revision_1_stage import Revision1Stage
 from .comic_context_stage import ComicContextStage
@@ -104,6 +104,12 @@ class ChatbotController:
         
         # 다음 단계로 진행할 준비가 되었는지 확인
         if intro_stage.is_ready_for_next_stage():
+            # 마지막 assistant 메시지 삭제 (UI에 표시되지 않는 메시지)
+            from .database.crud.chatbot import get_messages_by_journal_entry, delete_message
+            messages = get_messages_by_journal_entry(self.db, journal_entry_id)
+            if messages and messages[-1].role == MessageRole.Assistant:
+                delete_message(self.db, messages[-1].id)
+            
             # revision_1 단계로 전환
             revision_stage = Revision1Stage(self.db, journal_entry_id)
             revision_response = revision_stage.start_revision()

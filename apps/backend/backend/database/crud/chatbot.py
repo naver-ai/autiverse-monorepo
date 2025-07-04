@@ -178,6 +178,15 @@ def get_messages_by_interaction_turn(db: Session, interaction_turn_id: str) -> L
         Message.interaction_turn_id == interaction_turn_id
     ).order_by(Message.created_at.asc()).all()
 
+def delete_message(db: Session, message_id: str) -> bool:
+    """message 삭제"""
+    message = db.query(Message).filter(Message.id == message_id).first()
+    if message:
+        db.delete(message)
+        db.commit()
+        return True
+    return False
+
 def delete_journal_entry(db: Session, journal_entry_id: str) -> bool:
     """journal entry 삭제 (cascade로 관련 데이터도 함께 삭제)"""
     journal_entry = get_journal_entry(db, journal_entry_id)

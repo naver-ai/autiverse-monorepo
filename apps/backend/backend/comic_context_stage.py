@@ -623,9 +623,10 @@ ABCD STRUCTURE:
    - If "normal": Focus on "HOW" questions (methods, details)
 3. **CRITICAL: Focus on the FIRST missing information in order: A → B → C → D → Order**
 4. Ask exactly ONE question that can elicit the missing detail.
-5. If possible, ask the question as a 2- or 3-choice prompt  
-   (example: "1) … 2) … 3) …").  
-   Use an open-ended question **only** if clear choices cannot be offered.
+5. **CHOICE RULE: Only provide 2-3 choices when the question naturally limits to exactly 2-3 options:**
+   - Examples that SHOULD have choices: "학교 안이었어? 밖이었어?" (2 choices), "오전이었어? 오후였어?" (2 choices)
+   - Examples that should NOT have choices: "어디에 있었어?" (many possible places), "뭘 했어?" (many possible activities), "누가 있었어?" (many possible people)
+   - Use open-ended questions when there are more than 3 natural options
 6. Avoid figurative language; keep sentences ≤ 15 syllables.
 7. If the child likes topics in "affinity", you may embed them lightly to grab attention.
 8. Avoid vague words like "그런 것", "이런 식으로", "그 때".
@@ -636,7 +637,7 @@ ABCD STRUCTURE:
     - Already confirmed in previous Q&A
     - Can be inferred from existing information
 12. When asking about emotions (panel 4), ask for explicit emotion words:
-    - "기분이 어땠어?" → "기분이 어땠어? 1) 좋았어 2) 그냥 그랬어 3) 아쉬웠어?"
+    - 그 때 "기분이 어땠어? 1) 좋았어 2) 그냥 그랬어 3) 아쉬웠어 4) 슬펐어?"
 13. **PROBLEMATIC situations - CRITICAL RULES:**
     - NEVER ask direct "why"questions initially
     - ALWAYS start with situational overview questions
@@ -690,7 +691,7 @@ conversation_summary:
 
 Output:
 {{
-"question": "대박대박! 너무 신기하다! 학교에서 어떤 상황에 했던 거야? 1) 쉬는 시간? 아니면 2) 점심시간?"
+"question": "대박대박! 너무 신기하다! 학교에서 언제 했던 거야?"
 }}
 
 ### Example 2
@@ -725,7 +726,7 @@ A: "완전 떨려"
 
 Output:
 {{
-"question": "롤러코스터라니 나도 떨린다! 😅 그럼 어머니랑 그 이야기는 어디서 했어? 1) 집에서? 2) 산책하다가?"
+"question": "롤러코스터라니 나도 떨린다! 😅 그럼 어머니랑 그 이야기는 어디서 했어?"
 }}
 
 ### Example 3

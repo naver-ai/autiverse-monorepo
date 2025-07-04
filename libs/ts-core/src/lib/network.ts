@@ -72,15 +72,6 @@ export class NetworkHelper {
         getStatusEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/status/${journalEntryId}`,
         getCancelEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/cancel/${journalEntryId}`,
       }
-    },
-
-    // Backend internal communication endpoints
-    INTERNAL: {
-      COMIC_GENERATION: {
-        START: '/api/v1/app/comic-generation/start',
-        getStatusEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/status/${journalEntryId}`,
-        getCancelEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/cancel/${journalEntryId}`,
-      }
     }
   };
 
