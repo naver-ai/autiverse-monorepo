@@ -74,6 +74,7 @@ class SharableDyad(DyadInfo):
     people: list['Person'] = Field(default_factory=list)
     places: list[SharablePlace] = Field(default_factory=list)
     agents: list['Agent'] = Field(default_factory=list)
+    journal_entries: list['JournalEntry'] = Field(default_factory=list)
 
 class Dyad(SQLModel, DyadInfo, table=True):
     alias: str = Field(nullable=False)
@@ -95,16 +96,14 @@ class Dyad(SQLModel, DyadInfo, table=True):
                                                  }),
             places=[place.to_sharable() for place in self.places],
             agents=[agent for agent in self.agents],
-            people=[person for person in self.people]
+            people=[person for person in self.people],
+            journal_entries=[journal_entry for journal_entry in self.journal_entries]
         )
     
     @property
     def dyad_info(self) -> DyadInfo:
         return DyadInfo(
-            **self.model_dump(exclude={"agents", "places", "people"}),
-            agents=[agent for agent in self.agents],
-            places=[place.to_sharable() for place in self.places],
-            people=[person for person in self.people]
+            **self.model_dump(exclude={"agents", "places", "people", "agents", "journal_entries"})
         )
 
 

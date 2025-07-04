@@ -44,9 +44,6 @@ export class NetworkHelper {
       PROFILE: {
         INFO: '/api/v1/app/profile/info',
       },
-      DYADS: {
-        getDyadEndpoint: (dyadId: string) => `/api/v1/app/dyads/${dyadId}`,
-      },
       AGENTS: {
         getAgentEndpoint: (agentId: string) => `/api/v1/app/agents/${agentId}`,
       },
