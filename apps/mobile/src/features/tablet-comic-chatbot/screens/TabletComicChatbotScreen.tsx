@@ -6,50 +6,25 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-<<<<<<< HEAD
 import { Router } from 'expo-router';
-=======
-import { Router, useRouter } from 'expo-router';
-import { ProgressLoadingOverlay } from '../../../components/ProgressLoadingOverlay';
->>>>>>> 22591ecf7d50437eda074f4c64c9a73b8d20abed
 import { useComicGeneration } from '../hooks/useComicGenerationQuery';
 import { useChatbot } from '../hooks/useChatbot';
 import PraiseSection from '../../../components/PraiseSection';
 import FarewellSection from '../../../components/FarewellSection';
-<<<<<<< HEAD
 import { PresetSelectionStage, ChatStage } from '../stages';
 import { ChatMessage, Preset } from '../types';
-=======
-import { QueryClient, useQueryClient } from '@tanstack/react-query';
->>>>>>> 22591ecf7d50437eda074f4c64c9a73b8d20abed
 
 export const TabletComicChatbotScreen: React.FC<{
   dyadId?: string;
   dyadName?: string;
   passcode?: string;
   router?: Router;
-<<<<<<< HEAD
 }> = ({ 
   dyadId, 
   dyadName, 
   passcode, 
   router 
 }) => {
-=======
-}
-
-const DAY_INFO = {
-  'Monday': { name: '월요일' },
-  'Tuesday': { name: '화요일' },
-  'Wednesday': { name: '수요일' },
-  'Thursday': { name: '목요일' },
-  'Friday': { name: '금요일' },
-  'Saturday': { name: '토요일' },
-  'Sunday': { name: '일요일' }
-};
-
-export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> = () => {
->>>>>>> 22591ecf7d50437eda074f4c64c9a73b8d20abed
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -75,10 +50,6 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
   const [showPraiseSection, setShowPraiseSection] = useState(false);
   const [showFarewellSection, setShowFarewellSection] = useState(false);
   const [completionMessage, setCompletionMessage] = useState<string>('');
-
-  const queryClient = useQueryClient();
-  
-  const router = useRouter();
 
   // Chatbot 훅 사용
   const {
@@ -145,29 +116,12 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
   // 프로그레스바 애니메이션
   const progressAnimation = useRef(new Animated.Value(0)).current;
 
-<<<<<<< HEAD
   useEffect(() => {
     if (dyadId && dyadName) {
       console.log('Dyad authenticated:', { dyadId, dyadName, passcode });
-      // dyad의 places 로드
-      loadPlacesFromHook();
-      // agent 정보 로드
-      loadAgentInfoFromHook();
+      // dyad 정보는 useDyad 훅에서 자동으로 로드됨
     }
-  }, [dyadId, dyadName, passcode, loadPlacesFromHook, loadAgentInfoFromHook]);
-=======
-  // 이미지 매핑 함수
-  const getImageSource = (imageName: string) => {
-    switch (imageName) {
-      case 'robot':
-        return require('../../../../assets/robot.png');
-      case 'doll':
-          return require('../../../../assets/doll.png');
-      default:
-        return require('../../../../assets/icon.png');
-    }
-  };
->>>>>>> 22591ecf7d50437eda074f4c64c9a73b8d20abed
+  }, [dyadId, dyadName, passcode]);
 
   // 프로그레스바 애니메이션 업데이트
   useEffect(() => {
@@ -221,9 +175,10 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
 
   const startChatbot = async (preset?: Preset) => {
     console.log('startChatbot called with preset:', preset);
+    console.log('dyadId value:', dyadId);
     setIsLoading(true);
     try {
-      const data = await startChatbotFromHook({location: preset?.location, people: preset?.people});
+      const data = await startChatbotFromHook(preset);
       if (data) {
         console.log('Response data:', data);
         setSessionId(data.journal_entry_id);
@@ -256,6 +211,7 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
 
   const startChatbotWithSuggestion = async () => {
     console.log('startChatbotWithSuggestion called');
+    console.log('dyadId value:', dyadId);
     setIsLoading(true);
     try {
       const data = await startChatbotWithSuggestionFromHook();
@@ -507,277 +463,11 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
     await startChatbot();
   };
 
-<<<<<<< HEAD
-=======
-  // 요일에 맞는 장소들 필터링 (DB 데이터 사용)
-  const getLocationsForToday = () => {
-    const today = getCurrentDay();
-    return places?.filter(place => {
-      const dayKey = today.toLowerCase() as keyof typeof place;
-      return place[dayKey] === true;
-    });
-  };
-
-  // ComicData를 Record<string, Panel> 형태로 변환 (admin-web과 동일한 구조)
-  const convertComicDataToPanels = useMemo(() => {
-    if (!comicData) return null;
-    
-    // admin-web의 TabletFourSceneComic과 동일한 구조로 변환
-    const panels: Record<string, any> = {};
-    
-    // backend에서 오는 데이터 구조를 처리
-    // 1. 이미 올바른 구조인 경우 (admin-web과 동일)
-    if (comicData.panel1 && typeof comicData.panel1 === 'object' && comicData.panel1.content !== undefined) {
-      panels.panel1 = {
-        content: comicData.panel1.content || '',
-        grid: comicData.panel1.grid || []
-      };
-    } else if (comicData.panel1) {
-      // 2. 단순 문자열인 경우
-      panels.panel1 = {
-        content: comicData.panel1,
-        grid: []
-      };
-    } else {
-      // 3. 데이터가 없는 경우 빈 패널 생성
-      panels.panel1 = {
-        content: '',
-        grid: []
-      };
-    }
-    
-    if (comicData.panel2 && typeof comicData.panel2 === 'object' && comicData.panel2.content !== undefined) {
-      panels.panel2 = {
-        content: comicData.panel2.content || '',
-        grid: comicData.panel2.grid || []
-      };
-    } else if (comicData.panel2) {
-      panels.panel2 = {
-        content: comicData.panel2,
-        grid: []
-      };
-    } else {
-      panels.panel2 = {
-        content: '',
-        grid: []
-      };
-    }
-    
-    if (comicData.panel3 && typeof comicData.panel3 === 'object' && comicData.panel3.content !== undefined) {
-      panels.panel3 = {
-        content: comicData.panel3.content || '',
-        grid: comicData.panel3.grid || []
-      };
-    } else if (comicData.panel3) {
-      panels.panel3 = {
-        content: comicData.panel3,
-        grid: []
-      };
-    } else {
-      panels.panel3 = {
-        content: '',
-        grid: []
-      };
-    }
-    
-    if (comicData.panel4 && typeof comicData.panel4 === 'object' && comicData.panel4.content !== undefined) {
-      panels.panel4 = {
-        content: comicData.panel4.content || '',
-        grid: comicData.panel4.grid || []
-      };
-    } else if (comicData.panel4) {
-      panels.panel4 = {
-        content: comicData.panel4,
-        grid: []
-      };
-    } else {
-      panels.panel4 = {
-        content: '',
-        grid: []
-      };
-    }
-    
-    return panels;
-  }, [comicData]);
-
-  // 만화 패널 렌더링 함수 (admin-web의 TabletFourSceneComic과 동일한 스타일)
-  const renderComicPanels = () => {
-    if (!convertComicDataToPanels) {
-      return (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-lg text-gray-600 text-center">
-            네가 말해준 내용으로 내가 여기에 조금 이따 4컷 만화를 그릴거야~
-          </Text>
-        </View>
-      );
-    }
-
-    // 타일 타입별 색상 정의 (admin-web과 동일)
-    const getTileColor = (type: string) => {
-      switch (type) {
-        case 'figure': return '#FFE0B2';  // 연한 주황색 (인물)
-        case 'object': return '#B2DFDB';  // 연한 청록색 (물건)
-        case 'location': return '#E1BEE7';  // 연한 보라색 (장소)
-        case 'think': return '#C8E6C9';  // 연한 초록색 (생각)
-        case 'tell': return '#BBDEFB';  // 연한 파란색 (대화)
-        case 'emotion': return '#F8BBD0';  // 연한 분홍색 (감정)
-        default: return '#FFFFFF';  // 흰색 (빈 칸)
-      }
-    };
-
-    const renderPanel = (panelId: string, panelIndex: number) => {
-      const panel = convertComicDataToPanels[panelId];
-      
-      // admin-web과 동일: 패널이 없으면 아예 렌더링하지 않음
-      if (!panel) {
-        return null;
-      }
-      
-      const isHighlighted = currentStage === 'comic_context' && focusedPanel === panelId;
-
-      return (
-        <View 
-          key={panelId}
-          className={`bg-white p-2 rounded-xl shadow-md border-2 ${
-            isHighlighted ? 'border-red-500 border-3' : 'border-gray-200'
-          }`}
-          style={{ 
-            height: 330, 
-            maxHeight: 330,
-            flex: 1,
-            marginHorizontal: 4,
-            ...(isHighlighted && {
-              borderWidth: 3,
-              borderColor: '#e53935',
-              shadowColor: '#e53935',
-              shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.15,
-              shadowRadius: 4,
-              elevation: 8
-            })
-          }}
-        >
-          {/* 스토리 텍스트 (admin-web과 동일한 스타일) */}
-          <View className="mb-2 p-2 bg-gray-50 rounded-lg border-l-3 border-blue-500">
-            <Text className="text-sm text-gray-800 leading-5">
-              <Text className="font-bold text-blue-500">{panelIndex + 1}. </Text>
-              {!panel.content?.startsWith('null') && panel.content}
-            </Text>
-          </View>
-
-          {/* 5x5 그리드 (admin-web과 동일: 항상 표시) */}
-          <View className="flex-1 justify-center items-center">
-            <View style={{ width: 200, height: 200 }}>
-              {/* backend에서 받은 layout 데이터를 5x5 grid로 변환 */}
-              {panel?.grid && panel.grid.length > 0 ? (
-                // 5x5 빈 그리드 생성 후 layout 데이터로 채우기
-                (() => {
-                  // 5x5 빈 그리드 생성
-                  const grid = Array.from({ length: 5 }, () => 
-                    Array.from({ length: 5 }, () => ({
-                      type: 'empty',
-                      content: '',
-                      position: [0, 0]
-                    }))
-                  );
-                  
-                  // layout 데이터를 position에 따라 배치
-                  panel.grid.forEach((item: any) => {
-                    const [x, y] = item.position || [0, 0];
-                    // NaN 값 방지
-                    const safeX = isNaN(x) ? 0 : Math.max(0, Math.min(4, Math.floor(x)));
-                    const safeY = isNaN(y) ? 0 : Math.max(0, Math.min(4, Math.floor(y)));
-                    
-                    grid[safeY][safeX] = {
-                      type: item.type || 'empty',
-                      content: item.content || '',
-                      position: [safeX, safeY]
-                    };
-                  });
-                  
-                  // 5x5 grid 렌더링
-                  return grid.map((row: any[], y: number) => (
-                    <View key={y} style={{ flexDirection: 'row', height: 40 }}>
-                      {row.map((tile: any, x: number) => (
-                        <View
-                          key={`${x}-${y}`}
-                          style={{ 
-                            width: 40,
-                            height: 40,
-                            borderWidth: 1,
-                            borderColor: '#ddd',
-                            borderRadius: 4,
-                            backgroundColor: getTileColor(tile.type),
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            padding: 4
-                          }}
-                        >
-                          <Text style={{ 
-                            fontSize: 12,
-                            textAlign: 'center',
-                            lineHeight: 14,
-                            color: '#333'
-                          }} numberOfLines={2}>
-                            {tile.content}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-                  ));
-                })()
-              ) : (
-                // 빈 그리드 표시 (5x5)
-                Array.from({ length: 5 }, (_, y) => (
-                  <View key={y} style={{ flexDirection: 'row', height: 40 }}>
-                    {Array.from({ length: 5 }, (_, x) => (
-                      <View
-                        key={`${x}-${y}`}
-                        style={{ 
-                          width: 40,
-                          height: 40,
-                          borderWidth: 1,
-                          borderColor: '#ddd',
-                          borderRadius: 4,
-                          backgroundColor: '#FFFFFF',
-                          justifyContent: 'center',
-                          alignItems: 'center'
-                        }}
-                      />
-                    ))}
-                  </View>
-                ))
-              )}
-            </View>
-          </View>
-        </View>
-      );
-    };
-
-    return (
-      <View className="flex-1 p-4">
-        <View className="flex-1">
-          {/* 첫 번째 행 */}
-          <View className="flex-row flex-1 mb-4">
-            {renderPanel('panel1', 0)}
-            {renderPanel('panel2', 1)}
-          </View>
-          {/* 두 번째 행 */}
-          <View className="flex-row flex-1">
-            {renderPanel('panel3', 2)}
-            {renderPanel('panel4', 3)}
-          </View>
-        </View>
-      </View>
-    );
-  };
-
->>>>>>> 22591ecf7d50437eda074f4c64c9a73b8d20abed
   // 인사말 섹션이 표시되어야 하는 경우
   if (showFarewellSection) {
     return (
       <FarewellSection 
-        childName={childName || "친구"} 
+        childName={childName} 
         onComplete={handleFarewellComplete}
       />
     );
@@ -787,7 +477,7 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
   if (showPraiseSection) {
     return (
       <PraiseSection 
-        childName={childName || "친구"}
+        childName={childName || dyadName || "친구"}
         agentConfig={agentConfig}
         onComplete={handlePraiseComplete}
       />
@@ -801,7 +491,6 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
     >
       <View className="flex-1 bg-gray-100">
         {showPresetSelection ? (
-<<<<<<< HEAD
           <PresetSelectionStage
             selectionStep={selectionStep}
             places={places}
@@ -820,163 +509,6 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
             onStartChatbotWithSuggestion={startChatbotWithSuggestion}
             onFreeStart={handleFreeStart}
           />
-=======
-          // 선택 화면 (전체 화면)
-          <View className="flex-1 p-6">
-            <ScrollView className="flex-1">
-              {/* 상단 메시지 */}
-              <View className="pt-8 pb-20">
-                <View className="bg-white rounded-3xl p-6 shadow-lg w-full">
-                  <View className="flex-row items-center">
-                    <Image 
-                      source={
-                        agentConfig?.avatar_image 
-                          ? (agentConfig.avatar_image.startsWith('http') 
-                              ? { uri: agentConfig.avatar_image }
-                              : getImageSource(agentConfig.avatar_image))
-                          : require('../../../../assets/robot.png')
-                      }
-                      style={{
-                        width: 50,
-                        height: 50,
-                        borderRadius: 25,
-                        resizeMode: 'cover',
-                        marginRight: 12
-                      }}
-                    />
-                    <Text className="text-xl text-gray-800 leading-relaxed flex-1 text-center" style={{ fontFamily: 'NanumSquareNeo-dEb' }}>
-                      {selectionStep === 'location' 
-                        ? '오늘은 어디서 있었던 일을 그림 일기로 써볼까?'
-                        : '거기서 누구랑 있었던 일을 그림 일기로 써볼까? 여러명이면 여러명을 선택해!'
-                      }
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {selectionStep === 'location' ? (
-                <>
-                  
-                  {/* 장소 선택 그리드 */}
-                  <View className="grid grid-cols-2 gap-4 mb-6">
-                    {places != null && places?.length > 0 ? (
-                      // API 데이터 사용
-                      places.map((place) => (
-                        <TouchableOpacity
-                          key={place.id}
-                          className="p-6 border-2 border-gray-200 rounded-xl bg-white"
-                          onPress={() => handleLocationSelect(place.name, place.id)}
-                        >
-                          <Text className="text-lg font-semibold text-gray-800 text-center">
-                            {place.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))
-                    ) : (
-                      // API 데이터가 없을 때 빈 상태 표시
-                      <View className="p-6 border-2 border-gray-200 rounded-xl bg-white">
-                        <Text className="text-lg font-semibold text-gray-500 text-center">
-                          장소 정보를 불러올 수 없습니다
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  
-                  {/* 자유롭게 시작하기 버튼들 */}
-                  <View className="border-t-2 border-gray-200 pt-6 mt-6">
-                    <TouchableOpacity
-                      className="bg-blue-500 rounded-xl p-4"
-                      style={{ marginBottom: 20 }}
-                      onPress={startChatbotWithSuggestion}
-                      disabled={isLoading}
-                    >
-                      <Text className="text-white text-lg font-semibold text-center">
-                        {isLoading ? '시작 중...' : '뭘 쓸지 모르겠네..'}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      className="bg-blue-500 rounded-xl p-4"
-                      onPress={handleFreeStart}
-                      disabled={isLoading}
-                    >
-                      <Text className="text-white text-lg font-semibold text-center">
-                        {isLoading ? '시작 중...' : '오늘은 내가 쓰고 싶은 게 있어!'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </>
-              ) : (
-                <>
-                  {/* 뒤로가기 버튼 */}
-                  <TouchableOpacity
-                    className="mb-4 p-2"
-                    onPress={handleBackToLocation}
-                  >
-                    <Text className="text-blue-500 text-lg">← 장소 다시 선택</Text>
-                  </TouchableOpacity>
-                  
-                  {/* 선택된 장소 표시 */}
-                  <View className="mb-6 p-4 bg-blue-50 rounded-lg">
-                    <Text className="text-lg text-gray-800">
-                      <Text className="font-bold">선택된 장소:</Text> {selectedLocation}
-                    </Text>
-                  </View>
-                  
-                  
-                  {/* 사람 선택 그리드 */}
-                  <View className="grid grid-cols-2 gap-4 mb-6">
-                    {useApiData && people.length > 0 ? (
-                      // API 데이터 사용
-                      people.map((person) => (
-                        <TouchableOpacity
-                          key={person.id}
-                          className={`p-4 border-2 rounded-xl ${
-                            selectedPersonIds.includes(person.id)
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-200 bg-white'
-                          }`}
-                          onPress={() => handlePersonToggle(person.name, person.id)}
-                        >
-                          <Text className={`text-center font-semibold ${
-                            selectedPersonIds.includes(person.id)
-                              ? 'text-blue-600'
-                              : 'text-gray-800'
-                          }`}>
-                            {person.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))
-                    ) : (
-                      // API 데이터가 없을 때 빈 상태 표시
-                      <View className="p-4 border-2 border-gray-200 rounded-xl bg-white">
-                        <Text className="text-center font-semibold text-gray-500">
-                          사람 정보를 불러올 수 없습니다
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  
-                  {/* 시작하기 버튼 */}
-                  <TouchableOpacity
-                    className={`rounded-xl p-4 ${
-                      ((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading
-                        ? 'bg-gray-400'
-                        : 'bg-blue-500'
-                    }`}
-                    onPress={handleSelectionComplete}
-                    disabled={((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading}
-                  >
-                    <Text className="text-white text-lg font-semibold text-center">
-                      {isLoading ? '시작 중...' : `시작하기 (${
-                        useApiData ? selectedPersonIds.length : selectedPeople.length
-                      }명 선택됨)`}
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </ScrollView>
-          </View>
->>>>>>> 22591ecf7d50437eda074f4c64c9a73b8d20abed
         ) : (
           <ChatStage
             currentStage={currentStage}
