@@ -13,12 +13,13 @@ import {
   Image,
   Animated,
 } from 'react-native';
-import { Router } from 'expo-router';
+import { Router, useRouter } from 'expo-router';
 import { ProgressLoadingOverlay } from '../../../components/ProgressLoadingOverlay';
 import { useComicGeneration } from '../hooks/useComicGenerationQuery';
 import { useChatbot } from '../hooks/useChatbot';
 import PraiseSection from '../../../components/PraiseSection';
 import FarewellSection from '../../../components/FarewellSection';
+import { QueryClient, useQueryClient } from '@tanstack/react-query';
 
 const { width, height } = Dimensions.get('window');
 
@@ -71,12 +72,7 @@ const DAY_INFO = {
   'Sunday': { name: '일요일' }
 };
 
-export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> = ({ 
-  dyadId, 
-  dyadName, 
-  passcode, 
-  router 
-}) => {
+export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -103,6 +99,10 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
   const [showFarewellSection, setShowFarewellSection] = useState(false);
   const [completionMessage, setCompletionMessage] = useState<string>('');
 
+  const queryClient = useQueryClient();
+  
+  const router = useRouter();
+
   // Chatbot 훅 사용
   const {
     places,
@@ -111,15 +111,13 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
     agentConfig,
     childName,
     useApiData,
-    loadAgentInfo: loadAgentInfoFromHook,
-    loadPlaces: loadPlacesFromHook,
     loadPeople: loadPeopleFromHook,
     loadSessionInfo: loadSessionInfoFromHook,
     startChatbot: startChatbotFromHook,
     startChatbotWithSuggestion: startChatbotWithSuggestionFromHook,
     sendMessage: sendMessageFromHook,
     startAutoComicGeneration: startAutoComicGenerationFromHook
-  } = useChatbot(dyadId || '', passcode || '');
+  } = useChatbot();
 
   // 칭찬 섹션 완료 콜백
   const handlePraiseComplete = () => {
@@ -182,18 +180,6 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
     }
   };
 
-
-
-  useEffect(() => {
-    if (dyadId && dyadName) {
-      console.log('Dyad authenticated:', { dyadId, dyadName, passcode });
-      // dyad의 places 로드
-      loadPlacesFromHook();
-      // agent 정보 로드
-      loadAgentInfoFromHook();
-    }
-  }, [dyadId, dyadName, passcode, loadPlacesFromHook, loadAgentInfoFromHook]);
-
   // 프로그레스바 애니메이션 업데이트
   useEffect(() => {
     if (comicGenerationStatus.status === 'generating') {
@@ -247,10 +233,9 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
 
   const startChatbot = async (preset?: Preset) => {
     console.log('startChatbot called with preset:', preset);
-    console.log('dyadId value:', dyadId);
     setIsLoading(true);
     try {
-      const data = await startChatbotFromHook(preset);
+      const data = await startChatbotFromHook({location: preset?.location, people: preset?.people});
       if (data) {
         console.log('Response data:', data);
         setSessionId(data.journal_entry_id);
@@ -283,7 +268,6 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
 
   const startChatbotWithSuggestion = async () => {
     console.log('startChatbotWithSuggestion called');
-    console.log('dyadId value:', dyadId);
     setIsLoading(true);
     try {
       const data = await startChatbotWithSuggestionFromHook();
@@ -544,7 +528,7 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
   // 요일에 맞는 장소들 필터링 (DB 데이터 사용)
   const getLocationsForToday = () => {
     const today = getCurrentDay();
-    return places.filter(place => {
+    return places?.filter(place => {
       const dayKey = today.toLowerCase() as keyof typeof place;
       return place[dayKey] === true;
     });
@@ -810,7 +794,7 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
   if (showFarewellSection) {
     return (
       <FarewellSection 
-        childName={childName} 
+        childName={childName || "친구"} 
         onComplete={handleFarewellComplete}
       />
     );
@@ -820,7 +804,7 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
   if (showPraiseSection) {
     return (
       <PraiseSection 
-        childName={dyadName || "친구"}
+        childName={childName || "친구"}
         agentConfig={agentConfig}
         onComplete={handlePraiseComplete}
       />
@@ -874,7 +858,7 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
                   
                   {/* 장소 선택 그리드 */}
                   <View className="grid grid-cols-2 gap-4 mb-6">
-                    {places.length > 0 ? (
+                    {places != null && places?.length > 0 ? (
                       // API 데이터 사용
                       places.map((place) => (
                         <TouchableOpacity

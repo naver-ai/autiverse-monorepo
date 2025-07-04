@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Annotated
 import asyncio
 import json
 import sys
@@ -13,16 +13,14 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from backend.database.engine import get_session
 from backend.database.crud.chatbot import get_dyad_by_id, get_dyad_places, get_place_people
 from backend.chatbot_controller import ChatbotController
+from backend.database.models import Dyad
+from backend.router.app.common import get_signed_in_dyad
 
 router = APIRouter()
 
 class StartChatbotRequest(BaseModel):
-    dyad_id: str
     location: Optional[str] = None
     people: Optional[List[str]] = None
-
-class StartChatbotWithSuggestionRequest(BaseModel):
-    dyad_id: str
 
 class SendMessageRequest(BaseModel):
     journal_entry_id: str
@@ -38,13 +36,14 @@ class ChatbotResponse(BaseModel):
 @router.post("/start", response_model=ChatbotResponse)
 def start_chatbot(
     request: StartChatbotRequest,
+    dyad: Annotated[Dyad, Depends(get_signed_in_dyad)],
     db: Session = Depends(get_session)
 ):
     """챗봇 시작"""
     try:
         controller = ChatbotController(db)
         result = controller.start_chatbot(
-            dyad_id=request.dyad_id,
+            dyad_id=dyad.id,
             location=request.location,
             people=request.people
         )
@@ -63,14 +62,14 @@ def start_chatbot(
 
 @router.post("/start-with-suggestion", response_model=ChatbotResponse)
 def start_chatbot_with_suggestion(
-    request: StartChatbotWithSuggestionRequest,
+    dyad: Annotated[Dyad, Depends(get_signed_in_dyad)],
     db: Session = Depends(get_session)
 ):
     """챗봇 시작 (뭘 쓸지 모르겠네 버튼용)"""
     try:
         controller = ChatbotController(db)
         result = controller.start_chatbot_with_suggestion(
-            dyad_id=request.dyad_id
+            dyad_id=dyad.id
         )
         
         return ChatbotResponse(
@@ -147,19 +146,12 @@ def reset_session(
 
 @router.get("/dyad/{dyad_id}/places")
 def get_places(
-    dyad_id: str,
-    db: Session = Depends(get_session)
+    dyad: Annotated[Dyad, Depends(get_signed_in_dyad)],
+    db: Session = Depends(get_session),
 ):
-    """dyad의 places 조회"""
-    try:
-        # dyad 존재 확인
-        dyad = get_dyad_by_id(db, dyad_id)
-        if not dyad:
-            raise HTTPException(status_code=404, detail="Dyad not found")
-        
-        places = get_dyad_places(db, dyad_id)
-        return {
-            "dyad_id": dyad_id,
+    places = get_dyad_places(db, dyad.id)
+    return {
+            "dyad_id": dyad.id,
             "places": [
                 {
                     "id": place.id,
@@ -175,10 +167,6 @@ def get_places(
                 for place in places
             ]
         }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.get("/place/{place_id}/people")
 def get_people(

@@ -39,9 +39,19 @@ export interface Dyad extends DBModel {
     agents: Agent[];
     people: Person[];
     places: Place[];
+
+    journal_entries: []; //TODO define journal entry type
 }
 
 export type DyadInfo = Omit<Dyad, keyof DBModel | "agents" | "people" | "places" | "passcode">;
+
+
+export interface AgentData {
+    id: string;
+    name: string;
+    description: string;
+    agent_config?: any;
+  }
 
 export interface ContextEntity extends DBModel {
     name: string;
