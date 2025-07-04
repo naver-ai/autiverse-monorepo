@@ -165,13 +165,11 @@ class ChatbotController:
             }
         
         # 만화 생성 완료 신호인지 확인
-        if response == "COMIC_GENERATION_COMPLETE":
-            # comic_context 단계로 전환
-            context_stage = ComicContextStage(self.db, journal_entry_id)
-            context_response = context_stage.start_context_analysis()
-            
+
+        # 완료되었는지 확인
+        if "다행이다" in response:
             return {
-                "response": context_response,
+                "response": response,
                 "stage": "comic_context"
             }
         

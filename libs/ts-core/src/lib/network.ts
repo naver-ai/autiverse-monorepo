@@ -69,8 +69,17 @@ export class NetworkHelper {
       },
       COMIC_GENERATION: {
         START: '/api/v1/app/comic-generation/start',
-        getStatusEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/${journalEntryId}/status`,
-        getCancelEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/${journalEntryId}/cancel`,
+        getStatusEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/status/${journalEntryId}`,
+        getCancelEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/cancel/${journalEntryId}`,
+      }
+    },
+
+    // Backend internal communication endpoints
+    INTERNAL: {
+      COMIC_GENERATION: {
+        START: '/api/v1/app/comic-generation/start',
+        getStatusEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/status/${journalEntryId}`,
+        getCancelEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/cancel/${journalEntryId}`,
       }
     }
   };
@@ -127,5 +136,19 @@ export class NetworkHelper {
     }
 
     return this.axiosInstance;
+  }
+
+  /**
+   * Get internal axios client for backend-to-backend communication
+   * @param baseUrl - The base URL for internal communication
+   * @returns AxiosInstance
+   */
+  public static getInternalClient(baseUrl: string): AxiosInstance {
+    return axios.create({
+      baseURL: baseUrl,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 }

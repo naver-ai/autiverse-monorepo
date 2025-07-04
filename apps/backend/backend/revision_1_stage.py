@@ -7,6 +7,7 @@ from .database.crud.chatbot import (
 )
 from .database.models import JournalEntryStage, MessageRole
 from sqlalchemy.orm import Session
+from backend.utils.network_helper import NetworkHelper
 
 
 class Revision1Stage:
@@ -271,7 +272,7 @@ User's correction request: {correction}
             return create_interaction_turn(self.db, self.journal_entry_id, stage)
 
     def _generate_comic_panels(self) -> None:
-        """revision_1 단계가 끝날 때 만화 패널 생성 (프로그레스바와 함께)"""
+        """revision_1 완료 시 만화 패널 생성 및 Comic 테이블에 저장"""
         try:
             journal = get_journal(self.db, self.journal_entry_id)
             if not journal or not journal.revision_1:
@@ -285,23 +286,22 @@ User's correction request: {correction}
                 "panel4": journal.revision_1.get("panel4", "") if journal.revision_1.get("panel4") != "null" else ""
             }
             
-            # API를 사용하여 만화 생성 (진행률 추적 포함)
-            import requests
+            # NetworkHelper를 사용하여 API 호출
             try:
-                # 만화 생성 시작 (첫 번째 만화 생성)
-                start_response = requests.post(
-                    'http://localhost:3000/api/v1/app/comic-generation/start',
-                    json={
-                        'journal_entry_id': self.journal_entry_id,
-                        'panel_contents': panel_contents,
-                        'is_first_generation': True
-                    }
-                )
+                endpoints = NetworkHelper.get_comic_generation_endpoints()
+                start_url = endpoints['START']
                 
-                if start_response.status_code == 200:
+                # 만화 생성 시작 (첫 번째 만화 생성)
+                response = NetworkHelper.make_internal_request('POST', start_url, {
+                    'journal_entry_id': self.journal_entry_id,
+                    'panel_contents': panel_contents,
+                    'is_first_generation': True
+                })
+                
+                if response.status_code == 200:
                     print(f"[DEBUG] revision_1: Comic generation started for {self.journal_entry_id}")
                 else:
-                    print(f"[DEBUG] revision_1: Failed to start comic generation: {start_response.status_code}")
+                    print(f"[DEBUG] revision_1: Failed to start comic generation: {response.status_code}")
                     
             except Exception as e:
                 print(f"[DEBUG] revision_1: Error starting comic generation: {e}")

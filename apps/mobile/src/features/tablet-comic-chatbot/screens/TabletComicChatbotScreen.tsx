@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -198,11 +198,14 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
   useEffect(() => {
     if (comicGenerationStatus.status === 'generating') {
       console.log('Progress animation update:', comicGenerationStatus.progress);
-      Animated.timing(progressAnimation, {
-        toValue: comicGenerationStatus.progress,
-        duration: 500,
-        useNativeDriver: false,
-      }).start();
+      // requestAnimationFrame을 사용하여 렌더링 후 애니메이션 실행
+      requestAnimationFrame(() => {
+        Animated.timing(progressAnimation, {
+          toValue: comicGenerationStatus.progress,
+          duration: 500,
+          useNativeDriver: false,
+        }).start();
+      });
     }
   }, [comicGenerationStatus.progress, comicGenerationStatus.status]);
 
@@ -447,7 +450,7 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
             } catch (error) {
               console.error('Failed to start auto comic generation:', error);
             }
-          }, 200);
+          }, 500);
         }
         
         // 만화 데이터 상태 확인
@@ -551,10 +554,8 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
   };
 
   // ComicData를 Record<string, Panel> 형태로 변환 (admin-web과 동일한 구조)
-  const convertComicDataToPanels = (comicData: any) => {
+  const convertComicDataToPanels = useMemo(() => {
     if (!comicData) return null;
-    
-    console.log('Raw comic data received:', comicData);
     
     // admin-web의 TabletFourSceneComic과 동일한 구조로 변환
     const panels: Record<string, any> = {};
@@ -631,14 +632,12 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
       };
     }
     
-    console.log('Converted panels:', panels);
     return panels;
-  };
+  }, [comicData]);
 
   // 만화 패널 렌더링 함수 (admin-web의 TabletFourSceneComic과 동일한 스타일)
   const renderComicPanels = () => {
-    const panels = convertComicDataToPanels(comicData);
-    if (!panels) {
+    if (!convertComicDataToPanels) {
       return (
         <View className="flex-1 items-center justify-center">
           <Text className="text-lg text-gray-600 text-center">
@@ -662,7 +661,7 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
     };
 
     const renderPanel = (panelId: string, panelIndex: number) => {
-      const panel = panels[panelId];
+      const panel = convertComicDataToPanels[panelId];
       
       // admin-web과 동일: 패널이 없으면 아예 렌더링하지 않음
       if (!panel) {
@@ -720,13 +719,15 @@ export const TabletComicChatbotScreen: React.FC<TabletComicChatbotScreenProps> =
                   // layout 데이터를 position에 따라 배치
                   panel.grid.forEach((item: any) => {
                     const [x, y] = item.position || [0, 0];
-                    if (x >= 0 && x < 5 && y >= 0 && y < 5) {
-                      grid[y][x] = {
-                        type: item.type || 'empty',
-                        content: item.content || '',
-                        position: [x, y]
-                      };
-                    }
+                    // NaN 값 방지
+                    const safeX = isNaN(x) ? 0 : Math.max(0, Math.min(4, Math.floor(x)));
+                    const safeY = isNaN(y) ? 0 : Math.max(0, Math.min(4, Math.floor(y)));
+                    
+                    grid[safeY][safeX] = {
+                      type: item.type || 'empty',
+                      content: item.content || '',
+                      position: [safeX, safeY]
+                    };
                   });
                   
                   // 5x5 grid 렌더링
