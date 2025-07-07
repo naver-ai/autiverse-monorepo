@@ -248,10 +248,11 @@ class ChatbotController:
                 current_panels = journal.revision_2 if journal.revision_2 else journal.comic_context
             elif journal_entry.stage == JournalEntryStage.ComicContext and journal.comic_context:
                 current_panels = journal.comic_context
-            elif journal_entry.stage == JournalEntryStage.Revision1 and journal.revision_1:
+            elif journal.revision_1:
+                # revision_1이 있으면 우선 사용
                 current_panels = journal.revision_1
             elif journal.comic_intro:
-                # comic_intro 데이터가 있으면 우선 사용
+                # comic_intro 데이터가 있으면 사용
                 current_panels = journal.comic_intro
         
         # Comic 테이블의 grid 데이터와 Journal 테이블의 텍스트 데이터를 결합
