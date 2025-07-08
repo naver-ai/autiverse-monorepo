@@ -1,9 +1,21 @@
 import { Stack } from "expo-router";
+import { useAuthStore } from '../../features/auth/store';
 
-export default function ProtectedRootLayout(){
-    return <Stack>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="agent-intro" options={{ headerShown: false }} />
-        <Stack.Screen name="tablet-comic-chatbot" options={{ headerShown: false }} />
+export default function AppLayout() {
+  const { jwt } = useAuthStore();
+
+  if (!jwt) {
+    return null;
+  }
+
+  return (
+    <Stack>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="intro" options={{ headerShown: false }} />
+      <Stack.Screen name="agent-intro" options={{ headerShown: false }} />
+      <Stack.Screen name="tablet-comic-chatbot" options={{ headerShown: false }} />
+      <Stack.Screen name="gallery" options={{ headerShown: false }} />
+      <Stack.Screen name="comic-detail" options={{ headerShown: false }} />
     </Stack>
+  );
 }

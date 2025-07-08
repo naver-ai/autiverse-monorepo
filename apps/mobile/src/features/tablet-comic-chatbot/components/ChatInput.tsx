@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ChatMessage } from '../types';
+import { styleTemplates } from '../../../styles';
 
 interface ChatInputProps {
   inputText: string;
@@ -84,7 +85,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               elevation: 3,
             }}
           >
-            <Text className="text-white font-bold text-lg text-center">{buttonTexts.left}</Text>
+            <Text className="text-white font-bold text-lg text-center" style={styleTemplates.withBoldFont}>{buttonTexts.left}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-1 bg-blue-500 px-6 py-4 rounded-xl"
@@ -100,7 +101,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               elevation: 3,
             }}
           >
-            <Text className="text-white font-bold text-lg text-center">{buttonTexts.right}</Text>
+            <Text className="text-white font-bold text-lg text-center" style={styleTemplates.withBoldFont}>{buttonTexts.right}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -121,6 +122,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           style={{
             minHeight: 48,
             fontSize: 16,
+            ...styleTemplates.withSemiboldFont,
           }}
         />
         <TouchableOpacity
@@ -144,7 +146,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             elevation: 3,
           }}
         >
-          <Text className="text-white font-semibold text-base">전송</Text>
+          <Text className="text-white font-semibold text-base" style={styleTemplates.withBoldFont}>전송</Text>
         </TouchableOpacity>
       </View>
     </View>

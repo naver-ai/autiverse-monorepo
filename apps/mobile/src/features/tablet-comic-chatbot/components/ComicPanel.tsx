@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { getTileColor } from '../utils';
+import { styleTemplates } from '../../../styles';
 
 interface ComicPanelProps {
   panelId: string;
@@ -43,8 +44,8 @@ export const ComicPanel: React.FC<ComicPanelProps> = ({
     >
       {/* 스토리 텍스트 (admin-web과 동일한 스타일) */}
       <View className="mb-2 p-2 bg-gray-50 rounded-lg border-l-3 border-blue-500">
-        <Text className="text-sm text-gray-800 leading-5">
-          <Text className="font-bold text-blue-500">{panelIndex + 1}. </Text>
+        <Text className="text-sm text-gray-800 leading-5" style={styleTemplates.withSemiboldFont}>
+          <Text className="font-bold text-blue-500" style={styleTemplates.withBoldFont}>{panelIndex + 1}. </Text>
           {!panel.content?.startsWith('null') && panel.content}
         </Text>
       </View>
@@ -101,7 +102,8 @@ export const ComicPanel: React.FC<ComicPanelProps> = ({
                         fontSize: 12,
                         textAlign: 'center',
                         lineHeight: 14,
-                        color: '#333'
+                        color: '#333',
+                        ...styleTemplates.withSemiboldFont
                       }} numberOfLines={2}>
                         {tile.content}
                       </Text>

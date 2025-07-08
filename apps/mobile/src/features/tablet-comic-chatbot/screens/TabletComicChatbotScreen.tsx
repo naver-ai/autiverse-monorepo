@@ -74,13 +74,13 @@ export const TabletComicChatbotScreen: React.FC<{
     setShowFarewellSection(true);
   };
 
-  // 인사말 섹션 완료 콜백 (첫 화면으로 돌아가기)
+  // 인사말 섹션 완료 콜백 (intro 화면으로 돌아가기)
   const handleFarewellComplete = () => {
-    console.log('Farewell section completed, navigating to home');
+    console.log('Farewell section completed, navigating to intro');
     setShowFarewellSection(false);
-    // 첫 화면으로 돌아가기
+    // intro 화면으로 돌아가기
     if (router) {
-      router.replace('/');
+      router.replace('/(app)/intro');
     }
   };
 

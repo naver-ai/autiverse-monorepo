@@ -13,6 +13,16 @@ export async function getDyadAPI(jwt: string): Promise<Dyad> {
     return response.data;
   }
 
+export async function getGalleryAPI(jwt: string): Promise<any> {
+    const response = await NetworkHelper.axiosClient.get(
+      NetworkHelper.ENDPOINTS.APP.CHATBOT.GALLERY,
+      {
+        headers: await NetworkHelper.getHeaders(jwt),
+      }
+    );
+    return response.data;
+  }
+
 export function useDyad() {
 
     const { jwt } = useAuthStore();

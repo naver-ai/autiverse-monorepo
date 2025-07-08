@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { Place, Person, Preset } from '../types';
 import { getImageSource, getCurrentDay } from '../utils';
+import { styleTemplates } from '../../../styles';
 
 interface PresetSelectionStageProps {
   selectionStep: 'location' | 'people';
@@ -63,7 +64,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                   marginRight: 12
                 }}
               />
-              <Text className="text-xl text-gray-800 leading-relaxed flex-1 text-center" style={{ fontFamily: 'NanumSquareNeo-dEb' }}>
+              <Text className="text-xl text-gray-800 leading-relaxed flex-1 text-center" style={styleTemplates.withBoldFont}>
                 {selectionStep === 'location' 
                   ? '오늘은 어디서 있었던 일을 그림 일기로 써볼까?'
                   : '거기서 누구랑 있었던 일을 그림 일기로 써볼까? 여러명이면 여러명을 선택해!'
@@ -85,7 +86,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                     className="p-6 border-2 border-gray-200 rounded-xl bg-white"
                     onPress={() => onLocationSelect(place.name, place.id)}
                   >
-                    <Text className="text-lg font-semibold text-gray-800 text-center">
+                    <Text className="text-lg font-semibold text-gray-800 text-center" style={styleTemplates.withBoldFont}>
                       {place.name}
                     </Text>
                   </TouchableOpacity>
@@ -93,7 +94,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               ) : (
                 // API 데이터가 없을 때 빈 상태 표시
                 <View className="p-6 border-2 border-gray-200 rounded-xl bg-white">
-                  <Text className="text-lg font-semibold text-gray-500 text-center">
+                  <Text className="text-lg font-semibold text-gray-500 text-center" style={styleTemplates.withSemiboldFont}>
                     장소 정보를 불러올 수 없습니다
                   </Text>
                 </View>
@@ -108,7 +109,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                 onPress={onStartChatbotWithSuggestion}
                 disabled={isLoading}
               >
-                <Text className="text-white text-lg font-semibold text-center">
+                <Text className="text-white text-lg font-semibold text-center" style={styleTemplates.withBoldFont}>
                   {isLoading ? '시작 중...' : '뭘 쓸지 모르겠네..'}
                 </Text>
               </TouchableOpacity>
@@ -117,7 +118,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                 onPress={onFreeStart}
                 disabled={isLoading}
               >
-                <Text className="text-white text-lg font-semibold text-center">
+                <Text className="text-white text-lg font-semibold text-center" style={styleTemplates.withBoldFont}>
                   {isLoading ? '시작 중...' : '오늘은 내가 쓰고 싶은 게 있어!'}
                 </Text>
               </TouchableOpacity>
@@ -130,13 +131,13 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               className="mb-4 p-2"
               onPress={onBackToLocation}
             >
-              <Text className="text-blue-500 text-lg">← 장소 다시 선택</Text>
+              <Text className="text-blue-500 text-lg" style={styleTemplates.withBoldFont}>← 장소 다시 선택</Text>
             </TouchableOpacity>
             
             {/* 선택된 장소 표시 */}
             <View className="mb-6 p-4 bg-blue-50 rounded-lg">
-              <Text className="text-lg text-gray-800">
-                <Text className="font-bold">선택된 장소:</Text> {selectedLocation}
+              <Text className="text-lg text-gray-800" style={styleTemplates.withSemiboldFont}>
+                <Text className="font-bold" style={styleTemplates.withBoldFont}>선택된 장소:</Text> {selectedLocation}
               </Text>
             </View>
             
@@ -158,7 +159,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                       selectedPersonIds.includes(person.id)
                         ? 'text-blue-600'
                         : 'text-gray-800'
-                    }`}>
+                    }`} style={styleTemplates.withBoldFont}>
                       {person.name}
                     </Text>
                   </TouchableOpacity>
@@ -166,7 +167,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               ) : (
                 // API 데이터가 없을 때 빈 상태 표시
                 <View className="p-4 border-2 border-gray-200 rounded-xl bg-white">
-                  <Text className="text-center font-semibold text-gray-500">
+                  <Text className="text-center font-semibold text-gray-500" style={styleTemplates.withSemiboldFont}>
                     사람 정보를 불러올 수 없습니다
                   </Text>
                 </View>
@@ -183,7 +184,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               onPress={onSelectionComplete}
               disabled={((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading}
             >
-              <Text className="text-white text-lg font-semibold text-center">
+              <Text className="text-white text-lg font-semibold text-center" style={styleTemplates.withBoldFont}>
                 {isLoading ? '시작 중...' : `시작하기 (${
                   useApiData ? selectedPersonIds.length : selectedPeople.length
                 }명 선택됨)`}

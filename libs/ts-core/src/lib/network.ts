@@ -63,6 +63,7 @@ export class NetworkHelper {
         },
         getSessionEndpoint: (sessionId: string) => `/api/v1/app/chatbot/session/${sessionId}`,
         getAutoComicGenerationEndpoint: (sessionId: string) => `/api/v1/app/chatbot/auto-comic-generation/${sessionId}`,
+        GALLERY: '/api/v1/app/chatbot/gallery',
       },
       COMIC_GENERATION: {
         START: '/api/v1/app/comic-generation/start',

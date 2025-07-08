@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Modal, Animated } from 'react-native';
+import { styleTemplates } from '../styles';
 
 interface ProgressLoadingOverlayProps {
   visible: boolean;
@@ -49,7 +50,7 @@ export const ProgressLoadingOverlay: React.FC<ProgressLoadingOverlayProps> = ({
           </View>
 
           {/* 메시지 */}
-          <Text className="text-center mb-4 text-lg font-semibold text-gray-800">
+          <Text className="text-center mb-4 text-lg font-semibold text-gray-800" style={styleTemplates.withBoldFont}>
             {message}
           </Text>
 
@@ -67,7 +68,7 @@ export const ProgressLoadingOverlay: React.FC<ProgressLoadingOverlayProps> = ({
           </View>
 
           {/* 프로그레스 퍼센트 */}
-          <Text className="text-center text-sm text-gray-600">
+          <Text className="text-center text-sm text-gray-600" style={styleTemplates.withSemiboldFont}>
             {Math.round(progress)}% 완료
           </Text>
 

@@ -13,7 +13,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from backend.database.engine import get_session
 from backend.database.crud.chatbot import get_dyad_by_id, get_dyad_places, get_place_people
 from backend.chatbot_controller import ChatbotController
-from backend.database.models import Dyad
+from backend.database.models import Dyad, Comic, JournalEntry, Journal
 from backend.router.app.common import get_signed_in_dyad
 
 router = APIRouter()
@@ -226,5 +226,52 @@ def start_auto_comic_generation(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 
+
+@router.get("/gallery")
+def get_gallery(
+    dyad: Annotated[Dyad, Depends(get_signed_in_dyad)],
+    db: Session = Depends(get_session)
+):
+    """갤러리에서 완성된 만화들 조회"""
+    try:
+        # 완성된 저널 엔트리들 조회 (status가 completed인 것들)
+        completed_entries = db.query(JournalEntry).filter(
+            JournalEntry.dyad_id == dyad.id,
+            JournalEntry.status == "completed"
+        ).all()
+        
+        gallery_items = []
+        for entry in completed_entries:
+            # 해당 저널 엔트리의 Comic 데이터 조회
+            comic = db.query(Comic).filter(Comic.journal_entry_id == entry.id).first()
+            
+            # 완성된 패널 데이터 수집 (second_panel들만)
+            panels = [
+                comic.second_panel1,
+                comic.second_panel2,
+                comic.second_panel3,
+                comic.second_panel4
+            ]
+            
+            # Journal 테이블의 revision_2 데이터 조회
+            journal = db.query(Journal).filter(Journal.journal_entry_id == entry.id).first()
+            revision_2_content = journal.revision_2
+            
+            gallery_items.append({
+                "id": comic.id,
+                "journal_entry_id": entry.id,
+                "created_at": entry.created_at.isoformat() if entry.created_at else None,
+                "panels": panels,
+                "revision_2": revision_2_content,
+                "child_name": dyad.child_name,
+                "agent_name": dyad.agents[0].agent_name if dyad.agents else "친구"
+            })
+        
+        return {
+            "dyad_id": dyad.id,
+            "comics": gallery_items
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 

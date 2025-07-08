@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { ChatMessage } from '../types';
+import { styleTemplates } from '../../../styles';
 
 interface ChatMessageProps {
   messages: ChatMessage[];
@@ -20,7 +21,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   if (messages.length === 0) {
     return (
       <View className="items-center justify-center py-8">
-        <Text className="text-base text-gray-600 text-center">
+        <Text className="text-base text-gray-600 text-center" style={styleTemplates.withSemiboldFont}>
           왼쪽에서 시작하기를 눌러주세요!
         </Text>
       </View>
@@ -33,7 +34,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         <View className="bg-white border border-gray-200 p-3 rounded-lg">
           <View className="flex-row items-center">
             <ActivityIndicator size="small" color="#666" />
-            <Text className="text-gray-600 ml-2 text-sm">{agentName}가 생각 중...</Text>
+            <Text className="text-gray-600 ml-2 text-sm" style={styleTemplates.withSemiboldFont}>{agentName}가 생각 중...</Text>
           </View>
         </View>
       </View>
@@ -44,7 +45,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     return (
       <View className="items-start">
         <View className="bg-white border border-gray-200 p-3 rounded-lg max-w-[90%]">
-          <Text className="text-sm text-gray-800">
+          <Text className="text-sm text-gray-800" style={styleTemplates.withSemiboldFont}>
             {lastBotMessage.text}
           </Text>
         </View>

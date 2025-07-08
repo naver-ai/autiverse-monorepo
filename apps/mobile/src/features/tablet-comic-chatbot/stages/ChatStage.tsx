@@ -3,6 +3,7 @@ import { View, Text, Animated } from 'react-native';
 import { ChatMessage } from '../types';
 import { ComicPanel, ChatMessageComponent, ChatInput } from '../components';
 import { convertComicDataToPanels } from '../utils';
+import { styleTemplates } from '../../../styles';
 
 interface ChatStageProps {
   currentStage: string;
@@ -40,7 +41,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
     if (!convertComicDataToPanelsMemo) {
       return (
         <View className="flex-1 items-center justify-center">
-          <Text className="text-lg text-gray-600 text-center">
+          <Text className="text-lg text-gray-600 text-center" style={styleTemplates.withSemiboldFont}>
             네가 말해준 내용으로 내가 여기에 조금 이따 4컷 만화를 그릴거야~
           </Text>
         </View>
@@ -86,9 +87,9 @@ export const ChatStage: React.FC<ChatStageProps> = ({
       <View className="flex-[1.8] bg-white border-r-2 border-gray-200">
         {/* 만화 헤더 */}
         <View className="flex-row justify-between items-center p-3 border-b border-gray-200 pt-6">
-          <Text className="text-lg font-bold text-gray-800">🎨 만화일기</Text>
+          <Text className="text-lg font-bold text-gray-800" style={styleTemplates.withBoldFont}>🎨 만화일기</Text>
           <View className="bg-blue-100 px-2 py-1 rounded">
-            <Text className="text-xs font-semibold text-blue-800">
+            <Text className="text-xs font-semibold text-blue-800" style={styleTemplates.withBoldFont}>
               {currentStage === 'intro' ? '대화' :
                currentStage === 'revision_1' ? '수정 1' :
                currentStage === 'comic_context' ? '만화 완성' :
@@ -106,7 +107,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
               renderComicPanels()
             ) : (
               <View className="flex-1 items-center justify-center">
-                <Text className="text-lg text-gray-600 text-center">
+                <Text className="text-lg text-gray-600 text-center" style={styleTemplates.withSemiboldFont}>
                 네가 말해준 내용으로 내가 여기에 조금 이따 4컷 만화를 그릴거야~
                 </Text>
               </View>
@@ -134,7 +135,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
                 </View>
 
                 {/* 메시지 */}
-                <Text className="text-center mb-4 text-lg font-semibold text-gray-800">
+                <Text className="text-center mb-4 text-lg font-semibold text-gray-800" style={styleTemplates.withBoldFont}>
                   {comicGenerationStatus.message}
                 </Text>
 
@@ -152,7 +153,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
                 </View>
 
                 {/* 프로그레스 퍼센트 */}
-                <Text className="text-center text-sm text-gray-600">
+                <Text className="text-center text-sm text-gray-600" style={styleTemplates.withSemiboldFont}>
                   {Math.round(comicGenerationStatus.progress)}% 완료
                 </Text>
               </View>
@@ -165,7 +166,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
       <View className="flex-1 bg-white">
         {/* 채팅 헤더 */}
         <View className="bg-blue-500 p-4">
-          <Text className="text-xl font-bold text-white">💬 {agentName}와 대화하기</Text>
+          <Text className="text-xl font-bold text-white" style={styleTemplates.withBoldFont}>💬 {agentName}와 대화하기</Text>
         </View>
 
         {/* 현재 Agent 메시지 */}
