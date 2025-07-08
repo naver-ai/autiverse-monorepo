@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { styleTemplates } from '../styles';
+import { styleTemplates } from '../../styles';
+import { speakText, stopSpeech } from '../../features/tablet-comic-chatbot/utils/speechUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -31,20 +32,48 @@ const getKoreanJosa = (name: string): string => {
 
 export default function FarewellSection({ childName, onComplete }: FarewellSectionProps) {
   const [hasCompleted, setHasCompleted] = useState(false);
+  const [hasSpoken, setHasSpoken] = useState(false);
 
   const childJosa = getKoreanJosa(childName);
+  const farewellMessage = `${childName}${childJosa}, 우리 다음에 또 만나서 재미있게 그림 일기 써보자. 안녕~`;
 
+  // TTS 시작
   useEffect(() => {
-    // 5초 후에 완료 콜백 호출 (인사말을 충분히 읽을 시간)
-    const timer = setTimeout(() => {
-      if (!hasCompleted) {
-        setHasCompleted(true);
-        onComplete?.();
-      }
-    }, 5000);
+    if (!hasSpoken) {
+      speakText(farewellMessage, {
+        language: 'ko-KR',
+        pitch: 1.0,
+        rate: 0.8,
+        onDone: () => {
+          setHasSpoken(true);
+          // TTS 완료 후 0.5초 뒤에 완료 콜백 호출
+          setTimeout(() => {
+            if (!hasCompleted) {
+              setHasCompleted(true);
+              onComplete?.();
+            }
+          }, 500);
+        },
+        onError: (error) => {
+          setHasSpoken(true);
+          // 에러 발생 시에도 5초 후 완료
+          setTimeout(() => {
+            if (!hasCompleted) {
+              setHasCompleted(true);
+              onComplete?.();
+            }
+          }, 5000);
+        }
+      });
+    }
+  }, [hasSpoken, farewellMessage, hasCompleted, onComplete]);
 
-    return () => clearTimeout(timer);
-  }, [hasCompleted, onComplete]);
+  // 컴포넌트 언마운트 시 TTS 정지
+  useEffect(() => {
+    return () => {
+      stopSpeech();
+    };
+  }, []);
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">

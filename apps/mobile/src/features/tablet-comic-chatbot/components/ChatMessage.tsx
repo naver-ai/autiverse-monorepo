@@ -1,13 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { ChatMessage } from '../types';
 import { styleTemplates } from '../../../styles';
+import { speakText } from '../utils';
 
 interface ChatMessageProps {
   messages: ChatMessage[];
   isLoading: boolean;
   agentName: string;
 }
+
+// 이모티콘 제거 함수
+const removeEmojis = (text: string): string => {
+  return text.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '');
+};
 
 export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   messages,
@@ -17,6 +23,24 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   const lastBotMessage = messages
     .filter(m => !m.isUser)
     .pop();
+
+  // 새로운 봇 메시지가 올 때 자동으로 음성 재생
+  useEffect(() => {
+    if (lastBotMessage && lastBotMessage.text && !isLoading) {
+      // 이전 메시지와 다른 경우에만 재생
+      const messageId = lastBotMessage.id;
+      
+      // 즉시 음성 재생 (지연 없음)
+      const cleanText = removeEmojis(lastBotMessage.text);
+      if (cleanText.trim()) { // 빈 텍스트가 아닌 경우에만 재생
+        speakText(cleanText, {
+          language: 'ko-KR',
+          pitch: 0.9,
+          rate: 0.6
+        });
+      }
+    }
+  }, [lastBotMessage?.id, isLoading]);
   
   if (messages.length === 0) {
     return (

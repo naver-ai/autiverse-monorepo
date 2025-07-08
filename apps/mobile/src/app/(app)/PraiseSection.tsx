@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Dimensions, Animated, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { styleTemplates } from '../styles';
+import { styleTemplates } from '../../styles';
+import { speakText, stopSpeech } from '../../features/tablet-comic-chatbot/utils/speechUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -19,6 +20,7 @@ export default function PraiseSection({ childName = "친구", agentConfig, onCom
   const [hasCompleted, setHasCompleted] = useState(false);
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
   const [visibleSentences, setVisibleSentences] = useState<string[]>([]);
+  const [hasSpoken, setHasSpoken] = useState(false);
   
   // 하드코딩된 칭찬 메시지
   const praiseMessage = `우리 ${childName} 오늘 그림 일기 쓰는 모습 만점!! 오늘 있었던 일 잘 떠올리고, 질문에 답변 잘해주고, 내가 그림 그리는 거 기다려줘서 고마워~`;
@@ -30,13 +32,30 @@ export default function PraiseSection({ childName = "친구", agentConfig, onCom
   const getImageSource = (imageName: string) => {
     switch (imageName) {
       case 'robot':
-        return require('../../assets/robot.png');
+        return require('../../../assets/robot.png');
       case 'doll':
-        return require('../../assets/doll.png');
+        return require('../../../assets/doll.png');
       default:
-        return require('../../assets/icon.png');
+        return require('../../../assets/icon.png');
     }
   };
+
+  // TTS 시작
+  useEffect(() => {
+    if (!hasSpoken) {
+      speakText(praiseMessage, {
+        language: 'ko-KR',
+        pitch: 1.0,
+        rate: 0.8,
+        onDone: () => {
+          setHasSpoken(true);
+        },
+        onError: (error) => {
+          setHasSpoken(true);
+        }
+      });
+    }
+  }, [hasSpoken, praiseMessage]);
 
   // 문장 애니메이션 효과
   useEffect(() => {
@@ -64,18 +83,25 @@ export default function PraiseSection({ childName = "친구", agentConfig, onCom
   }, [currentSentenceIndex, sentences.length]);
 
   useEffect(() => {
-    // 스탬프 애니메이션 완료 후 3초 뒤에 완료 콜백 호출 (스탬프를 충분히 볼 시간)
-    if (showStamp) {
+    // TTS 완료 후 스탬프 애니메이션 완료까지 기다린 후 완료 콜백 호출
+    if (showStamp && hasSpoken) {
       const timer = setTimeout(() => {
         if (!hasCompleted) {
           setHasCompleted(true);
           onComplete?.();
         }
-      }, 3000);
+      }, 500); // 0.5초로 단축
 
       return () => clearTimeout(timer);
     }
-  }, [showStamp, hasCompleted, onComplete]);
+  }, [showStamp, hasSpoken, hasCompleted, onComplete]);
+
+  // 컴포넌트 언마운트 시 TTS 정지
+  useEffect(() => {
+    return () => {
+      stopSpeech();
+    };
+  }, []);
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
@@ -90,7 +116,7 @@ export default function PraiseSection({ childName = "친구", agentConfig, onCom
                     ? (agentConfig.avatar_image.startsWith('http') 
                         ? { uri: agentConfig.avatar_image }
                         : getImageSource(agentConfig.avatar_image))
-                    : require('../../assets/robot.png')
+                    : require('../../../assets/robot.png')
                 }
                 style={{
                   width: 50,

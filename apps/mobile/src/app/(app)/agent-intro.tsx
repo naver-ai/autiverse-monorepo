@@ -11,6 +11,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styleTemplates } from '../../styles';
 import { useDyad } from '../../api/dyad';
+import { speakText, stopSpeech } from '../../features/tablet-comic-chatbot/utils/speechUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -49,19 +50,55 @@ export default function AgentIntroScreen() {
   const router = useRouter();
   const [autoNavigate, setAutoNavigate] = useState(false);
   const [hasNavigated, setHasNavigated] = useState(false);
+  const [hasSpoken, setHasSpoken] = useState(false);
 
   const { dyad, isDyadLoading, dyadError } = useDyad();
 
-  useEffect(() => {
-    if (dyad) {
-      // 3초 후에 자동으로 다음 화면으로 이동
-      const timer = setTimeout(() => {
-        setAutoNavigate(true);
-      }, 3000);
+  console.log('AgentIntroScreen rendered');
 
-      return () => clearTimeout(timer);
+  useEffect(() => {
+    if (dyad && !hasSpoken) {
+      console.log('AgentIntroScreen: Starting TTS - dyad loaded, hasSpoken:', hasSpoken);
+      const isFirstVisit = dyad.journal_entries.length <= 1;
+      const childJosa = getKoreanJosa(dyad.child_name);
+      const agentJosa = getKoreanJosa(dyad.agents[0].agent_name);
+
+      const greetingText = isFirstVisit
+        ? `안녕, ${dyad.child_name}${childJosa}. 나는 2주간 너와 함께 그림 일기를 쓸 ${dyad.agents[0].agent_name}${agentJosa}. 만나서 반가워!`
+        : `안녕, ${dyad.child_name}${childJosa}. 또 만나니 너무 좋다.`;
+
+      console.log('AgentIntroScreen: Greeting text:', greetingText);
+      console.log('AgentIntroScreen: isFirstVisit:', isFirstVisit);
+
+      // TTS 시작
+      speakText(greetingText, {
+        language: 'ko-KR',
+        pitch: 1.0,
+        rate: 0.8,
+        onDone: () => {
+          setHasSpoken(true);
+          // TTS 완료 후 1초 뒤에 다음 화면으로 이동
+          setTimeout(() => {
+            setAutoNavigate(true);
+          }, 1000);
+        },
+        onError: (error) => {
+          setHasSpoken(true);
+          // 에러 발생 시에도 3초 후 이동
+          setTimeout(() => {
+            setAutoNavigate(true);
+          }, 3000);
+        }
+      });
     }
-  }, [dyad]);
+  }, [dyad, hasSpoken]);
+
+  // 컴포넌트 언마운트 시 TTS 정지
+  useEffect(() => {
+    return () => {
+      stopSpeech();
+    };
+  }, []);
 
   useEffect(() => {
     if (autoNavigate && !hasNavigated) {

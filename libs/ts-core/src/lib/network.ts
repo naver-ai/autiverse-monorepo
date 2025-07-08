@@ -69,6 +69,9 @@ export class NetworkHelper {
         START: '/api/v1/app/comic-generation/start',
         getStatusEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/status/${journalEntryId}`,
         getCancelEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/cancel/${journalEntryId}`,
+      },
+      TTS: {
+        CLOVA: '/api/v1/app/tts/clova',
       }
     }
   };

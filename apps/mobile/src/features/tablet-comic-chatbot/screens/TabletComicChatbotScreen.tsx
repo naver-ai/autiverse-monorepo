@@ -9,10 +9,11 @@ import {
 import { Router } from 'expo-router';
 import { useComicGeneration } from '../hooks/useComicGenerationQuery';
 import { useChatbot } from '../hooks/useChatbot';
-import PraiseSection from '../../../components/PraiseSection';
-import FarewellSection from '../../../components/FarewellSection';
+import PraiseSection from '../../../app/(app)/PraiseSection';
+import FarewellSection from '../../../app/(app)/FarewellSection';
 import { PresetSelectionStage, ChatStage } from '../stages';
 import { ChatMessage, Preset } from '../types';
+import { stopSpeech, speakText } from '../utils/speechUtils';
 
 export const TabletComicChatbotScreen: React.FC<{
   dyadId?: string;
@@ -78,9 +79,33 @@ export const TabletComicChatbotScreen: React.FC<{
   const handleFarewellComplete = () => {
     console.log('Farewell section completed, navigating to intro');
     setShowFarewellSection(false);
+    
+    // 모든 상태 초기화
+    setMessages([]);
+    setInputText('');
+    setIsLoading(false);
+    setCurrentStage('intro');
+    setSessionId(null);
+    setComicData(null);
+    setFocusedPanel(null);
+    setSelectedLocation(null);
+    setSelectedPeople([]);
+    setSelectionStep('location');
+    setShowPresetSelection(false); // intro로 돌아갈 때는 false로 설정
+    setSelectedPlaceId(null);
+    setSelectedPersonIds([]);
+    setIsComicCompleted(false);
+    setShowPraiseSection(false);
+    setCompletionMessage('');
+    
+    // TTS 정지
+    stopSpeech();
+    
     // intro 화면으로 돌아가기
     if (router) {
       router.replace('/(app)/intro');
+    } else {
+      console.log('Router is null or undefined');
     }
   };
 
@@ -286,16 +311,32 @@ export const TabletComicChatbotScreen: React.FC<{
           timestamp: new Date(),
         };
 
-        // 완료 메시지 감지 (5초 후 칭찬 섹션 표시)
+                // 완료 메시지 감지 (TTS 완료 후 0.5초 후 칭찬 섹션 표시)
         if (data.response.includes('우와~ 이렇게 멋진 그림 일기 완성이라니!')) {
-          console.log('Completion message detected, will show praise section in 5 seconds...');
+          console.log('Completion message detected, will show praise section after TTS...');
           setCompletionMessage(data.response);
           setMessages(prev => [...prev, botMessage]);
           
-          // 5초 후에 칭찬 섹션 표시
-          setTimeout(() => {
-            setShowPraiseSection(true);
-          }, 5000);
+          // TTS로 칭찬 메시지 재생 (볼륨 0으로 설정)
+          speakText(data.response, {
+            language: 'ko-KR',
+            pitch: 1.0,
+            rate: 0.8,
+            volume: 0, // 볼륨을 0으로 설정하여 음성 재생 안함
+            onDone: () => {
+              // TTS 완료 후 0.5초 뒤에 칭찬 섹션 표시
+              setTimeout(() => {
+                setShowPraiseSection(true);
+              }, 500);
+            },
+            onError: (error) => {
+              console.error('Completion TTS error:', error);
+              // 에러 발생 시에도 0.5초 후 칭찬 섹션 표시
+              setTimeout(() => {
+                setShowPraiseSection(true);
+              }, 500);
+            }
+          });
         }
         // comic_context 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 "다행이다~" 메시지가 제거됨)
         else if (data.stage === 'comic_context') {
@@ -337,7 +378,14 @@ export const TabletComicChatbotScreen: React.FC<{
         console.log('Response data:', data);
         console.log('auto_comic_generation flag:', data.auto_comic_generation);
         if (data.auto_comic_generation && !isComicCompleted) {
-          console.log('Auto comic generation detected, starting in 0.5 seconds...');
+          console.log('Auto comic generation detected, immediately setting next stage...');
+          
+          // 즉시 다음 단계로 stage 설정 (깜빡임 방지)
+          if (data.stage === 'revision_1') {
+            setCurrentStage('comic_context');
+          } else if (data.stage === 'comic_context') {
+            setCurrentStage('revision_2');
+          }
           
           // 만화 생성 상태 모니터링 시작
           setTimeout(async () => {
@@ -353,24 +401,24 @@ export const TabletComicChatbotScreen: React.FC<{
               const autoData = await startAutoComicGenerationFromHook(sessionId);
               if (autoData) {
                 
-                // 만화가 화면에 렌더링될 시간을 주기 위해 0.2초 대기
-                setTimeout(async () => {
-                  setCurrentStage(autoData.stage);
-                  
-                  const autoBotMessage: ChatMessage = {
-                    id: (Date.now() + 3).toString(),
-                    text: autoData.response,
-                    isUser: false,
-                    timestamp: new Date(),
-                  };
-                  
-                  setMessages(prev => [...prev, autoBotMessage]);
-                  
-                  // 세션 정보 다시 로드 (한 번만)
-                  if (!isComicCompleted) {
-                    await loadSessionInfo();
-                  }
-                }, 200); // 만화 렌더링을 위한 0.2초 대기
+                console.log('Auto comic generation response:', autoData);
+                console.log('Auto comic generation stage:', autoData.stage);
+                
+                // stage는 이미 위에서 설정했으므로 여기서는 설정하지 않음
+                
+                const autoBotMessage: ChatMessage = {
+                  id: (Date.now() + 3).toString(),
+                  text: autoData.response,
+                  isUser: false,
+                  timestamp: new Date(),
+                };
+                
+                setMessages(prev => [...prev, autoBotMessage]);
+                
+                // 세션 정보 다시 로드 (한 번만)
+                if (!isComicCompleted) {
+                  await loadSessionInfo();
+                }
               }
             } catch (error) {
               console.error('Failed to start auto comic generation:', error);
@@ -460,7 +508,7 @@ export const TabletComicChatbotScreen: React.FC<{
   // 자유롭게 시작하기 핸들러
   const handleFreeStart = async () => {
     // 자유롭게 시작하기는 항상 아무 정보 없이 시작
-    await startChatbot();
+    await startChatbot({});
   };
 
   // 인사말 섹션이 표시되어야 하는 경우

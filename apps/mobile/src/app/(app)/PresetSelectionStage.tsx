@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
-import { Place, Person, Preset } from '../types';
-import { getImageSource, getCurrentDay } from '../utils';
-import { styleTemplates } from '../../../styles';
+import { Place, Person, Preset } from '../../features/tablet-comic-chatbot/types';
+import { getImageSource, getCurrentDay } from '../../features/tablet-comic-chatbot/utils';
+import { styleTemplates } from '../../styles';
+import { speakText, stopSpeech } from '../../features/tablet-comic-chatbot/utils/speechUtils';
 
 interface PresetSelectionStageProps {
   selectionStep: 'location' | 'people';
@@ -41,6 +42,52 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
   onStartChatbotWithSuggestion,
   onFreeStart
 }) => {
+  const [hasSpoken, setHasSpoken] = useState(false);
+
+  // TTS 시작
+  useEffect(() => {
+    // selectionStep이 변경될 때마다 TTS 재시작
+    const ttsMessage = selectionStep === 'location' 
+      ? '오늘은 어디서 있었던 일을 그림 일기로 써볼까?'
+      : '거기서 누구랑 있었던 일을 그림 일기로 써볼까? 여러명이면 여러명을 선택해!';
+    
+    speakText(ttsMessage, {
+      language: 'ko-KR',
+      pitch: 1.0,
+      rate: 0.8,
+              onDone: () => {
+          setHasSpoken(true);
+        },
+        onError: (error) => {
+          setHasSpoken(true);
+        }
+    });
+  }, [selectionStep]);
+
+  // TTS 중단 함수
+  const stopTTSAndExecute = (callback: () => void) => {
+    stopSpeech();
+    setHasSpoken(true);
+    callback();
+  };
+
+  // 사람 선택 단계에서만 TTS 중단하지 않는 함수
+  const executeWithConditionalTTSStop = (callback: () => void) => {
+    if (selectionStep === 'people') {
+      // 사람 선택 단계에서는 TTS를 중단하지 않고 바로 실행
+      callback();
+    } else {
+      // 장소 선택 단계에서는 TTS 중단 후 실행
+      stopTTSAndExecute(callback);
+    }
+  };
+
+  // 컴포넌트 언마운트 시 TTS 정지
+  useEffect(() => {
+    return () => {
+      stopSpeech();
+    };
+  }, []);
   return (
     <View className="flex-1 p-6">
       <ScrollView className="flex-1">
@@ -54,7 +101,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                     ? (agentConfig.avatar_image.startsWith('http') 
                         ? { uri: agentConfig.avatar_image }
                         : getImageSource(agentConfig.avatar_image))
-                    : require('../../../../assets/robot.png')
+                    : require('../../../assets/robot.png')
                 }
                 style={{
                   width: 50,
@@ -84,7 +131,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                   <TouchableOpacity
                     key={place.id}
                     className="p-6 border-2 border-gray-200 rounded-xl bg-white"
-                    onPress={() => onLocationSelect(place.name, place.id)}
+                    onPress={() => stopTTSAndExecute(() => onLocationSelect(place.name, place.id))}
                   >
                     <Text className="text-lg font-semibold text-gray-800 text-center" style={styleTemplates.withBoldFont}>
                       {place.name}
@@ -106,7 +153,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               <TouchableOpacity
                 className="bg-blue-500 rounded-xl p-4"
                 style={{ marginBottom: 20 }}
-                onPress={onStartChatbotWithSuggestion}
+                onPress={() => stopTTSAndExecute(onStartChatbotWithSuggestion)}
                 disabled={isLoading}
               >
                 <Text className="text-white text-lg font-semibold text-center" style={styleTemplates.withBoldFont}>
@@ -115,7 +162,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               </TouchableOpacity>
               <TouchableOpacity
                 className="bg-blue-500 rounded-xl p-4"
-                onPress={onFreeStart}
+                onPress={() => stopTTSAndExecute(onFreeStart)}
                 disabled={isLoading}
               >
                 <Text className="text-white text-lg font-semibold text-center" style={styleTemplates.withBoldFont}>
@@ -129,7 +176,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
             {/* 뒤로가기 버튼 */}
             <TouchableOpacity
               className="mb-4 p-2"
-              onPress={onBackToLocation}
+              onPress={() => stopTTSAndExecute(onBackToLocation)}
             >
               <Text className="text-blue-500 text-lg" style={styleTemplates.withBoldFont}>← 장소 다시 선택</Text>
             </TouchableOpacity>
@@ -153,7 +200,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 bg-white'
                     }`}
-                    onPress={() => onPersonToggle(person.name, person.id)}
+                    onPress={() => executeWithConditionalTTSStop(() => onPersonToggle(person.name, person.id))}
                   >
                     <Text className={`text-center font-semibold ${
                       selectedPersonIds.includes(person.id)
@@ -181,7 +228,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                   ? 'bg-gray-400'
                   : 'bg-blue-500'
               }`}
-              onPress={onSelectionComplete}
+              onPress={() => stopTTSAndExecute(onSelectionComplete)}
               disabled={((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading}
             >
               <Text className="text-white text-lg font-semibold text-center" style={styleTemplates.withBoldFont}>
@@ -196,3 +243,5 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
     </View>
   );
 }; 
+
+export default PresetSelectionStage; 

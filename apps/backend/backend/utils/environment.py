@@ -11,6 +11,8 @@ class EnvironmentVariables(StrEnum):
     OPENAI_API_KEY="OPENAI_API_KEY"
     ADMIN_ID = "ADMIN_ID"
     ADMIN_HASHED_PW = "ADMIN_HASHED_PW"
+    CLOVA_CLIENT_ID = "CLOVA_CLIENT_ID"
+    CLOVA_CLIENT_SECRET = "CLOVA_CLIENT_SECRET"
 
 def get_env_variable(key: str) -> str:
     env_path = path.join(getcwd(), "../../.env")

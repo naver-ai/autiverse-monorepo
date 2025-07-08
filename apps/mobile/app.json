@@ -46,7 +46,8 @@
             "./assets/fonts/NanumSquareNeo-eHv.otf"
           ]
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "userInterfaceStyle": "light",
     "scheme": "autiverse-mobile",

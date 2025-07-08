@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styleTemplates } from '../../styles';
 import { LogoImage } from '../../components/svg-images';
+import { stopSpeech } from '../../features/tablet-comic-chatbot/utils/speechUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -20,6 +21,10 @@ export default function IntroScreen() {
   const buttonScaleAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    // intro 화면 로드 시 TTS 정리
+    console.log('IntroScreen: Stopping any ongoing speech');
+    stopSpeech();
+    
     // 로고와 텍스트 페이드인 애니메이션
     Animated.parallel([
       Animated.timing(fadeAnim, {

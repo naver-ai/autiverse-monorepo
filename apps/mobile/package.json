@@ -8,19 +8,24 @@
     "ios": "expo run:ios"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "axios": "^1.10.0",
     "expo": "*",
-    "react": "*",
-    "react-native": "*",
-    "expo-localization": "*",
-    "expo-linking": "*",
-    "expo-secure-store": "*",
-    "expo-router": "*",
+    "expo-audio": "^0.4.8",
+    "expo-av": "~15.1.7",
     "expo-font": "*",
     "expo-image": "*",
+    "expo-linking": "*",
+    "expo-localization": "*",
+    "expo-router": "*",
+    "expo-secure-store": "*",
+    "expo-speech": "~13.1.7",
+    "react": "*",
+    "react-native": "*",
+    "react-native-gesture-handler": "*",
+    "react-native-reanimated": "*",
     "react-native-safe-area-context": "*",
     "react-native-screens": "*",
-    "react-native-svg": "*",
-    "react-native-gesture-handler": "*",
-    "react-native-reanimated": "*"
+    "react-native-svg": "*"
   }
 }

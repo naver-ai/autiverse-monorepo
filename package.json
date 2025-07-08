@@ -96,11 +96,14 @@
     "react-native-screens": "~4.11.1",
     "react-native-svg": "15.11.2",
     "react-native-svg-transformer": "~1.5.0",
+    "react-native-tts": "^4.1.1",
     "react-native-web": "^0.20.0",
     "rxjs": "^7.8.2",
     "socket.io-client": "^4.8.1",
     "tailwind-merge": "^3.3.0",
     "yup": "^1.6.1",
-    "zustand": "^5.0.5"
+    "zustand": "^5.0.5",
+    "expo-audio": "~0.4.8",
+    "expo-file-system": "~18.1.11"
   }
 }
