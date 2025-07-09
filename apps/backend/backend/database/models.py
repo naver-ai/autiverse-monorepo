@@ -231,6 +231,7 @@ class Message(SQLModel, IdTimestampMixin, JournalEntryIdMixin, InteractionTurnId
     content: str = Field(nullable=False)
     role: MessageRole = Field(nullable=False)
     audio_filename: Optional[str] = Field(nullable=True, default=None)
+    stage: Optional[JournalEntryStage] = Field(nullable=True, default=None)
     
     interaction_turn: InteractionTurn = Relationship(back_populates="messages", sa_relationship_kwargs={'lazy': 'selectin'})
     journal_entry: JournalEntry = Relationship(back_populates="messages", sa_relationship_kwargs={'lazy': 'selectin'})
@@ -238,7 +239,7 @@ class Message(SQLModel, IdTimestampMixin, JournalEntryIdMixin, InteractionTurnId
     metadata_json: Optional[dict] = Field(sa_column=Column(JSON, name='metadata', nullable=True), default=None)
 
     @property
-    def stage(self)->JournalEntryStage:
+    def stage_property(self)->JournalEntryStage:
         return self.interaction_turn.stage
 
 class Journal(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):

@@ -41,7 +41,7 @@ export class SpeechManager {
         {
           text: text,
           voice: options.voice || 'vhyeri',
-          speed: options.rate || 0.8,
+          speed: options.rate || 1.4,
           pitch: options.pitch || 1.2,
         }
       );

@@ -84,7 +84,7 @@ class Revision2Stage:
         initial_question = "우와앙~ 우리가 같이 만든 그림일기다! 지금부터 내용이 제대로 들어갔는지 확인해보자~ 수정하거나 추가하고 싶은 부분 있어? 🤔"
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            initial_question, MessageRole.Assistant
+            initial_question, MessageRole.Assistant, JournalEntryStage.Revision2
         )
         
         return initial_question
@@ -97,7 +97,7 @@ class Revision2Stage:
         # 사용자 메시지 저장
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            user_message, MessageRole.User
+            user_message, MessageRole.User, JournalEntryStage.Revision2
         )
         
         # 봇 응답 생성
@@ -106,7 +106,7 @@ class Revision2Stage:
         # 봇 응답 저장
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            bot_response, MessageRole.Assistant
+            bot_response, MessageRole.Assistant, JournalEntryStage.Revision2
         )
         
         return bot_response

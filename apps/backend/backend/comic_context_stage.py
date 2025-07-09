@@ -5,6 +5,8 @@ from langchain.schema import HumanMessage, SystemMessage
 from backend.utils.environment import get_env_variable, EnvironmentVariables
 from backend.database.crud.chatbot import *
 from backend.database.crud.chatbot import update_journal_entry_stage, update_comic_panels, update_comic_data
+from .database.crud.chatbot import get_messages_by_journal_entry_and_stage
+from .database.models import JournalEntryStage, MessageRole
 
 
 from sqlmodel import Session
@@ -31,7 +33,6 @@ class ComicContextStage:
         self.agent_name = self._get_agent_name()
         self.agent_interests = self._get_agent_interests()
         self.story_analysis = None
-        self.comic_context_history: List[Dict[str, str]] = []
         self.final_comic_generation_started = False
         self.current_panels = None  # 메모리상의 최신 패널 상태
         
@@ -129,7 +130,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             
             create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
-                initial_question, MessageRole.Assistant
+                initial_question, MessageRole.Assistant, JournalEntryStage.ComicContext
             )
             
             return initial_question
@@ -147,7 +148,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             # 사용자 메시지 저장
             create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
-                user_message, MessageRole.User
+                user_message, MessageRole.User, JournalEntryStage.ComicContext
             )
             
             # 첫 번째 메시지인 경우 분석 수행
@@ -179,7 +180,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             # 봇 응답 저장
             create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
-                next_question, MessageRole.Assistant
+                next_question, MessageRole.Assistant, JournalEntryStage.ComicContext
             )
             
             return next_question
@@ -193,7 +194,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
         """스토리 플로우 분석"""
         journal = get_journal(self.db, self.journal_entry_id)
         if not journal:
-            return {"A": [], "B": [], "C": [], "D": [], "Order": []}
+            return {"A": [], "B": [], "C": [], "D": []}
         
         # 메모리상의 최신 패널 상태를 우선적으로 사용
         if self.current_panels:
@@ -203,7 +204,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             panels_content = journal.comic_context if journal.comic_context else journal.revision_1
             
         if not panels_content:
-            return {"A": [], "B": [], "C": [], "D": [], "Order": []}
+            return {"A": [], "B": [], "C": [], "D": []}
         
         client = openai.OpenAI()
         
@@ -234,10 +235,12 @@ YOUR TASK
    • Category purity kept?
      – If the line contains data that belongs to another category, flag it:  
        "Non-A content in A (emotion included)"
+     – **CRITICAL: If a panel contains various panel content, specify which part should move:**
+       "B content in C: '내가 숨었다' should move to B, keep '미경이가 나를 찾았다' in C"
 
    *Required sub-details*  
-     A : place / people / background situation (time optional)
-     B : concrete action, method‧duration‧tools  
+     A : place / people / background situation
+     B : concrete action, method‧tools  
      C : immediate factual result or a near-future plan that was directly agreed as a result of B or existing character's response (avoid introducing new characters)
      D : pure emotion word (intensity optional)
 
@@ -245,7 +248,10 @@ YOUR TASK
    - PROBLEMATIC situations: Focus on "WHY" questions (causes, reasons)
    - NORMAL situations: Focus on "HOW" questions (methods, details)
 
-5. If temporal or causal order is wrong, list which panels must move under 'Order'.
+5. **CRITICAL: Content separation only**
+   - If a panel contains mixed content (B+C, A+B, etc.), specify which parts should move to which panels
+   - Focus on separating content within the same panel
+   - Do NOT use Order - all content separation should be handled within individual panels
 
 ────────────────────
 OUTPUT (exactly ONE UTF-8 JSON object)
@@ -255,8 +261,7 @@ OUTPUT (exactly ONE UTF-8 JSON object)
   "A": ["…", "…"],   // issues & concrete add-ins for Antecedent ("" if none)
   "B": ["…", "…"],
   "C": ["…", "…"],
-  "D": ["…", "…"],
-  "Order": ["…"]     // panel-order problems ("" if none)
+  "D": ["…", "…"]
 }
 
 ────────────────────
@@ -264,8 +269,8 @@ MANDATORY RULES
 ────────────────────
 • Do NOT flag details already supplied in an earlier category.  
 • Do NOT flag information obvious from context.  
-• Write list items in natural Korean during real use.  
-  (The examples below stay English for clarity only.)  
+• Write list items in English during real use.  
+• **CRITICAL: When content needs to be separated, specify exactly which part goes where**
 • Produce nothing except the single JSON block.
 
 ────────────────────
@@ -283,13 +288,12 @@ Output
 {
   "situation_type": "normal",
   "A": ["background situation missing — e.g. 'during break time'"],
-  "B": ["B missing — behavior is actually written in panel 3"],
+  "B": ["B content in C: 'I cut off the head, opened the belly and put the organs in a bag' should move to B"],
   "C": [
     "Non-C content in C (behavior described)",
     "consequence missing — e.g. 'Minsoo laughed and said 'That's amazing'"
   ],
-  "D": ["Emotion missing — e.g. 'I was happy'"],
-  "Order": ["panel 2 and panel 3 should be swapped (Behavior - Consequence)"]
+  "D": ["Emotion missing — e.g. 'I was happy'"]
 }
 
 # Example 2 
@@ -304,16 +308,14 @@ Output
   "situation_type": "normal",
   "A": [
     "place missing — e.g. 'home'",
-    "Non-A content in A (telling Mom is a behavior, which is B)"
+    "B content in A: 'I told Mom I wanted to visit an amusement park' should move to B"
   ],
   "B": [
-    "Non-B content in B (Mom's reaction belongs to C)",
+    "C content in B: 'Mom said, Sure, let's go' should move to C",
     "B missing — actual behavior is in panel 1"
   ],
   "C": [""],                    
-  "D": [""],
-  "Order": ["Behavior in panel 1 should move to panel 2",
-    "Reaction in panel 2 should move to panel 3"]
+  "D": [""]
 }
 
 # Example 3 
@@ -323,6 +325,7 @@ Input
 "panel3": null,  
 "panel4": "I felt nervous and sweaty."
 
+Output
 {
   "situation_type": "problematic",
   "A": [""],
@@ -332,8 +335,47 @@ Input
   "C": [
     "C missing — e.g. 'Sohyun kept crying and wouldn't move'"
   ],
-  "D": [""],
-  "Order": [""]
+  "D": [""]
+}
+
+# Example 4 - Content Separation
+Input  
+"panel1": "I played hide and seek at the playground with my friends.",  
+"panel2": "",  
+"panel3": "I hid behind a tree but Minsoo found me.",  
+"panel4": "I felt excited."
+
+Output
+{
+  "situation_type": "normal",
+  "A": [""],
+  "B": [
+    "B content in C: 'I hid behind a tree' should move to B, keep 'But Minsoo found me.' in C"
+  ],
+  "C": [
+    "B content in C: 'I hid behind a tree' should move to B, keep 'But Minsoo found me.' in C"
+  ],
+  "D": [""]
+}
+
+# Example 5 - D Content in C Separation
+Input  
+"panel1": "I made pizza with Mom.",  
+"panel2": "I kneaded the dough and put toppings on it.",  
+"panel3": "Mom praised me for making it well so I felt happy and excited",  
+"panel4": null
+
+Output
+{
+  "situation_type": "normal",
+  "A": [""],
+  "B": [""],
+  "C": [
+    "D content in C: 'I felt happy and excited' should move to D, keep 'Mom praised me for making it well' in C"
+  ],
+  "D": [
+    "D content in C: 'I felt happy and excited' should move to D"
+  ]
 }"""
 
         user_prompt = f"""Analyze Below Panels:
@@ -357,7 +399,7 @@ Input
         try:
             return json.loads(result)
         except json.JSONDecodeError:
-            return {"A": [], "B": [], "C": [], "D": [], "Order": []}
+            return {"A": [], "B": [], "C": [], "D": []}
     
     def _reconstruct_panel(self, answer: str, question: str, add_to_history: bool = True) -> None:
         """패널 재구성"""
@@ -379,30 +421,37 @@ ABCD STRUCTURE:
 - D (panel4): Emotion - writer's own feeling only (emotion word)
 
 CRITICAL RULES - YOU MUST FOLLOW THESE EXACTLY when you fill the panels:
-1. **ONLY use content from "panels_original" + "new_QA.answer"**
+1. **ONLY use content from "panels_original" + "new_QA"**
 2. **NEVER use ANY content from "analysis_result"**
 3. **NEVER invent new events, lines, or feelings**
 4. **KEEP ALL content from "panels_original" - NEVER delete or remove existing content**
+5. **Change each panel to one Korean past-tense sentence, first-person diary style**
 
 TRANSFORMATION RULES:
 1. **When adding missing information:**
    • ONLY use information from user's answer (new_QA.answer)
+   • **CRITICAL: Interpret simple answers like "응", "1", "네" based on the question context**
+   • If question asks about place and answer is "응" or "1" → interpret as the first option
+   • If question asks about time and answer is "응" or "1" → interpret as the first time option mentioned
+   • If question asks about emotion and answer is "응" or "1" → interpret as the first emotion option
    • If user mentioned place/time → add to panel1 (A)
    • If user mentioned behavior → add to panel2 (B)
    • If user mentioned consequence → add to panel3 (C)
    • If user mentioned emotion words → add to panel4 (D)
    • If user didn't provide specific information → leave panel as null
 
-2. **analysis_result is ONLY for:**
-   - Order changes (swapping panels as stated in Order)
-   - Moving content to correct categories (A/B/C/D) if it's in wrong panel
-   • Non-A content in A → move to appropriate panel ONLY if it exists in original
-   • Non-B content in B → move to appropriate panel ONLY if it exists in original
-   • Non-C content in C → move to appropriate panel ONLY if it exists in original
-   • Non-D content in D → move to appropriate panel ONLY if it exists in original
+2. **analysis_result is ONLY for content separation:**
+   • **MOST IMPORTANT: When analysis_result contains "X content in Y" patterns, you MUST move the content to the correct panel**
+   • If analysis says "B content in C: 'I hid' should move to B, keep 'but Minsoo found me' in C"
+   • Then: Move "I hid" to panel2 (B), keep "but Minsoo found me" in panel3 (C)
+   • If analysis says "D content in C: 'I felt happy' should move to D, keep 'Mom praised me' in C"
+   • Then: Move "I felt happy" to panel4 (D), keep "Mom praised me" in panel3 (C)
+   • **CRITICAL: Extract the exact text mentioned in quotes from analysis_result and move it**
+   • When moving content, merge with the original content in the panel
 
 3. **Each panel must contain only content appropriate for its category**
 4. **Keep each panel to one Korean past-tense sentence, first-person diary style**
+5. **CRITICAL: When separating content, maintain natural Korean flow**
 
 ABSOLUTELY FORBIDDEN - NEVER DO THESE:
 - Using any text from analysis_result issues
@@ -438,7 +487,6 @@ answer: "1"
   "B": ["B missing — behavior is actually written in panel 3"],
   "C": ["Non-C content in C (behavior described)", "consequence missing — e.g. 'Minsoo laughed and said 'That's amazing'"],
   "D": ["Emotion missing — e.g. 'I was happy'"],
-  "Order": ["panel 2 and panel 3 should be swapped (Behavior - Consequence)"]
 }
 <expected_output>
 {
@@ -455,23 +503,23 @@ answer: "1"
 "panel3": "We will go next Saturday and ride the roller-coaster.",  
 "panel4": "I felt thrilled."
 <new_QA>
-question: "롤러코스터라니 나도 떨린다! 😅 그럼 어머니랑 그 이야기는 어디서 했어? 1) 집에서? 2) 산책하다가?"
-answer: "1"
+question: "롤러코스터라니 나도 떨린다! 😅 그럼 어머니랑 그 이야기는 집에서 했어?"
+answer: "응"
 <analysis_result>
 {
+  "situation_type": "normal",
   "A": [
     "place missing — e.g. 'home'",
-    "Non-A content in A (telling Mom is a behavior, which is B)"
+    "B content in A: 'I told Mom I wanted to visit an amusement park' should move to B"
   ],
   "B": [
-    "Non-B content in B (Mom's reaction belongs to C)",
+    "C content in B: 'Mom said, Sure, let's go' should move to C",
     "B missing — actual behavior is in panel 1"
   ],
   "C": [""],                    
-  "D": [""],
-  "Order": ["Behavior in panel 1 should move to panel 2",
-    "Reaction in panel 2 should move to panel 3"]
+  "D": [""]
 }
+
 <expected_output>
 {
   "panel1": "I was at home with my mother.",  
@@ -499,7 +547,6 @@ answer: "내가 그냥 지나갔어."
     "C missing — e.g. 'Sohyun kept crying and wouldn't move'"
   ],
   "D": [""],
-  "Order": [""]
 }
 <expected_output>
 {
@@ -507,6 +554,58 @@ answer: "내가 그냥 지나갔어."
   "panel2": "Sohyun suddenly blocked my way and started crying because I just passed her.",  
   "panel3": null,  
   "panel4": "I felt nervous and sweaty."
+}
+
+### Example 4 - Content Separation
+<panels_original>
+"panel1": "I played hide and seek at the playground with my friends.",  
+"panel2": "",  
+"panel3": "I hid but Minsoo found me.",  
+"panel4": "I felt excited."
+<new_QA>
+question: "어디서 숨었어?"
+answer: "나무 뒤에"
+<analysis_result>
+{
+  "A": [""],
+  "B": [
+    "B content in C: 'I hid' should move to B, keep 'but Minsoo found me.' in C"
+  ],
+  "C": [
+    "B content in C: 'I hid' should move to B, keep 'but Minsoo found me.' in C", "Where I hid is missing"
+  ],
+  "D": [""]
+}
+<expected_output>
+{
+  "panel1": "I played hide and seek at the playground with my friends.",  
+  "panel2": "I hid behind a tree.",  
+  "panel3": "But Minsoo found me.",  
+  "panel4": "I felt excited."
+}
+
+### Example 5 - D Content in C Separation
+<panels_original>
+"panel1": "I made pizza with Mom.",  
+"panel2": "I kneaded the dough and put toppings on it.",  
+"panel3": "Mom praised me for making it well so I felt happy and excited",  
+"panel4": null
+<new_QA>
+question: "How did you feel when Mom praised you?"
+answer: "I felt happy and excited"
+<analysis_result>
+{
+  "A": [""],
+  "B": [""],
+  "C": ["D content in C: 'I felt happy and excited' should move to D, keep 'Mom praised me for making it well' in C"],
+  "D": ["D content in C: 'I felt happy and excited' should move to D"]
+}
+<expected_output>
+{
+  "panel1": "I made pizza with Mom.",  
+  "panel2": "I kneaded the dough and put toppings on it.",  
+  "panel3": "Mom praised me for making it well",  
+  "panel4": "I felt happy and excited"
 }
 
 <analysis_result>
@@ -547,13 +646,6 @@ answer: "{answer}"
                 self.db, self.journal_entry_id,
                 comic_context=reconstructed_panels
             )
-            
-            # 대화 기록 업데이트
-            if add_to_history:
-                self.comic_context_history.append({
-                    "user": answer,
-                    "bot": question
-                })
                 
         except json.JSONDecodeError:
             print("Failed to parse reconstruction response")
@@ -569,8 +661,7 @@ answer: "{answer}"
                 self.story_analysis.get("A", []),
                 self.story_analysis.get("B", []),
                 self.story_analysis.get("C", []),
-                self.story_analysis.get("D", []),
-                self.story_analysis.get("Order", [])
+                self.story_analysis.get("D", [])
             ]
             
             # 각 카테고리에서 빈 문자열이 아닌 실제 문제가 있는지 확인
@@ -584,21 +675,21 @@ answer: "{answer}"
                 update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Revision2)
                 return "완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔"
             
-            # 대화 요약 생성
+            # 대화 요약 생성 (DB에서 ComicContext stage의 모든 메시지 사용)
+            messages = get_messages_by_journal_entry_and_stage(self.db, self.journal_entry_id, JournalEntryStage.ComicContext)
             conversation_summary = ""
-            if self.comic_context_history:
-                recent_conversations = self.comic_context_history[-4:]
+            if messages:
                 conversation_summary = "\nPrevious Q&A:\n" + "\n".join([
-                    f"Q: {entry['bot']}\nA: {entry['user']}"
-                    for entry in recent_conversations
+                    f"Q: {msg.content}" if msg.role == MessageRole.Assistant else f"A: {msg.content}"
+                    for msg in messages
                 ])
             
             # 연속된 "모르겠어" 답변 확인
             dont_know_keywords = ["모르겠어", "기억 안 나", "잘 모르겠어", "모르겠다", "기억이 안 나", "잘 모르겠다", "몰라", "모르겠다고"]
-            recent_answers = self.comic_context_history[-3:][::-1]  # 최근 3개 답변
+            recent_answers = [msg for msg in messages if msg.role == MessageRole.User][-3:][::-1]  # 최근 3개 답변
             consecutive_dont_know_count = sum(
-                1 for entry in recent_answers
-                if any(keyword in entry['user'].lower() for keyword in dont_know_keywords)
+                1 for msg in recent_answers
+                if any(keyword in msg.content.lower() for keyword in dont_know_keywords)
             )
             
             client = openai.OpenAI()
@@ -608,7 +699,7 @@ answer: "{answer}"
 
 **CRITICAL: You MUST follow the character background above in EVERY response!**
 
-Your task: generate ONE follow-up question that fills the FIRST missing information gap listed in the analysis.
+Your task: generate ONE follow-up question that fills the FIRST missing information gap listed in the analysis. The question MUST start with a friendly, enthusiastic reaction to the user's previous answer before asking the follow-up question.
 
 ABCD STRUCTURE:
 - A (panel1): Antecedent - where, who, situation (time optional)
@@ -617,11 +708,14 @@ ABCD STRUCTURE:
 - D (panel4): Emotion - writer's own feeling only (emotion word)
 
 === Question-Generation Rules ===
-1. Show a friendly reaction to the story.
+1. **ALWAYS start with a friendly, enthusiastic reaction to the user's previous answer:**
+   - Show genuine interest and excitement about what they shared
+   - Use appropriate emojis to match the mood
+   - Reference specific details from their answer
 2. **FIRST: Check situation_type from analysis_result:**
    - If "problematic": Focus on situational overview questions (context, timing, environment)
    - If "normal": Focus on "HOW" questions (methods, details)
-3. **CRITICAL: Focus on the FIRST missing information in order: A → B → C → D → Order**
+3. **CRITICAL: Focus on the FIRST missing information in order: A → B → C → D**
 4. Ask exactly ONE question that can elicit the missing detail.
 5. **CHOICE RULE: Only provide 2-3 choices when the question naturally limits to exactly 2-3 options:**
    - Examples that SHOULD have choices: "학교 안이었어? 밖이었어?" (2 choices), "오전이었어? 오후였어?" (2 choices)
@@ -637,7 +731,9 @@ ABCD STRUCTURE:
     - Already confirmed in previous Q&A
     - Can be inferred from existing information
 12. When asking about emotions (panel 4), ask for explicit emotion words:
-    - 그 때 "기분이 어땠어? 1) 좋았어 2) 그냥 그랬어 3) 아쉬웠어 4) 슬펐어?"
+    - 그 때 "기분이 어땠어?" (단순히 감정을 물어보기만 하고, 선택지는 프론트엔드에서 제공)
+    - **CRITICAL: Only ask emotion questions when panel 4 is missing or null**
+    - **CRITICAL: Keep emotion questions simple - just ask "기분이 어땠어?" without providing options**
 13. **PROBLEMATIC situations - CRITICAL RULES:**
     - NEVER ask direct "why"questions initially
     - ALWAYS start with situational overview questions
@@ -681,17 +777,44 @@ analysis_result:
 {{
   "situation_type": "normal",
   "A": ["background situation missing — e.g. 'during break time'"],
-  "B": ["B missing — behavior is actually written in panel 3"],
-  "C": ["Non-C content in C (behavior described)", "consequence missing — e.g. 'Minsoo laughed and said 'That's amazing'"],
-  "D": ["Emotion missing — e.g. 'I was happy'"],
-  "Order": ["panel 2 and panel 3 should be swapped (Behavior - Consequence)"]
+  "B": ["B content in C: 'I cut off the head, opened the belly and put the organs in a bag' should move to B"],
+  "C": [
+    "Non-C content in C (behavior described)",
+    "consequence missing — e.g. 'Minsoo laughed and said 'That's amazing'"
+  ],
+  "D": ["Emotion missing — e.g. 'I was happy'"]
 }}
 
 conversation_summary:
 
 Output:
 {{
-"question": "대박대박! 너무 신기하다! 학교에서 언제 했던 거야?"
+"question": "우와! 고등어 해부라니 너무 신기하다! 🐟 그런데 학교에서 언제 했던 거야?"
+}}
+
+### Example 1b - Emotion Question
+Input:
+"panel1": "Minsoo and I performed a mackerel dissection show at school during break time.",  
+"panel2": "I cut off the head, opened the belly and put the organs in a bag.",  
+"panel3": "Minsoo laughed and said 'That's amazing!'",  
+"panel4": null
+
+analysis_result:
+{{
+  "situation_type": "normal",
+  "A": [""],
+  "B": [""],
+  "C": [""],
+  "D": ["Emotion missing — e.g. 'I was happy'"]
+}}
+
+conversation_summary:
+Q: "우와! 고등어 해부라니 너무 신기하다! 🐟 그런데 학교에서 언제 했던 거야?"
+A: "쉬는 시간에"
+
+Output:
+{{
+"question": "고등어 해부 쇼를 하고 민수가 대박이라고 했구나! 😊 그럼 그 때 기분이 어땠어?"
 }}
 
 ### Example 2
@@ -726,7 +849,7 @@ A: "완전 떨려"
 
 Output:
 {{
-"question": "롤러코스터라니 나도 떨린다! 😅 그럼 어머니랑 그 이야기는 어디서 했어?"
+"question": "네가 떨린다니 나도 떨린다! 😅 롤러코스터라니 정말 대박이겠어! 그럼 어머니랑 그 이야기는 어디서 했어?"
 }}
 
 ### Example 3
@@ -767,7 +890,7 @@ Output:
             
             # Create issue summary for the prompt
             issue_summary = ""
-            for category in ["A", "B", "C", "D", "Order"]:
+            for category in ["A", "B", "C", "D"]:
                 issues = self.story_analysis.get(category, [])
                 if issues and isinstance(issues, list) and any(issue.strip() for issue in issues):
                     issue_summary += f"\n{category} 문제:\n"
@@ -850,8 +973,7 @@ Please generate a question that addresses the FIRST missing information gap."""
             self.story_analysis.get("A", []),
             self.story_analysis.get("B", []),
             self.story_analysis.get("C", []),
-            self.story_analysis.get("D", []),
-            self.story_analysis.get("Order", [])
+            self.story_analysis.get("D", [])
         ]
         
         print(f"[DEBUG] comic_context: is_complete - has_issues: {has_issues}")

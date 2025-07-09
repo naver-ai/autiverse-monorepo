@@ -915,6 +915,7 @@ interface ChatInputProps {
 
 const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, currentStage, messages }) => {
   const [message, setMessage] = useState('');
+  const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -927,6 +928,21 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, current
   const handleYesNoClick = (response: string) => {
     if (!isLoading) {
       onSendMessage(response);
+    }
+  };
+
+  const handleEmotionClick = (emotion: string) => {
+    if (selectedEmotions.includes(emotion)) {
+      setSelectedEmotions(selectedEmotions.filter(e => e !== emotion));
+    } else {
+      setSelectedEmotions([...selectedEmotions, emotion]);
+    }
+  };
+
+  const handleEmotionComplete = () => {
+    if (selectedEmotions.length > 0 && !isLoading) {
+      onSendMessage(selectedEmotions.join(', '));
+      setSelectedEmotions([]);
     }
   };
 
@@ -961,6 +977,36 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, current
     return false;
   })();
 
+  const showEmotionButtons = (() => {
+    const lastBotMessage = messages
+      .filter(m => !m.isUser)
+      .pop()?.text;
+    
+    // comic_context에서 "기분이 어땠어?" 질문일 때 감정 버튼 표시
+    if (currentStage === 'comic_context') {
+      return lastBotMessage?.includes('기분이 어땠어?') && 
+             !isLoading && 
+             message.trim() === '';
+    }
+    
+    return false;
+  })();
+
+  const emotionButtons = [
+    { text: '즐거웠다', emoji: '😊' },
+    { text: '기뻤다', emoji: '😄' },
+    { text: '행복했다', emoji: '🥰' },
+    { text: '신났다', emoji: '🤩' },
+    { text: '슬펐다', emoji: '😢' },
+    { text: '화났다', emoji: '😠' },
+    { text: '속상했다', emoji: '😞' },
+    { text: '무서웠다', emoji: '😨' },
+    { text: '두려웠다', emoji: '😰' },
+    { text: '놀랐다', emoji: '😲' },
+    { text: '감탄했다', emoji: '😍' },
+    { text: '지루했다', emoji: '😴' }
+  ];
+
   return (
     <>
       <YesNoButtons style={{ visibility: showYesNoButtons ? 'visible' : 'hidden' }}>
@@ -971,6 +1017,108 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, current
           아니
         </NoButton>
       </YesNoButtons>
+      
+      {showEmotionButtons && (
+        <div style={{ 
+          marginBottom: '16px',
+          padding: '16px',
+          backgroundColor: '#f8f9fa',
+          borderRadius: '12px',
+          border: '2px solid #e0e0e0'
+        }}>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(3, 1fr)', 
+            gap: '8px', 
+            marginBottom: '12px'
+          }}>
+            {emotionButtons.map((emotion) => {
+              const isSelected = selectedEmotions.includes(emotion.text);
+              return (
+                <button
+                  key={emotion.text}
+                  onClick={() => handleEmotionClick(emotion.text)}
+                  disabled={isLoading}
+                  style={{
+                    padding: '12px 8px',
+                    backgroundColor: isSelected ? '#28a745' : '#4A90E2',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                    opacity: isLoading ? 0.6 : 1,
+                    transition: 'all 0.2s ease',
+                    minHeight: '44px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                    boxShadow: isSelected ? '0 2px 4px rgba(0,0,0,0.2)' : 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isLoading && !isSelected) {
+                      e.currentTarget.style.backgroundColor = '#357ABD';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isLoading && !isSelected) {
+                      e.currentTarget.style.backgroundColor = '#4A90E2';
+                    }
+                  }}
+                >
+                  <span>{emotion.emoji}</span>
+                  <span>{emotion.text}</span>
+                </button>
+              );
+            })}
+          </div>
+          
+          {selectedEmotions.length > 0 && (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ 
+                marginBottom: '8px', 
+                fontSize: '14px', 
+                color: '#666',
+                fontWeight: 'bold'
+              }}>
+                선택된 감정: {selectedEmotions.join(', ')}
+              </div>
+              <button
+                onClick={handleEmotionComplete}
+                disabled={isLoading}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  opacity: isLoading ? 0.6 : 1,
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLoading) {
+                    e.currentTarget.style.backgroundColor = '#218838';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isLoading) {
+                    e.currentTarget.style.backgroundColor = '#28a745';
+                  }
+                }}
+              >
+                선택 완료
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      
       <InputForm onSubmit={handleSubmit}>
         <InputField
           type="text"

@@ -61,7 +61,6 @@ class ComicIntroStage:
     def __init__(self, db: Session, journal_entry_id: str):
         self.db = db
         self.journal_entry_id = journal_entry_id
-        self.conversation_history: List[Dict[str, str]] = []
         self.child_name = self._get_child_name()
         self.child_age = self._get_child_age()
         self.child_gender = self._get_child_gender()
@@ -142,7 +141,7 @@ class ComicIntroStage:
         initial_message = self._generate_intro_message(location, people)
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            initial_message, MessageRole.Assistant
+            initial_message, MessageRole.Assistant, JournalEntryStage.Intro
         )
         
         return initial_message
@@ -180,7 +179,7 @@ class ComicIntroStage:
         initial_message = self._generate_suggestion_message()
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            initial_message, MessageRole.Assistant
+            initial_message, MessageRole.Assistant, JournalEntryStage.Intro
         )
         
         return initial_message
@@ -193,7 +192,7 @@ class ComicIntroStage:
         # 사용자 메시지 저장
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            user_message, MessageRole.User
+            user_message, MessageRole.User, JournalEntryStage.Intro
         )
         
         # 봇 응답 생성
@@ -202,14 +201,8 @@ class ComicIntroStage:
         # 봇 응답 저장
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            bot_response, MessageRole.Assistant
+            bot_response, MessageRole.Assistant, JournalEntryStage.Intro
         )
-        
-        # 대화 기록 업데이트
-        self.conversation_history.append({
-            "user": user_message,
-            "bot": bot_response
-        })
         
         return bot_response
     
@@ -491,12 +484,13 @@ IMPORTANT:
 
 IMPORTANT: Always respond in natural, teenage-friendly Korean."""
 
-        # 대화 기록을 포함한 프롬프트 생성
+        # DB에서 Intro stage의 모든 대화 기록 가져오기
+        messages = get_messages_by_journal_entry_and_stage(self.db, self.journal_entry_id, JournalEntryStage.Intro)
         conversation_context = ""
-        if self.conversation_history:
+        if messages:
             conversation_context = "\n\nRecent conversation:\n" + "\n".join([
-                f"{self.child_name}: {entry['user']}\n친구: {entry['bot']}"
-                for entry in self.conversation_history[-3:]  # 최근 3개 대화만
+                f"{self.child_name}: {msg.content}" if msg.role == MessageRole.User else f"친구: {msg.content}"
+                for msg in messages
             ])
 
         user_prompt = f"""Current objective: Help {self.child_name} identify events that happened today at {self._get_location()} with {', '.join(self._get_people())}

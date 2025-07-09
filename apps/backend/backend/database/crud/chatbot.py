@@ -153,13 +153,20 @@ def get_latest_interaction_turn(db: Session, journal_entry_id: str) -> Optional[
         InteractionTurn.journal_entry_id == journal_entry_id
     ).order_by(InteractionTurn.created_at.desc()).first()
 
-def create_message(db: Session, journal_entry_id: str, interaction_turn_id: str, content: str, role: MessageRole, metadata_json: Dict[str, Any] = None) -> Message:
+def create_message(db: Session, journal_entry_id: str, interaction_turn_id: str, content: str, role: MessageRole, stage: JournalEntryStage = None, metadata_json: Dict[str, Any] = None) -> Message:
     """새로운 message 생성"""
+    # stage가 제공되지 않은 경우 interaction turn에서 가져오기
+    if stage is None:
+        interaction_turn = db.query(InteractionTurn).filter(InteractionTurn.id == interaction_turn_id).first()
+        if interaction_turn:
+            stage = interaction_turn.stage
+    
     message = Message(
         journal_entry_id=journal_entry_id,
         interaction_turn_id=interaction_turn_id,
         content=content,
         role=role,
+        stage=stage,
         metadata_json=metadata_json
     )
     db.add(message)
@@ -171,6 +178,13 @@ def get_messages_by_journal_entry(db: Session, journal_entry_id: str) -> List[Me
     """journal entry의 모든 message 조회"""
     return db.query(Message).filter(
         Message.journal_entry_id == journal_entry_id
+    ).order_by(Message.created_at.asc()).all()
+
+def get_messages_by_journal_entry_and_stage(db: Session, journal_entry_id: str, stage: JournalEntryStage) -> List[Message]:
+    """journal entry의 특정 stage message 조회"""
+    return db.query(Message).filter(
+        Message.journal_entry_id == journal_entry_id,
+        Message.stage == stage
     ).order_by(Message.created_at.asc()).all()
 
 def get_messages_by_interaction_turn(db: Session, interaction_turn_id: str) -> List[Message]:

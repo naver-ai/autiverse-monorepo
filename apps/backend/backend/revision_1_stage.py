@@ -58,10 +58,10 @@ class Revision1Stage:
         )
         
         # 첫 번째 수정 질문 생성
-        initial_question = "그럼 네가 지금 말해준 내용으로 오늘의 그림일기를 써보자! 먼저 내가 잘 들었는지 확인해줘~ 내가 다 맞게 들었을까? 🤔"
+        initial_question = "그럼 네가 지금 말해준 내용으로 오늘의 그림일기를 써보자! 먼저 내가 잘 들었는지 왼쪽 내용을 읽어서 확인해줘~ 내가 다 맞게 들었을까? 🤔"
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            initial_question, MessageRole.Assistant
+            initial_question, MessageRole.Assistant, JournalEntryStage.Revision1
         )
         
         return initial_question
@@ -74,7 +74,7 @@ class Revision1Stage:
         # 사용자 메시지 저장
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            user_message, MessageRole.User
+            user_message, MessageRole.User, JournalEntryStage.Revision1
         )
         
         # 봇 응답 생성
@@ -88,7 +88,7 @@ class Revision1Stage:
         # 봇 응답 저장
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            bot_response, MessageRole.Assistant
+            bot_response, MessageRole.Assistant, JournalEntryStage.Revision1
         )
         
         return bot_response
