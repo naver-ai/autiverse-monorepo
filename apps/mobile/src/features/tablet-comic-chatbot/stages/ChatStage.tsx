@@ -17,6 +17,8 @@ interface ChatStageProps {
   sendMessage: (message: string) => void;
   isLoading: boolean;
   agentName: string;
+  onTTSComplete?: () => void;
+  isInputActive?: boolean;
 }
 
 export const ChatStage: React.FC<ChatStageProps> = ({
@@ -30,7 +32,9 @@ export const ChatStage: React.FC<ChatStageProps> = ({
   setInputText,
   sendMessage,
   isLoading,
-  agentName
+  agentName,
+  onTTSComplete,
+  isInputActive = true
 }) => {
   const convertComicDataToPanelsMemo = React.useMemo(() => {
     return convertComicDataToPanels(comicData);
@@ -176,6 +180,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
               messages={messages}
               isLoading={isLoading}
               agentName={agentName}
+              onTTSComplete={onTTSComplete}
             />
           </View>
 
@@ -188,6 +193,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
             messages={messages}
             currentStage={currentStage}
             comicGenerationStatus={comicGenerationStatus}
+            isInputActive={isInputActive}
           />
         </View>
       </View>

@@ -13,7 +13,7 @@ import PraiseSection from '../../../app/(app)/PraiseSection';
 import FarewellSection from '../../../app/(app)/FarewellSection';
 import { PresetSelectionStage, ChatStage } from '../stages';
 import { ChatMessage, Preset } from '../types';
-import { stopSpeech, speakText } from '../utils/speechUtils';
+import { stopSpeech, speakText, getSpeechManager } from '../utils/speechUtils';
 
 export const TabletComicChatbotScreen: React.FC<{
   dyadId?: string;
@@ -51,6 +51,9 @@ export const TabletComicChatbotScreen: React.FC<{
   const [showPraiseSection, setShowPraiseSection] = useState(false);
   const [showFarewellSection, setShowFarewellSection] = useState(false);
   const [completionMessage, setCompletionMessage] = useState<string>('');
+  
+  // ChatInput 활성화 상태 (초기에는 비활성화)
+  const [isInputActive, setIsInputActive] = useState(false);
 
   // Chatbot 훅 사용
   const {
@@ -273,6 +276,13 @@ export const TabletComicChatbotScreen: React.FC<{
   const sendMessage = async (messageText: string) => {
     if (!sessionId || !messageText.trim()) return;
 
+    // TTS 상태 확인 - TTS가 진행 중이면 메시지 전송 차단
+    const speechManager = getSpeechManager();
+    if (speechManager.getIsSpeaking()) {
+      console.log('TTS is currently active, blocking message send');
+      return;
+    }
+
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       text: messageText,
@@ -311,19 +321,21 @@ export const TabletComicChatbotScreen: React.FC<{
           timestamp: new Date(),
         };
 
-                // 완료 메시지 감지 (TTS 완료 후 0.5초 후 칭찬 섹션 표시)
+        // 완료 메시지 감지 (TTS 완료 후 0.5초 후 칭찬 섹션 표시)
         if (data.response.includes('우와~ 이렇게 멋진 그림 일기 완성이라니!')) {
           console.log('Completion message detected, will show praise section after TTS...');
           setCompletionMessage(data.response);
           setMessages(prev => [...prev, botMessage]);
           
-          // TTS로 칭찬 메시지 재생 (볼륨 0으로 설정)
+          // 완료 메시지 감지 시 ChatInput 비활성화 유지
+          setIsInputActive(false);
+          
           speakText(data.response, {
             language: 'ko-KR',
             pitch: 1.0,
             rate: 0.8,
-            volume: 0, // 볼륨을 0으로 설정하여 음성 재생 안함
             onDone: () => {
+              console.log('Completion TTS done, showing praise section...');
               // TTS 완료 후 0.5초 뒤에 칭찬 섹션 표시
               setTimeout(() => {
                 setShowPraiseSection(true);
@@ -570,6 +582,13 @@ export const TabletComicChatbotScreen: React.FC<{
             sendMessage={sendMessage}
             isLoading={isLoading}
             agentName={agentName}
+            isInputActive={isInputActive}
+            onTTSComplete={() => {
+              // 완료 메시지가 아닐 때만 ChatInput 활성화
+              if (!completionMessage) {
+                setIsInputActive(true);
+              }
+            }}
           />
         )}
       </View>

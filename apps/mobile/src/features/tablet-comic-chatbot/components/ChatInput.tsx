@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ChatMessage } from '../types';
 import { styleTemplates } from '../../../styles';
+import { getSpeechManager } from '../utils/speechUtils';
 
 interface ChatInputProps {
   inputText: string;
@@ -11,6 +12,7 @@ interface ChatInputProps {
   messages: ChatMessage[];
   currentStage: string;
   comicGenerationStatus: any;
+  isInputActive?: boolean;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -20,12 +22,28 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   isLoading,
   messages,
   currentStage,
-  comicGenerationStatus
+  comicGenerationStatus,
+  isInputActive = true
 }) => {
   const [selectedEmotions, setSelectedEmotions] = React.useState<string[]>([]);
+  const [isTTSActive, setIsTTSActive] = useState(false);
+  
   const lastBotMessage = messages
     .filter(m => !m.isUser)
     .pop()?.text;
+  
+  // TTS 상태 구독
+  useEffect(() => {
+    const speechManager = getSpeechManager();
+    const unsubscribe = speechManager.subscribeToStateChange((isSpeaking) => {
+      setIsTTSActive(isSpeaking);
+    });
+    
+    return unsubscribe;
+  }, []);
+  
+  // TTS 또는 로딩 중일 때 비활성화, 또는 ChatInput이 비활성화 상태일 때
+  const isDisabled = isLoading || isTTSActive || comicGenerationStatus.status === 'generating' || !isInputActive;
   
   // admin-web과 동일한 조건으로 버튼 표시 여부 결정
   const showYesNoButtons = (() => {
@@ -34,7 +52,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       return (lastBotMessage?.includes('다 맞게 들었을까?') || 
               lastBotMessage?.includes('아직도 틀린 부분 있어?') ||
               lastBotMessage?.includes('이제 다 맞을까?')) && 
-             !isLoading && 
+             !isDisabled && 
              inputText.trim() === '';
     }
     
@@ -42,7 +60,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     if (currentStage === 'revision_2') {
       return (lastBotMessage?.includes('수정하거나 추가하고 싶은 부분 있어?') || 
               lastBotMessage?.includes('더 추가하거나 바꿀 곳 있어?')) && 
-             !isLoading && 
+             !isDisabled && 
              inputText.trim() === '';
     }
     
@@ -53,7 +71,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     // comic_context에서 "기분이 어땠어?" 질문일 때 감정 버튼 표시
     if (currentStage === 'comic_context') {
       return lastBotMessage?.includes('기분이 어땠어?') && 
-             !isLoading && 
+             !isDisabled && 
              inputText.trim() === '';
     }
     
@@ -79,6 +97,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const buttonTexts = getButtonTexts();
 
   const handleEmotionClick = (emotion: string) => {
+    if (isDisabled) return;
+    
     if (selectedEmotions.includes(emotion)) {
       setSelectedEmotions(selectedEmotions.filter(e => e !== emotion));
     } else {
@@ -87,7 +107,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const handleEmotionComplete = () => {
-    if (selectedEmotions.length > 0 && !isLoading) {
+    if (selectedEmotions.length > 0 && !isDisabled) {
       sendMessage(selectedEmotions.join(', '));
       setSelectedEmotions([]);
     }
@@ -114,11 +134,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {showYesNoButtons && (
         <View className="flex-row gap-3 mb-4">
           <TouchableOpacity
-            className="flex-1 bg-gray-500 px-6 py-4 rounded-xl"
+            className={`flex-1 px-6 py-4 rounded-xl ${
+              isDisabled ? 'bg-gray-400' : 'bg-gray-500'
+            }`}
             onPress={() => sendMessage(buttonTexts.left)}
-            disabled={isLoading}
+            disabled={isDisabled}
             style={{
-              backgroundColor: '#6c757d',
+              backgroundColor: isDisabled ? '#9CA3AF' : '#6c757d',
               minHeight: 56,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
@@ -130,11 +152,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             <Text className="text-white font-bold text-lg text-center" style={styleTemplates.withBoldFont}>{buttonTexts.left}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className="flex-1 bg-blue-500 px-6 py-4 rounded-xl"
+            className={`flex-1 px-6 py-4 rounded-xl ${
+              isDisabled ? 'bg-gray-400' : 'bg-blue-500'
+            }`}
             onPress={() => sendMessage(buttonTexts.right)}
-            disabled={isLoading}
+            disabled={isDisabled}
             style={{
-              backgroundColor: '#4A90E2',
+              backgroundColor: isDisabled ? '#9CA3AF' : '#4A90E2',
               minHeight: 56,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
@@ -160,17 +184,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     key={emotion.text}
                     className="flex-1"
                     onPress={() => handleEmotionClick(emotion.text)}
-                    disabled={isLoading}
+                    disabled={isDisabled}
                     style={{
                       padding: 12,
-                      backgroundColor: isSelected ? '#28a745' : '#4A90E2',
+                      backgroundColor: isDisabled 
+                        ? '#9CA3AF' 
+                        : isSelected ? '#28a745' : '#4A90E2',
                       borderRadius: 8,
                       minHeight: 44,
                       alignItems: 'center',
                       justifyContent: 'center',
                       shadowColor: '#000',
                       shadowOffset: { width: 0, height: 1 },
-                      shadowOpacity: isSelected ? 0.3 : 0.1,
+                      shadowOpacity: isDisabled ? 0.05 : (isSelected ? 0.3 : 0.1),
                       shadowRadius: isSelected ? 4 : 2,
                       elevation: isSelected ? 4 : 2,
                     }}
@@ -186,20 +212,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           
           {selectedEmotions.length > 0 && (
             <View className="mt-3 items-center">
-              <Text className="text-gray-600 font-bold text-sm mb-2" style={styleTemplates.withBoldFont}>
+              <Text className="text-gray-600 font-bold text-sm mb-2" style={styleTemplates.withSemiboldFont}>
                 선택된 감정: {selectedEmotions.join(', ')}
               </Text>
               <TouchableOpacity
                 onPress={handleEmotionComplete}
-                disabled={isLoading}
+                disabled={isDisabled}
                 style={{
                   paddingHorizontal: 24,
                   paddingVertical: 12,
-                  backgroundColor: '#28a745',
+                  backgroundColor: isDisabled ? '#9CA3AF' : '#28a745',
                   borderRadius: 8,
                   shadowColor: '#000',
                   shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.2,
+                  shadowOpacity: isDisabled ? 0.05 : 0.2,
                   shadowRadius: 4,
                   elevation: 4,
                 }}
@@ -216,16 +242,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {/* 입력 필드 - 항상 동일한 너비 유지 */}
       <View className="flex-row items-center">
         <TextInput
-          className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-3 mr-3 text-base"
+          className={`flex-1 border-2 rounded-xl px-4 py-3 mr-3 text-base ${
+            isDisabled ? 'border-gray-300 bg-gray-100' : 'border-gray-200'
+          }`}
           placeholder="메시지를 입력하세요..."
           value={inputText}
           onChangeText={setInputText}
           onSubmitEditing={() => {
-            if (inputText.trim() && !isLoading && comicGenerationStatus.status !== 'generating') {
+            if (inputText.trim() && !isDisabled) {
               sendMessage(inputText);
             }
           }}
-          editable={!isLoading && comicGenerationStatus.status !== 'generating'}
+          editable={!isDisabled}
           style={{
             minHeight: 48,
             fontSize: 16,
@@ -234,21 +262,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         />
         <TouchableOpacity
           className={`px-6 py-3 rounded-xl ${
-            isLoading || !inputText.trim() || comicGenerationStatus.status === 'generating' 
+            isDisabled
               ? 'bg-gray-400' 
               : 'bg-blue-500'
           }`}
           onPress={() => {
-            if (inputText.trim() && !isLoading && comicGenerationStatus.status !== 'generating') {
+            if (inputText.trim() && !isDisabled) {
               sendMessage(inputText);
             }
           }}
-          disabled={isLoading || !inputText.trim() || comicGenerationStatus.status === 'generating'}
+          disabled={isDisabled || !inputText.trim()}
           style={{
             minHeight: 48,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
+            shadowOpacity: isDisabled ? 0.05 : 0.1,
             shadowRadius: 4,
             elevation: 3,
           }}

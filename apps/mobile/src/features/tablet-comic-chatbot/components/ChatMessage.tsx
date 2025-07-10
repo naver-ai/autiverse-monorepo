@@ -1,13 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
-import { ChatMessage } from '../types';
+import { ChatMessage as ChatMessageType } from '../types';
 import { styleTemplates } from '../../../styles';
-import { speakText } from '../utils';
+import { speakText, getSpeechManager } from '../utils/speechUtils';
 
 interface ChatMessageProps {
-  messages: ChatMessage[];
+  messages: ChatMessageType[];
   isLoading: boolean;
   agentName: string;
+  onTTSComplete?: () => void;
 }
 
 // 이모티콘 제거 함수
@@ -18,7 +19,8 @@ const removeEmojis = (text: string): string => {
 export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   messages,
   isLoading,
-  agentName
+  agentName,
+  onTTSComplete
 }) => {
   const lastBotMessage = messages
     .filter(m => !m.isUser)
@@ -27,6 +29,12 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   // 새로운 봇 메시지가 올 때 자동으로 음성 재생
   useEffect(() => {
     if (lastBotMessage && lastBotMessage.text && !isLoading) {
+      // 완료 메시지는 TabletComicChatbotScreen에서 처리하므로 여기서는 건너뛰기
+      if (lastBotMessage.text.includes('우와~ 이렇게 멋진 그림 일기 완성이라니!')) {
+        console.log('Completion message detected in ChatMessage, skipping TTS...');
+        return;
+      }
+      
       // 이전 메시지와 다른 경우에만 재생
       const messageId = lastBotMessage.id;
       
@@ -36,7 +44,20 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         speakText(cleanText, {
           language: 'ko-KR',
           pitch: 0.9,
-          rate: 0.6
+          rate: 0.6,
+          onDone: () => {
+            // TTS 완료 후 ChatInput 활성화
+            if (onTTSComplete) {
+              onTTSComplete();
+            }
+          },
+          onError: (error) => {
+            console.error('TTS error:', error);
+            // 에러 발생 시에도 ChatInput 활성화
+            if (onTTSComplete) {
+              onTTSComplete();
+            }
+          }
         });
       }
     }
