@@ -18,14 +18,20 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.autiverse-mobile"
+      "bundleIdentifier": "com.anonymous.autiverse-mobile",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "음성 녹음을 위해 마이크 권한이 필요합니다."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.anonymous.autiversemobile"
+      "package": "com.anonymous.autiversemobile",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",

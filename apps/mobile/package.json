@@ -13,6 +13,7 @@
     "expo": "*",
     "expo-audio": "^0.4.8",
     "expo-av": "~15.1.7",
+    "expo-file-system": "^18.1.11",
     "expo-font": "*",
     "expo-image": "*",
     "expo-linking": "*",
@@ -27,5 +28,8 @@
     "react-native-safe-area-context": "*",
     "react-native-screens": "*",
     "react-native-svg": "*"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "^19.1.0"
   }
 }

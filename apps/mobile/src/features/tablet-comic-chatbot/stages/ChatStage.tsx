@@ -194,6 +194,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
             currentStage={currentStage}
             comicGenerationStatus={comicGenerationStatus}
             isInputActive={isInputActive}
+            agentName={agentName}
           />
         </View>
       </View>
