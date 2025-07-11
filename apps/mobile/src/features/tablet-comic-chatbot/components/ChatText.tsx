@@ -9,6 +9,7 @@ interface ChatTextProps {
   isDisabled: boolean;
   isVoiceMode: boolean;
   onFocus: () => void;
+  showButtons?: boolean;
 }
 
 export const ChatText: React.FC<ChatTextProps> = ({
@@ -17,13 +18,14 @@ export const ChatText: React.FC<ChatTextProps> = ({
   sendMessage,
   isDisabled,
   isVoiceMode,
-  onFocus
+  onFocus,
+  showButtons = false
 }) => {
   return (
     <View className="flex-row items-center">
       <TextInput
         className={`flex-1 border-2 rounded-xl px-4 py-3 mr-3 text-base ${
-          isDisabled ? 'border-gray-300 bg-gray-100' : 'border-gray-200'
+          (isDisabled && !isVoiceMode) || showButtons ? 'border-gray-300 bg-gray-100' : 'border-gray-200'
         }`}
         placeholder={isVoiceMode ? "채팅으로 하려면 여기를 클릭하세요" : ""}
         value={inputText}
@@ -34,7 +36,7 @@ export const ChatText: React.FC<ChatTextProps> = ({
           }
         }}
         onFocus={onFocus}
-        editable={!isDisabled}
+        editable={(!isDisabled || isVoiceMode) && !showButtons}
         style={{
           minHeight: 48,
           fontSize: 16,
@@ -43,16 +45,16 @@ export const ChatText: React.FC<ChatTextProps> = ({
       />
       <TouchableOpacity
         className={`px-6 py-3 rounded-xl ${
-          isDisabled
+          isDisabled || showButtons
             ? 'bg-gray-400' 
             : 'bg-blue-500'
         }`}
         onPress={() => {
-          if (inputText.trim() && !isDisabled) {
+          if (inputText.trim() && !isDisabled && !showButtons) {
             sendMessage(inputText);
           }
         }}
-        disabled={isDisabled || !inputText.trim()}
+        disabled={isDisabled || !inputText.trim() || showButtons}
         style={{
           minHeight: 48,
           shadowColor: '#000',

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List, Annotated
 import asyncio
@@ -6,15 +6,19 @@ import json
 import sys
 import os
 from sqlalchemy.orm import Session
+import uuid
+from datetime import datetime
+import shutil
 
 # Add the backend directory to the path so we can import the modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from backend.database.engine import get_session
-from backend.database.crud.chatbot import get_dyad_by_id, get_dyad_places, get_place_people
+from backend.database.crud.chatbot import get_dyad_by_id, get_dyad_places, get_place_people, generate_audio_filename
 from backend.chatbot_controller import ChatbotController
-from backend.database.models import Dyad, Comic, JournalEntry, Journal
+from backend.database.models import Dyad, Comic, JournalEntry, Journal, Message, MessageRole, JournalEntryStage, InteractionTurn
 from backend.router.app.common import get_signed_in_dyad
+from backend.utils.environment import FilePaths
 
 router = APIRouter()
 
@@ -25,6 +29,7 @@ class StartChatbotRequest(BaseModel):
 class SendMessageRequest(BaseModel):
     journal_entry_id: str
     message: str
+    audio_filename: Optional[str] = None
 
 class ChatbotResponse(BaseModel):
     journal_entry_id: str
@@ -94,7 +99,8 @@ def send_message(
         controller = ChatbotController(db)
         result = controller.send_message(
             journal_entry_id=request.journal_entry_id,
-            message=request.message
+            message=request.message,
+            audio_filename=request.audio_filename
         )
         
         return ChatbotResponse(
@@ -275,3 +281,42 @@ def get_gallery(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 
+
+@router.post("/upload-audio")
+async def upload_audio(
+    file: UploadFile = File(...),
+    journal_entry_id: str = Form(None),
+    interaction_turn_id: str = Form(None),
+    stage: str = Form(None),
+    db: Session = Depends(get_session)
+):
+    """오디오 파일 업로드 및 저장"""
+    try:
+        # 파일 확장자 검증
+        if not file.filename or not file.filename.lower().endswith(('.m4a', '.mp3', '.wav')):
+            raise HTTPException(status_code=400, detail="지원하지 않는 오디오 파일 형식입니다.")
+        
+        # journal_entry_id와 stage가 제공된 경우 의미있는 파일명 생성
+        if journal_entry_id and stage and stage.strip():
+            unique_filename = generate_audio_filename(journal_entry_id, stage, db)
+            # journal entry별 폴더에 저장
+            file_path = FilePaths.get_journal_audio_file_path(journal_entry_id, unique_filename)
+        else:
+            # fallback: UUID 사용 (루트 audio 폴더에 저장)
+            file_extension = os.path.splitext(file.filename)[1]
+            unique_filename = f"{uuid.uuid4()}{file_extension}"
+            file_path = FilePaths.get_audio_file_path(unique_filename)
+        
+        # 파일 저장
+        print(f"[DEBUG] Saving file to: {file_path}")
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        return {
+            "filename": unique_filename,
+            "original_filename": file.filename,
+            "file_path": file_path
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"파일 업로드 실패: {str(e)}") 

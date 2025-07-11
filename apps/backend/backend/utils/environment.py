@@ -38,6 +38,9 @@ class FilePaths:
 
     users_database_dir_path: str = path.join(__database_dir_path, "users")
 
+    # 오디오 파일 저장 디렉토리
+    audio_dir_path: str = path.join(getcwd(), "../../audio")
+
     @classmethod
     def get_database_dir_path(cls) -> str:
         if not path.exists(cls.__database_dir_path):
@@ -59,3 +62,33 @@ class FilePaths:
     def get_prompt_file_path(cls, prompt_filename: str) -> str:
         p = path.join(cls.prompt_dir_path, prompt_filename)
         return p
+
+    @classmethod
+    def get_audio_dir_path(cls) -> str:
+        """오디오 파일 저장 디렉토리 경로 반환"""
+        if not path.exists(cls.audio_dir_path):
+            makedirs(cls.audio_dir_path)
+        return cls.audio_dir_path
+    
+    @classmethod
+    def get_journal_audio_dir_path(cls, journal_entry_id: str) -> str:
+        """특정 journal entry의 오디오 파일 저장 디렉토리 경로 반환"""
+        journal_dir = path.join(cls.get_audio_dir_path(), journal_entry_id)
+        print(f"[DEBUG] Creating journal audio directory: {journal_dir}")
+        try:
+            makedirs(journal_dir, exist_ok=True)
+            print(f"[DEBUG] Successfully created/verified directory: {journal_dir}")
+        except Exception as e:
+            print(f"[DEBUG] Error creating directory {journal_dir}: {e}")
+            raise
+        return journal_dir
+    
+    @classmethod
+    def get_audio_file_path(cls, filename: str) -> str:
+        """특정 오디오 파일의 전체 경로 반환"""
+        return path.join(cls.get_audio_dir_path(), filename)
+    
+    @classmethod
+    def get_journal_audio_file_path(cls, journal_entry_id: str, filename: str) -> str:
+        """특정 journal entry의 오디오 파일 전체 경로 반환"""
+        return path.join(cls.get_journal_audio_dir_path(journal_entry_id), filename)

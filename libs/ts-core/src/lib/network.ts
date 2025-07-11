@@ -51,6 +51,7 @@ export class NetworkHelper {
         START: '/api/v1/app/chatbot/start',
         START_WITH_SUGGESTION: '/api/v1/app/chatbot/start-with-suggestion',
         SEND: '/api/v1/app/chatbot/send',
+        UPLOAD_AUDIO: '/api/v1/app/chatbot/upload-audio',
         getDyadPlacesEndpoint: (dyadId: string) => {
           const url = `/api/v1/app/chatbot/dyad/${dyadId}/places`;
           console.log('NetworkHelper: getDyadPlacesEndpoint called with dyadId:', dyadId, 'returning URL:', url);

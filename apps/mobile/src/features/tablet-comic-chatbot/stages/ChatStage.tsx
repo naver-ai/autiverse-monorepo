@@ -19,6 +19,9 @@ interface ChatStageProps {
   agentName: string;
   onTTSComplete?: () => void;
   isInputActive?: boolean;
+  sessionId?: string;
+  loadSessionInfo?: (sessionId: string) => Promise<any>;
+  isAfterFarewell?: boolean;
 }
 
 export const ChatStage: React.FC<ChatStageProps> = ({
@@ -34,7 +37,10 @@ export const ChatStage: React.FC<ChatStageProps> = ({
   isLoading,
   agentName,
   onTTSComplete,
-  isInputActive = true
+  isInputActive = true,
+  sessionId,
+  loadSessionInfo,
+  isAfterFarewell = false
 }) => {
   const convertComicDataToPanelsMemo = React.useMemo(() => {
     return convertComicDataToPanels(comicData);
@@ -195,6 +201,9 @@ export const ChatStage: React.FC<ChatStageProps> = ({
             comicGenerationStatus={comicGenerationStatus}
             isInputActive={isInputActive}
             agentName={agentName}
+            sessionId={sessionId}
+            loadSessionInfo={loadSessionInfo}
+            isAfterFarewell={isAfterFarewell}
           />
         </View>
       </View>

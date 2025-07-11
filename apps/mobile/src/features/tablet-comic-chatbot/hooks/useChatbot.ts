@@ -28,9 +28,15 @@ interface AgentInfo {
 }
 
 interface SessionInfo {
+  journal_entry_id: string;
   stage: string;
+  status: string;
+  location?: string;
+  people?: string[];
+  events?: string[];
+  summary?: string;
   panels: any;
-  focusedPanel?: string;
+  message_count: number;
 }
 
 interface Preset {
@@ -144,7 +150,7 @@ export const useChatbot = () => {
     },
   })
 
-  const sendMessage = useCallback(async (sessionId: string, messageText: string) => {
+  const sendMessage = useCallback(async (sessionId: string, messageText: string, audioFilename?: string) => {
     if (!sessionId || !messageText.trim()) return null;
 
     try {
@@ -153,6 +159,7 @@ export const useChatbot = () => {
         {
           journal_entry_id: sessionId,
           message: messageText,
+          audio_filename: audioFilename,
         }
       );
 

@@ -72,7 +72,7 @@ class ChatbotController:
             "stage": "intro"
         }
     
-    def send_message(self, journal_entry_id: str, message: str) -> Dict[str, Any]:
+    def send_message(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """메시지 전송"""
         # journal entry 조회
         journal_entry = get_journal_entry(self.db, journal_entry_id)
@@ -83,21 +83,21 @@ class ChatbotController:
         current_stage = journal_entry.stage
         
         if current_stage == JournalEntryStage.Intro:
-            return self._handle_intro_stage(journal_entry_id, message)
+            return self._handle_intro_stage(journal_entry_id, message, audio_filename)
         elif current_stage == JournalEntryStage.Revision1 or current_stage == JournalEntryStage.ComicContext or current_stage == JournalEntryStage.Revision2:
-            return self._handle_drawing_stage(journal_entry_id, message)
+            return self._handle_drawing_stage(journal_entry_id, message, audio_filename)
         else:
             return {
                 "response": "대화가 완료되었습니다.",
                 "stage": "complete"
             }
     
-    def _handle_intro_stage(self, journal_entry_id: str, message: str) -> Dict[str, Any]:
+    def _handle_intro_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """인트로 단계 처리"""
         intro_stage = ComicIntroStage(self.db, journal_entry_id)
         
-        # 메시지 처리
-        response = intro_stage.process_message(message)
+        # 메시지 처리 (audio_filename 포함)
+        response = intro_stage.process_message(message, audio_filename)
         
         # 이벤트 분석
         analysis = intro_stage.analyze_events()
@@ -129,7 +129,7 @@ class ChatbotController:
             "stage": "intro"
         }
     
-    def _handle_drawing_stage(self, journal_entry_id: str, message: str) -> Dict[str, Any]:
+    def _handle_drawing_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """그리기 단계 처리 (revision_1, comic_context, revision_2)"""
         journal_entry = get_journal_entry(self.db, journal_entry_id)
         journal = get_journal(self.db, journal_entry_id)
@@ -141,11 +141,11 @@ class ChatbotController:
         current_stage = journal_entry.stage
         
         if current_stage == JournalEntryStage.Revision1:
-            return self._handle_revision_1_stage(journal_entry_id, message)
+            return self._handle_revision_1_stage(journal_entry_id, message, audio_filename)
         elif current_stage == JournalEntryStage.ComicContext:
-            return self._handle_comic_context_stage(journal_entry_id, message)
+            return self._handle_comic_context_stage(journal_entry_id, message, audio_filename)
         elif current_stage == JournalEntryStage.Revision2:
-            return self._handle_revision_2_stage(journal_entry_id, message)
+            return self._handle_revision_2_stage(journal_entry_id, message, audio_filename)
         else:
             # 완료
             return {
@@ -153,10 +153,10 @@ class ChatbotController:
                 "stage": "complete"
             }
     
-    def _handle_revision_1_stage(self, journal_entry_id: str, message: str) -> Dict[str, Any]:
+    def _handle_revision_1_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """revision_1 단계 처리"""
         revision_stage = Revision1Stage(self.db, journal_entry_id)
-        response = revision_stage.process_message(message)
+        response = revision_stage.process_message(message, audio_filename)
         
         # 만화 생성 시작 신호인지 확인
         if response == "COMIC_GENERATION_START":
@@ -184,10 +184,10 @@ class ChatbotController:
             "stage": "revision_1"
         }
     
-    def _handle_comic_context_stage(self, journal_entry_id: str, message: str) -> Dict[str, Any]:
+    def _handle_comic_context_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """comic_context 단계 처리"""
         context_stage = ComicContextStage(self.db, journal_entry_id)
-        response = context_stage.process_message(message)
+        response = context_stage.process_message(message, audio_filename)
         
         # 만화 생성 시작 신호인지 확인
         if response == "COMIC_GENERATION_START":
@@ -206,10 +206,10 @@ class ChatbotController:
             "stage": "comic_context"
         }
     
-    def _handle_revision_2_stage(self, journal_entry_id: str, message: str) -> Dict[str, Any]:
+    def _handle_revision_2_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """revision_2 단계 처리"""
         revision2_stage = Revision2Stage(self.db, journal_entry_id)
-        response = revision2_stage.process_message(message)
+        response = revision2_stage.process_message(message, audio_filename)
         
         # 완료되었는지 확인
         if "이제 만화일기 완성이닷" in response:

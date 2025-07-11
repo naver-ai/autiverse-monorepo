@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { styleTemplates } from '../../../styles';
+import { voiceRecorder } from '../utils/voiceUtils';
 
 // 한국어 조사 선택 함수
 const getKoreanParticle = (name: string): string => {
@@ -33,16 +34,19 @@ interface VoiceRecordingStatusProps {
 
 export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
   agentName,
-  isVoiceMode = false,
-  isVoiceRecording = false,
-  isTTSActive = false,
+  isVoiceMode,
+  isVoiceRecording,
+  isTTSActive,
   onComplete
 }) => {
+  const voiceMode = isVoiceMode ?? false;
+  const voiceRecording = isVoiceRecording ?? false;
+  const ttsActive = isTTSActive ?? false;
   const pulseAnimation = useRef(new Animated.Value(1)).current;
 
   // 음성 녹음 애니메이션
   useEffect(() => {
-    if (isVoiceRecording) {
+    if (voiceRecording) {
       const pulse = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnimation, {
@@ -60,47 +64,49 @@ export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
       pulse.start();
       return () => pulse.stop();
     }
-  }, [isVoiceRecording]);
+  }, [voiceRecording]);
 
   // TTS나 음성 녹음이 활성화되지 않았으면 아무것도 표시하지 않음
-  if (!isTTSActive && !isVoiceRecording) {
+  if (!ttsActive && !voiceRecording) {
     return null;
   }
 
   return (
     <View className={`flex-row items-center justify-between p-4 rounded-xl mb-4 ${
-      isVoiceMode && isVoiceRecording 
+      voiceMode && voiceRecording 
         ? 'bg-blue-50 border-2 border-blue-200' 
         : 'bg-white border-2 border-gray-200'
     }`}>
       <View className="flex-row items-center flex-1">
-        {isVoiceRecording ? (
-          <Animated.View
-            style={{
-              width: 16,
-              height: 16,
-              borderRadius: 8,
-              marginRight: 12,
-              backgroundColor: '#ef4444',
-              transform: [{ scale: pulseAnimation }],
-            }}
-          />
+        {voiceRecording ? (
+          <View className="flex-row items-center mr-3">
+            <Animated.View
+              style={{
+                width: 16,
+                height: 16,
+                borderRadius: 8,
+                marginRight: 8,
+                backgroundColor: '#ef4444',
+                transform: [{ scale: pulseAnimation }],
+              }}
+            />
+          </View>
         ) : (
           <View className="w-4 h-4 bg-gray-400 rounded-full mr-3" />
         )}
         <Text className={`text-lg font-semibold ${
-          isVoiceRecording 
+          voiceRecording 
             ? 'text-blue-800' 
             : 'text-gray-600'
         }`} style={styleTemplates.withBoldFont}>
           {`${agentName}${getKoreanParticle(agentName)} ${
-            isVoiceRecording ? '듣는 중...' : '말하는 중...'
+            voiceRecording ? '듣는 중...' : '말하는 중...'
           }`}
         </Text>
       </View>
       
       {/* 완료 버튼은 음성 녹음 중일 때만 표시 */}
-      {isVoiceRecording && (
+      {voiceRecording && (
         <TouchableOpacity
           onPress={onComplete}
           className="bg-green-500 px-4 py-2 rounded-lg"

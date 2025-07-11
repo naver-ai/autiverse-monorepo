@@ -153,7 +153,7 @@ def get_latest_interaction_turn(db: Session, journal_entry_id: str) -> Optional[
         InteractionTurn.journal_entry_id == journal_entry_id
     ).order_by(InteractionTurn.created_at.desc()).first()
 
-def create_message(db: Session, journal_entry_id: str, interaction_turn_id: str, content: str, role: MessageRole, stage: JournalEntryStage = None, metadata_json: Dict[str, Any] = None) -> Message:
+def create_message(db: Session, journal_entry_id: str, interaction_turn_id: str, content: str, role: MessageRole, stage: JournalEntryStage = None, metadata_json: Dict[str, Any] = None, audio_filename: str = None) -> Message:
     """새로운 message 생성"""
     # stage가 제공되지 않은 경우 interaction turn에서 가져오기
     if stage is None:
@@ -167,7 +167,8 @@ def create_message(db: Session, journal_entry_id: str, interaction_turn_id: str,
         content=content,
         role=role,
         stage=stage,
-        metadata_json=metadata_json
+        metadata_json=metadata_json,
+        audio_filename=audio_filename
     )
     db.add(message)
     db.commit()
@@ -234,3 +235,37 @@ def reset_journal_entry(db: Session, journal_entry_id: str) -> Optional[JournalE
         db.commit()
         db.refresh(journal_entry)
     return journal_entry 
+
+def update_message_audio_filename(db: Session, message_id: str, audio_filename: str) -> Message:
+    """Message의 audio_filename 업데이트"""
+    message = db.query(Message).filter(Message.id == message_id).first()
+    if not message:
+        raise ValueError(f"Message with id {message_id} not found")
+    
+    message.audio_filename = audio_filename
+    db.commit()
+    db.refresh(message)
+    return message 
+
+def generate_audio_filename(journal_entry_id: str, stage: str, db: Session) -> str:
+    """의미있는 오디오 파일명 생성: {stage}_{increment}.m4a"""
+    try:
+        # 해당 journal_entry와 stage에서 이미 존재하는 오디오 파일 개수 확인
+        existing_count = db.query(Message).filter(
+            Message.journal_entry_id == journal_entry_id,
+            Message.stage == stage,
+            Message.audio_filename.isnot(None)
+        ).count()
+        
+        # increment는 1부터 시작
+        increment = existing_count + 1
+        
+        # 파일명 생성 (journal_entry_id는 폴더명으로 사용되므로 파일명에서는 제외)
+        filename = f"{stage}_{increment:03d}.m4a"
+        
+        return filename
+    except Exception as e:
+        print(f"Error generating audio filename: {e}")
+        # 에러 발생 시 UUID 사용
+        import uuid
+        return f"{uuid.uuid4()}.m4a" 

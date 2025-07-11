@@ -9,7 +9,8 @@ console.log("Starting mobile app in debug mode:", __DEV__);
 SplashScreen.preventAutoHideAsync();
 
 NetworkHelper.init(
-    __DEV__ ? 'http://localhost:3000' : `http://${process.env.EXPO_PUBLIC_BACKEND_HOSTNAME}:${process.env.EXPO_PUBLIC_BACKEND_PORT}`,
+    // __DEV__ ? 'http://localhost:3000' : `http://${process.env.EXPO_PUBLIC_BACKEND_HOSTNAME}:${process.env.EXPO_PUBLIC_BACKEND_PORT}`,
+    __DEV__ ? 'http://10.66.34.42:3000' : `http://${process.env.EXPO_PUBLIC_BACKEND_HOSTNAME}:${process.env.EXPO_PUBLIC_BACKEND_PORT}`,
     () => Localization.getCalendars()[0]?.timeZone || undefined
 )
 

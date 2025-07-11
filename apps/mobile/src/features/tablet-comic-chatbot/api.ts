@@ -42,4 +42,40 @@ export const cancelComicGenerationAPI = async (journalEntryId: string): Promise<
     }
   );
   return response.data;
+};
+
+export const uploadAudioFile = async (audioUri: string, journalEntryId: string, stage?: string, interactionTurnId?: string): Promise<{ filename: string }> => {
+  try {
+    const formData = new FormData();
+    
+    // 파일 정보 추가
+    formData.append('file', {
+      uri: audioUri,
+      type: 'audio/m4a',
+      name: 'recording.m4a',
+    } as any);
+    
+    // 추가 정보 추가
+    formData.append('journal_entry_id', journalEntryId);
+    // stage가 undefined이거나 빈 문자열이어도 항상 전송 (백엔드에서 처리)
+    formData.append('stage', stage || '');
+    if (interactionTurnId) {
+      formData.append('interaction_turn_id', interactionTurnId);
+    }
+    
+    const response = await NetworkHelper.axiosClient.post(
+      NetworkHelper.ENDPOINTS.APP.CHATBOT.UPLOAD_AUDIO,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Audio upload failed:', error);
+    throw error;
+  }
 }; 

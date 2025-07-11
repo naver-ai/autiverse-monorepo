@@ -138,17 +138,18 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             print(f"[DEBUG] comic_context: Error in start_context_analysis: {e}")
             raise
     
-    def process_message(self, user_message: str) -> str:
+    def process_message(self, user_message: str, audio_filename: str = None) -> str:
         """사용자 메시지 처리"""
         print(f"[DEBUG] comic_context: process_message called with user_message='{user_message}'")
         try:
             # 현재 interaction turn 가져오기
             interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.ComicContext)
             
-            # 사용자 메시지 저장
+            # 사용자 메시지 저장 (audio_filename 포함)
             create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
-                user_message, MessageRole.User, JournalEntryStage.ComicContext
+                user_message, MessageRole.User, JournalEntryStage.ComicContext,
+                audio_filename=audio_filename
             )
             
             # 첫 번째 메시지인 경우 분석 수행

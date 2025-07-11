@@ -89,15 +89,16 @@ class Revision2Stage:
         
         return initial_question
     
-    def process_message(self, user_message: str) -> str:
+    def process_message(self, user_message: str, audio_filename: str = None) -> str:
         """사용자 메시지 처리"""
         # 현재 interaction turn 가져오기
         interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Revision2)
         
-        # 사용자 메시지 저장
+        # 사용자 메시지 저장 (audio_filename 포함)
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            user_message, MessageRole.User, JournalEntryStage.Revision2
+            user_message, MessageRole.User, JournalEntryStage.Revision2,
+            audio_filename=audio_filename
         )
         
         # 봇 응답 생성

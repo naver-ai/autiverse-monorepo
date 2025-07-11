@@ -54,6 +54,9 @@ export const TabletComicChatbotScreen: React.FC<{
   
   // ChatInput 활성화 상태 (초기에는 비활성화)
   const [isInputActive, setIsInputActive] = useState(false);
+  
+  // Farewell 이후 음성 녹음 방지 플래그
+  const [isAfterFarewell, setIsAfterFarewell] = useState(false);
 
   // Chatbot 훅 사용
   const {
@@ -82,6 +85,9 @@ export const TabletComicChatbotScreen: React.FC<{
   const handleFarewellComplete = () => {
     console.log('Farewell section completed, navigating to intro');
     setShowFarewellSection(false);
+    
+    // Farewell 이후 플래그 설정
+    setIsAfterFarewell(true);
     
     // 모든 상태 초기화
     setMessages([]);
@@ -206,7 +212,7 @@ export const TabletComicChatbotScreen: React.FC<{
     console.log('dyadId value:', dyadId);
     setIsLoading(true);
     try {
-      const data = await startChatbotFromHook(preset);
+      const data = await startChatbotFromHook(preset || {});
       if (data) {
         console.log('Response data:', data);
         setSessionId(data.journal_entry_id);
@@ -273,7 +279,7 @@ export const TabletComicChatbotScreen: React.FC<{
     }
   };
 
-  const sendMessage = async (messageText: string) => {
+  const sendMessage = async (messageText: string, audioFilename?: string) => {
     if (!sessionId || !messageText.trim()) return;
 
     // TTS 상태 확인 - TTS가 진행 중이면 메시지 전송 차단
@@ -310,7 +316,7 @@ export const TabletComicChatbotScreen: React.FC<{
     }
 
     try {
-      const data = await sendMessageFromHook(sessionId, messageText);
+      const data = await sendMessageFromHook(sessionId, messageText, audioFilename);
       if (data) {
         setCurrentStage(data.stage);
         
@@ -520,14 +526,14 @@ export const TabletComicChatbotScreen: React.FC<{
   // 자유롭게 시작하기 핸들러
   const handleFreeStart = async () => {
     // 자유롭게 시작하기는 항상 아무 정보 없이 시작
-    await startChatbot({});
+    await startChatbot();
   };
 
   // 인사말 섹션이 표시되어야 하는 경우
   if (showFarewellSection) {
     return (
       <FarewellSection 
-        childName={childName} 
+        childName={childName || "친구"} 
         onComplete={handleFarewellComplete}
       />
     );
@@ -537,7 +543,7 @@ export const TabletComicChatbotScreen: React.FC<{
   if (showPraiseSection) {
     return (
       <PraiseSection 
-        childName={childName || dyadName || "친구"}
+        childName={childName || "친구"}
         agentConfig={agentConfig}
         onComplete={handlePraiseComplete}
       />
@@ -553,7 +559,7 @@ export const TabletComicChatbotScreen: React.FC<{
         {showPresetSelection ? (
           <PresetSelectionStage
             selectionStep={selectionStep}
-            places={places}
+            places={places || []}
             people={people}
             selectedLocation={selectedLocation}
             selectedPeople={selectedPeople}
@@ -581,8 +587,11 @@ export const TabletComicChatbotScreen: React.FC<{
             setInputText={setInputText}
             sendMessage={sendMessage}
             isLoading={isLoading}
-            agentName={agentName}
+            agentName={agentName || "친구"}
             isInputActive={isInputActive}
+            sessionId={sessionId || undefined}
+            loadSessionInfo={loadSessionInfoFromHook}
+            isAfterFarewell={isAfterFarewell}
             onTTSComplete={() => {
               // 완료 메시지가 아닐 때만 ChatInput 활성화
               if (!completionMessage) {

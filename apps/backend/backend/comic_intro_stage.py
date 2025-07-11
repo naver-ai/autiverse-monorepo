@@ -184,15 +184,16 @@ class ComicIntroStage:
         
         return initial_message
     
-    def process_message(self, user_message: str) -> str:
+    def process_message(self, user_message: str, audio_filename: str = None) -> str:
         """사용자 메시지 처리"""
         # 현재 interaction turn 가져오기
         interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Intro)
         
-        # 사용자 메시지 저장
+        # 사용자 메시지 저장 (audio_filename 포함)
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            user_message, MessageRole.User, JournalEntryStage.Intro
+            user_message, MessageRole.User, JournalEntryStage.Intro,
+            audio_filename=audio_filename
         )
         
         # 봇 응답 생성

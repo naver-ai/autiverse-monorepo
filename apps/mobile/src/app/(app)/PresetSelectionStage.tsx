@@ -43,25 +43,32 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
   onFreeStart
 }) => {
   const [hasSpoken, setHasSpoken] = useState(false);
+  const [isTTSActive, setIsTTSActive] = useState(false);
 
   // TTS 시작
   useEffect(() => {
-    // selectionStep이 변경될 때마다 TTS 재시작
-    const ttsMessage = selectionStep === 'location' 
-      ? '오늘은 어디서 있었던 일을 그림 일기로 써볼까?'
-      : '거기서 누구랑 있었던 일을 그림 일기로 써볼까? 여러명이면 여러명을 선택해!';
-    
-    speakText(ttsMessage, {
-      language: 'ko-KR',
-      pitch: 1.0,
-      rate: 0.8,
-              onDone: () => {
+    const stopAndStartTTS = async () => {
+      setIsTTSActive(true);
+      await stopSpeech();
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const ttsMessage = selectionStep === 'location' 
+        ? '오늘은 어디서 있었던 일을 그림 일기로 써볼까?'
+        : '거기서 누구랑 있었던 일을 그림 일기로 써볼까? 여러명이면 여러명을 선택해!';
+      speakText(ttsMessage, {
+        language: 'ko-KR',
+        pitch: 1.0,
+        rate: 0.8,
+        onDone: () => {
           setHasSpoken(true);
+          setIsTTSActive(false);
         },
         onError: (error) => {
           setHasSpoken(true);
+          setIsTTSActive(false);
         }
-    });
+      });
+    };
+    stopAndStartTTS();
   }, [selectionStep]);
 
   // TTS 중단 함수
@@ -130,10 +137,20 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                 places.map((place) => (
                   <TouchableOpacity
                     key={place.id}
-                    className="p-6 border-2 border-gray-200 rounded-xl bg-white"
+                    className={`p-6 border-2 rounded-xl ${
+                      isTTSActive || isLoading
+                        ? 'border-gray-200 bg-gray-200'
+                        : 'border-gray-200 bg-white'
+                    }`}
                     onPress={() => stopTTSAndExecute(() => onLocationSelect(place.name, place.id))}
+                    disabled={isTTSActive || isLoading}
                   >
-                    <Text className="text-lg font-semibold text-gray-800 text-center" style={styleTemplates.withBoldFont}>
+                    <Text
+                      className={`text-lg font-semibold text-center ${
+                        isTTSActive || isLoading ? 'text-gray-400' : 'text-gray-800'
+                      }`}
+                      style={styleTemplates.withBoldFont}
+                    >
                       {place.name}
                     </Text>
                   </TouchableOpacity>
@@ -151,21 +168,39 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
             {/* 자유롭게 시작하기 버튼들 */}
             <View className="border-t-2 border-gray-200 pt-6 mt-6">
               <TouchableOpacity
-                className="bg-blue-500 rounded-xl p-4"
+                className={`rounded-xl p-4 ${
+                  isTTSActive || isLoading
+                    ? 'bg-gray-200'
+                    : 'bg-blue-500'
+                }`}
                 style={{ marginBottom: 20 }}
                 onPress={() => stopTTSAndExecute(onStartChatbotWithSuggestion)}
-                disabled={isLoading}
+                disabled={isTTSActive || isLoading}
               >
-                <Text className="text-white text-lg font-semibold text-center" style={styleTemplates.withBoldFont}>
+                <Text
+                  className={`text-lg font-semibold text-center ${
+                    isTTSActive || isLoading ? 'text-gray-400' : 'text-white'
+                  }`}
+                  style={styleTemplates.withBoldFont}
+                >
                   {isLoading ? '시작 중...' : '뭘 쓸지 모르겠네..'}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="bg-blue-500 rounded-xl p-4"
+                className={`rounded-xl p-4 ${
+                  isTTSActive || isLoading
+                    ? 'bg-gray-200'
+                    : 'bg-blue-500'
+                }`}
                 onPress={() => stopTTSAndExecute(onFreeStart)}
-                disabled={isLoading}
+                disabled={isTTSActive || isLoading}
               >
-                <Text className="text-white text-lg font-semibold text-center" style={styleTemplates.withBoldFont}>
+                <Text
+                  className={`text-lg font-semibold text-center ${
+                    isTTSActive || isLoading ? 'text-gray-400' : 'text-white'
+                  }`}
+                  style={styleTemplates.withBoldFont}
+                >
                   {isLoading ? '시작 중...' : '오늘은 내가 쓰고 싶은 게 있어!'}
                 </Text>
               </TouchableOpacity>
@@ -175,10 +210,11 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
           <>
             {/* 뒤로가기 버튼 */}
             <TouchableOpacity
-              className="mb-4 p-2"
+              className={`mb-4 p-2 ${isTTSActive ? 'bg-gray-200' : ''}`}
               onPress={() => stopTTSAndExecute(onBackToLocation)}
+              disabled={isTTSActive}
             >
-              <Text className="text-blue-500 text-lg" style={styleTemplates.withBoldFont}>← 장소 다시 선택</Text>
+              <Text className={`text-blue-500 text-lg ${isTTSActive ? 'text-gray-400' : ''}`} style={styleTemplates.withBoldFont}>← 장소 다시 선택</Text>
             </TouchableOpacity>
             
             {/* 선택된 장소 표시 */}
@@ -197,16 +233,28 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                     key={person.id}
                     className={`p-4 border-2 rounded-xl ${
                       selectedPersonIds.includes(person.id)
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 bg-white'
+                        ? isTTSActive
+                          ? 'border-blue-200 bg-blue-100'
+                          : 'border-blue-500 bg-blue-50'
+                        : isTTSActive
+                          ? 'border-gray-200 bg-gray-200'
+                          : 'border-gray-200 bg-white'
                     }`}
                     onPress={() => executeWithConditionalTTSStop(() => onPersonToggle(person.name, person.id))}
+                    disabled={isTTSActive}
                   >
-                    <Text className={`text-center font-semibold ${
-                      selectedPersonIds.includes(person.id)
-                        ? 'text-blue-600'
-                        : 'text-gray-800'
-                    }`} style={styleTemplates.withBoldFont}>
+                    <Text
+                      className={`text-center font-semibold ${
+                        selectedPersonIds.includes(person.id)
+                          ? isTTSActive
+                            ? 'text-blue-300'
+                            : 'text-blue-600'
+                          : isTTSActive
+                            ? 'text-gray-400'
+                            : 'text-gray-800'
+                      }`}
+                      style={styleTemplates.withBoldFont}
+                    >
                       {person.name}
                     </Text>
                   </TouchableOpacity>
@@ -224,14 +272,21 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
             {/* 시작하기 버튼 */}
             <TouchableOpacity
               className={`rounded-xl p-4 ${
-                ((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading
-                  ? 'bg-gray-400'
+                isTTSActive || ((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading
+                  ? 'bg-gray-200'
                   : 'bg-blue-500'
               }`}
               onPress={() => stopTTSAndExecute(onSelectionComplete)}
-              disabled={((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading}
+              disabled={isTTSActive || ((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading}
             >
-              <Text className="text-white text-lg font-semibold text-center" style={styleTemplates.withBoldFont}>
+              <Text
+                className={`text-white text-lg font-semibold text-center ${
+                  isTTSActive || ((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading
+                    ? 'text-gray-400'
+                    : 'text-white'
+                }`}
+                style={styleTemplates.withBoldFont}
+              >
                 {isLoading ? '시작 중...' : `시작하기 (${
                   useApiData ? selectedPersonIds.length : selectedPeople.length
                 }명 선택됨)`}

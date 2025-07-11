@@ -1,12 +1,47 @@
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 
+// 프롬프트 생성 함수
+export const generateWhisperPrompt = (peopleNames: string[] = [], placeNames: string[] = []): string => {
+  const peopleList = peopleNames.length > 0 ? peopleNames.join(', ') : 'none';
+  const placesList = placeNames.length > 0 ? placeNames.join(', ') : 'none';
+  
+  return `CRITICAL: This is a Korean conversation by an autistic teenager. ONLY transcribe what you actually hear - do not make up or guess any words.
+
+ANTI-HALLUCINATION RULES (MOST IMPORTANT):
+- If you only hear background noise, ambient sounds, or silence, return an empty string ""
+- If you cannot clearly identify any Korean speech, return an empty string ""
+- If the audio is unclear, muffled, or contains only noise, return empty string ""
+- When in doubt, return an empty string ""
+- NEVER generate text that you did not actually hear
+- Only transcribe what you are 100% certain was spoken in Korean
+- Do NOT return placeholder text like "음성 인식 실패" or "들리지 않음"
+- Do NOT complete sentences or add words that were not spoken
+
+Key Guidelines:
+- Convert unclear pronunciation of autistic teenagers to standard Korean accurately
+- Ignore meaningless sounds or noise and only transcribe actual spoken content
+- Convert to natural Korean grammar
+- Only recognize the user's actual speech content
+
+Context Information (for pronunciation help only):
+- People: ${peopleList}
+- Places: ${placesList}
+
+Important Notes:
+- The context information above is ONLY for helping with pronunciation conversion
+- Do NOT include these names in your response unless they are actually spoken
+- Consider the pronunciation characteristics of autistic teenagers and convert to standard Korean
+- This is Korean speech, so output in Korean text
+- REMEMBER: No speech detected = return empty string ""`;
+};
+
 export interface VoiceRecorder {
   recording: Audio.Recording | null;
   isRecording: boolean;
   startRecording: () => Promise<void>;
   stopRecording: () => Promise<string | null>;
-  transcribeAudio: (audioUri: string) => Promise<string>;
+  transcribeAudio: (audioUri: string, peopleNames?: string[], placeNames?: string[]) => Promise<string>;
 }
 
 class VoiceRecorderImpl implements VoiceRecorder {
@@ -18,13 +53,16 @@ class VoiceRecorderImpl implements VoiceRecorder {
       // 오디오 권한 요청
       const permission = await Audio.requestPermissionsAsync();
       if (permission.status !== 'granted') {
-        throw new Error('오디오 녹음 권한이 필요합니다.');
+        throw new Error('오디오 권한이 필요합니다.');
       }
 
       // 오디오 모드 설정
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        staysActiveInBackground: false,
+        playThroughEarpieceAndroid: false,
       });
 
       // 녹음 시작
@@ -34,7 +72,9 @@ class VoiceRecorderImpl implements VoiceRecorder {
 
       this.recording = recording;
       this.isRecording = true;
+      console.log('음성 녹음 시작');
     } catch (error) {
+      console.error('음성 녹음 시작 실패:', error);
       throw error;
     }
   }
@@ -57,7 +97,7 @@ class VoiceRecorderImpl implements VoiceRecorder {
     }
   }
 
-  async transcribeAudio(audioUri: string): Promise<string> {
+  async transcribeAudio(audioUri: string, peopleNames: string[] = [], placeNames: string[] = []): Promise<string> {
     try {
       // 오디오 파일을 base64로 인코딩
       const base64Audio = await FileSystem.readAsStringAsync(audioUri, {
@@ -78,8 +118,10 @@ class VoiceRecorderImpl implements VoiceRecorder {
             type: 'audio/m4a',
             name: 'recording.m4a',
           } as any);
-          formData.append('model', 'whisper-1');
+          formData.append('model', 'gpt-4o-transcribe');
           formData.append('language', 'ko');
+          formData.append('temperature', '0');
+          formData.append('prompt', generateWhisperPrompt(peopleNames, placeNames));
           return formData;
         })(),
       });
@@ -89,8 +131,13 @@ class VoiceRecorderImpl implements VoiceRecorder {
       }
 
       const result = await response.json();
-      console.log('음성 변환 결과:', result.text);
-      return result.text;
+      console.log('음성 변환 결과:', result);
+      
+      // gpt-4o-transcribe는 JSON 형식으로 응답
+      const transcribedText = result.text || result.transcript || '';
+      console.log('추출된 텍스트:', transcribedText);
+      
+      return transcribedText;
     } catch (error) {
       console.error('음성 변환 실패:', error);
       throw error;
