@@ -105,7 +105,7 @@ export default function IntroScreen() {
           >
             <TouchableOpacity
               onPress={handleStart}
-              className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-3xl py-5 px-12 shadow-xl"
+              className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-3xl py-5 px-12"
               activeOpacity={0.9}
             >
               <Text

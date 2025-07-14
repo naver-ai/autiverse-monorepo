@@ -54,20 +54,17 @@ export default function AgentIntroScreen() {
 
   const { dyad, isDyadLoading, dyadError } = useDyad();
 
-  console.log('AgentIntroScreen rendered');
 
   useEffect(() => {
     if (dyad && !hasSpoken) {
-      console.log('AgentIntroScreen: Starting TTS - dyad loaded, hasSpoken:', hasSpoken);
-      const isFirstVisit = dyad.journal_entries.length <= 1;
+      const isFirstVisit = dyad.journal_entries?.length <= 1;
       const childJosa = getKoreanJosa(dyad.child_name);
-      const agentJosa = getKoreanJosa(dyad.agents[0].agent_name);
+      const agentJosa = getKoreanJosa(dyad.agents?.[0]?.agent_name || '친구');
 
       const greetingText = isFirstVisit
-        ? `안녕, ${dyad.child_name}${childJosa}. 나는 2주간 너와 함께 그림 일기를 쓸 ${dyad.agents[0].agent_name}${agentJosa}. 만나서 반가워!`
+        ? `안녕, ${dyad.child_name}${childJosa}. 나는 2주간 너와 함께 그림 일기를 쓸 ${dyad.agents?.[0]?.agent_name || '친구'}${agentJosa}. 만나서 반가워!`
         : `안녕, ${dyad.child_name}${childJosa}. 또 만나니 너무 좋다.`;
 
-      console.log('AgentIntroScreen: Greeting text:', greetingText);
       console.log('AgentIntroScreen: isFirstVisit:', isFirstVisit);
 
       // TTS 시작
@@ -140,12 +137,12 @@ export default function AgentIntroScreen() {
   } else {
 
     console.log(dyad)
-    const isFirstVisit = dyad!.journal_entries.length <= 1;
+    const isFirstVisit = dyad!.journal_entries?.length <= 1;
     const childJosa = getKoreanJosa(dyad!.child_name);
-    const agentJosa = getKoreanJosa(dyad!.agents[0].agent_name);
+    const agentJosa = getKoreanJosa(dyad!.agents?.[0]?.agent_name || '친구');
 
     const greetingText = isFirstVisit
-      ? `안녕, ${dyad!.child_name}${childJosa}. 나는 2주간 너와 함께 그림 일기를 쓸 ${dyad!.agents[0].agent_name}${agentJosa}. 만나서 반가워!`
+      ? `안녕, ${dyad!.child_name}${childJosa}. 나는 2주간 너와 함께 그림 일기를 쓸 ${dyad!.agents?.[0]?.agent_name || '친구'}${agentJosa}. 만나서 반가워!`
       : `안녕, ${dyad!.child_name}${childJosa}. 또 만나니 너무 좋다.`;
 
     return (
@@ -166,7 +163,7 @@ export default function AgentIntroScreen() {
                   className="text-base text-gray-600 text-center"
                   style={styleTemplates.withSemiboldFont}
                 >
-                  {dyad!.agents[0].agent_name}
+                  {dyad!.agents?.[0]?.agent_name || '친구'}
                 </Text>
               </View>
             </View>
@@ -176,10 +173,10 @@ export default function AgentIntroScreen() {
           <View className="flex-1 items-center justify-center">
             <Image
               source={
-                dyad!.agents[0].agent_config?.avatar_image
-                  ? dyad!.agents[0].agent_config.avatar_image.startsWith('http')
-                    ? { uri: dyad!.agents[0].agent_config.avatar_image }
-                    : getImageSource(dyad!.agents[0].agent_config.avatar_image)
+                dyad!.agents?.[0]?.agent_config?.avatar_image
+                  ? dyad!.agents?.[0]?.agent_config?.avatar_image.startsWith('http')
+                    ? { uri: dyad!.agents?.[0]?.agent_config?.avatar_image }
+                    : getImageSource(dyad!.agents?.[0]?.agent_config?.avatar_image)
                   : require('../../../assets/robot.png')
               }
               style={{

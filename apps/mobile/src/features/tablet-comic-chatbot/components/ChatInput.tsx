@@ -69,7 +69,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     lastMessage?.text?.includes('더 추가하거나 바꿀 곳 있어?'));
           }
           if (currentStage === 'comic_context') {
-            return lastMessage?.text?.includes('기분이 어땠어?');
+            return lastMessage?.text?.includes('기분이 어땠어?') || lastMessage?.text?.includes('몇가지 확인해줄래??');
           }
           return false;
         })();
@@ -110,6 +110,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
              inputText.trim() === '';
     }
     
+    // comic_context에서 "몇가지 확인해줄래??" 멘트가 포함된 질문일 때 버튼 표시
+    if (currentStage === 'comic_context') {
+      return lastBotMessage?.includes('몇가지 확인해줄래??') && 
+             !isDisabled && 
+             inputText.trim() === '';
+    }
+    
     return false;
   })();
 
@@ -136,6 +143,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       }
     } else if (currentStage === 'revision_2') {
       return { left: '있어', right: '없어' };
+    } else if (currentStage === 'comic_context') {
+      return { left: '좋아!', right: '알겠어!' };
     }
     return { left: '응', right: '아니' };
   };
