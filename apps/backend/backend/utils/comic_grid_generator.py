@@ -41,7 +41,7 @@ class FourSceneComic:
         return [[{"type": "empty", "content": "", "position": [x, y]} for x in range(5)] for y in range(5)]
 
     async def _analyze_story(self) -> List[Dict]:
-        """1단계: 전체 스토리 분석 (admin-web과 동일)"""
+        """1단계: 전체 스토리 분석"""
         system_prompt = """You are an expert in information-extraction and comic scene designer. Return only a JSON array that follows these rules.
 
 1. Allowed keys (exact spelling, lower-case):
@@ -224,7 +224,7 @@ Panel 4: "{self.panels.get('panel4', '')}"
             return []
 
     async def _get_topology_relationships(self, panel_id: str, panel_elements: List[Dict]) -> List[Dict]:
-        """Topology 관계 결정 (admin-web과 동일)"""
+        """Topology 관계 결정"""
         if not panel_elements:
             return []
             

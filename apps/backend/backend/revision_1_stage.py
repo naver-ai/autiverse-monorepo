@@ -105,7 +105,7 @@ class Revision1Stage:
                 self._update_revision_count(new_count)
                 print(f"[DEBUG] revision_1: revision_count: {self.revision_count}")
                 if self.revision_count > self.max_revisions:
-                    return "장난치지마~ 😤"
+                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 고치고 싶은 부분이 있다면 말해줘~"
                 elif self.revision_count == self.max_revisions:
                     return "아앗;; 이제 마지막 기회야! 지금 틀린 부분이 있다면 다 말해줘~ 😅"
                 else:
@@ -124,7 +124,7 @@ class Revision1Stage:
                 self._update_revision_count(new_count)
                 print(f"[DEBUG] revision_1: revision_count: {self.revision_count}")
                 if self.revision_count > self.max_revisions:
-                    return "장난치지마~ 😤"
+                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 고치고 싶은 부분이 있다면 말해줘~"
                 elif self.revision_count == self.max_revisions:
                     return "아앗;; 이제 마지막 기회야! 지금 틀린 부분이 있다면 다 말해줘~ 😅"
                 else:

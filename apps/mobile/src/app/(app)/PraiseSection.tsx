@@ -22,8 +22,26 @@ export default function PraiseSection({ childName = "친구", agentConfig, onCom
   const [visibleSentences, setVisibleSentences] = useState<string[]>([]);
   const [hasSpoken, setHasSpoken] = useState(false);
   
-  // 하드코딩된 칭찬 메시지
-  const praiseMessage = `우리 ${childName} 오늘 그림 일기 쓰는 모습 만점!! 오늘 있었던 일 잘 떠올리고, 질문에 답변 잘해주고, 내가 그림 그리는 거 기다려줘서 고마워~`;
+  // 한국어 종성에 따른 호격 조사 처리 함수
+  const getVocativeParticle = (name: string): string => {
+    if (!name || name.length === 0) return '';
+    
+    const lastChar = name.charAt(name.length - 1);
+    const code = lastChar.charCodeAt(0);
+    
+    // 한글 범위 체크 (가-힣: 44032-55203)
+    if (code < 44032 || code > 55203) return '';
+    
+    // 종성 계산: (유니코드 - 44032) % 28
+    const unicode = code - 44032;
+    const jong = unicode % 28;
+    
+    // 종성이 있으면 '이', 없으면 '야'
+    return jong !== 0 ? '이' : '';
+  };
+  
+  // 종성에 따른 조사를 적용한 칭찬 메시지
+  const praiseMessage = `우리 ${childName}${getVocativeParticle(childName)} 오늘 그림 일기 쓰는 모습 만점!! 오늘 있었던 일 잘 떠올리고, 질문에 답변 잘해주고, 내가 그림 그리는 거 기다려줘서 고마워~`;
   
   // 메시지를 문장 단위로 분리
   const sentences = praiseMessage.split('.').filter((s: string) => s.trim().length > 0).map((s: string) => s.trim() + '.');

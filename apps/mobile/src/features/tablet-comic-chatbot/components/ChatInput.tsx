@@ -69,7 +69,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     lastMessage?.text?.includes('더 추가하거나 바꿀 곳 있어?'));
           }
           if (currentStage === 'comic_context') {
-            return lastMessage?.text?.includes('기분이 어땠어?') || lastMessage?.text?.includes('몇가지 확인해줄래??');
+            return lastMessage?.text?.includes('기분이 어땠어?') || lastMessage?.text?.includes('기분이었어?') || lastMessage?.text?.includes('몇가지 확인해줄래??');
           }
           return false;
         })();
@@ -123,7 +123,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const showEmotionButtons = (() => {
     // comic_context에서 "기분이 어땠어?" 질문일 때 감정 버튼 표시
     if (currentStage === 'comic_context') {
-      return lastBotMessage?.includes('기분이 어땠어?') && 
+      return (lastBotMessage?.includes('기분이 어땠어?') || lastBotMessage?.includes('기분이었어?')) && 
              !isDisabled && 
              inputText.trim() === '';
     }

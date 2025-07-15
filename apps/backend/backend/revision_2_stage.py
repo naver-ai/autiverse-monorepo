@@ -38,6 +38,25 @@ class Revision2Stage:
             return journal.revision_2_count
         return 0
     
+    def _get_vocative_particle(self, name: str) -> str:
+        """한국어 종성에 따른 호격 조사 처리 함수"""
+        if not name or len(name) == 0:
+            return ''
+        
+        last_char = name[-1]
+        code = ord(last_char)
+        
+        # 한글 범위 체크 (가-힣: 44032-55203)
+        if code < 44032 or code > 55203:
+            return ''
+        
+        # 종성 계산: (유니코드 - 44032) % 28
+        unicode_val = code - 44032
+        jong = unicode_val % 28
+        
+        # 종성이 있으면 '이', 없으면 ''
+        return '이' if jong != 0 else ''
+    
     def _update_revision_count(self, new_count: int) -> None:
         """Journal의 revision_2_count 업데이트"""
         from .database.crud.chatbot import update_journal_data
@@ -123,7 +142,7 @@ class Revision2Stage:
                 self._update_revision_count(new_count)
                 print(f"[DEBUG] revision_2: revision_count: {self.revision_count}")
                 if self.revision_count > self.max_revisions:
-                    return "장난치지마~ 😤"
+                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 수정하거나 추가하고 싶은 부분이 있다면 말해줘~"
                 elif self.revision_count == self.max_revisions:
                     return "아앗;; 이제 마지막 기회야! 지금 수정하거나 추가하고 싶은 부분이 있다면 다 말해줘~ 😅"
                 else:
@@ -131,7 +150,7 @@ class Revision2Stage:
             elif self._is_negative_response(user_message):
                 # 수정 완료, 완료 단계로
                 self._complete_journal_entry()
-                return f"우와~ 이렇게 멋진 그림 일기 완성이라니! 역시 {self.child_name}야. 내가 너한테 관심이 많다보니 질문이 많았는데 잘 답변해줘서 고마워. 덕분에 {self.child_name}에게 오늘 어떤 일이 있었는지 잘 알 수 있어 정말 너무나 기뻤어!!"
+                return f"우와~ 이렇게 멋진 그림 일기 완성이라니! 역시 {self.child_name}{self._get_vocative_particle(self.child_name)}야. 내가 너한테 관심이 많다보니 질문이 많았는데 잘 답변해줘서 고마워. 덕분에 {self.child_name}{self._get_vocative_particle(self.child_name)}에게 오늘 어떤 일이 있었는지 잘 알 수 있어 정말 너무나 기뻤어!!"
             else:
                 return "응 아니 중에 골라줘! 😅"
         
@@ -140,14 +159,14 @@ class Revision2Stage:
             if self._is_negative_response(user_message):
                 # 수정할 부분이 없다면 완료
                 self._complete_journal_entry()
-                return f"우와~ 이렇게 멋진 그림 일기 완성이라니! 역시 {self.child_name}야. 내가 너한테 관심이 많다보니 질문이 많았는데 잘 답변해줘서 고마워. 덕분에 {self.child_name}에게 오늘 어떤 일이 있었는지 잘 알 수 있어 정말 너무나 기뻤어!!"
+                return f"우와~ 이렇게 멋진 그림 일기 완성이라니! 역시 {self.child_name}{self._get_vocative_particle(self.child_name)}야. 내가 너한테 관심이 많다보니 질문이 많았는데 잘 답변해줘서 고마워. 덕분에 {self.child_name}{self._get_vocative_particle(self.child_name)}에게 오늘 어떤 일이 있었는지 잘 알 수 있어 정말 너무나 기뻤어!!"
             elif self._is_positive_response(user_message):
                 # 수정할 부분이 있다면 revision_count 증가하고 수정 요청
                 new_count = self.revision_count + 1
                 self._update_revision_count(new_count)
                 print(f"[DEBUG] revision_2: revision_count: {self.revision_count}")
                 if self.revision_count > self.max_revisions:
-                    return "장난치지마~ 😤"
+                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 수정하거나 추가하고 싶은 부분이 있다면 말해줘~"
                 elif self.revision_count == self.max_revisions:
                     return "아앗;; 이제 마지막 기회야! 지금 수정하거나 추가하고 싶은 부분이 있다면 다 말해줘~ 😅"
                 else:

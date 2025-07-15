@@ -117,6 +117,25 @@ class ComicIntroStage:
         if journal_entry and journal_entry.dyad:
             return journal_entry.dyad.child_gender
         return "male"  # fallback
+    
+    def _get_vocative_particle(self, name: str) -> str:
+        """한국어 종성에 따른 호격 조사 처리 함수"""
+        if not name or len(name) == 0:
+            return ''
+        
+        last_char = name[-1]
+        code = ord(last_char)
+        
+        # 한글 범위 체크 (가-힣: 44032-55203)
+        if code < 44032 or code > 55203:
+            return ''
+        
+        # 종성 계산: (유니코드 - 44032) % 28
+        unicode_val = code - 44032
+        jong = unicode_val % 28
+        
+        # 종성이 있으면 '이', 없으면 ''
+        return '이' if jong != 0 else ''
         
     def start_conversation(self, location: str = None, people: List[str] = None) -> str:
         """대화 시작"""
@@ -377,7 +396,13 @@ CONVERSATION:
     def _generate_intro_message(self, location: str = None, people: List[str] = None) -> str:
         """초기 인사 메시지 생성"""
         if location and people:
-            return f"오늘 {location}에서 {', '.join(people)}랑 무슨 일이 있었는지 너무 궁금해! 나한테 다 이야기해줘! 😊"
+            # 사람들의 이름에 종성에 따른 조사 적용
+            people_with_particles = []
+            for person in people:
+                particle = self._get_vocative_particle(person)
+                people_with_particles.append(f"{person}{particle}")
+            
+            return f"오늘 {location}에서 {', '.join(people_with_particles)}랑 무슨 일이 있었는지 너무 궁금해! 나한테 다 이야기해줘! 😊"
         else:
             return "대박대박!! 딱 쓰고 싶은 게 있었구나!! 오늘 있었던 무슨 일을 일기로 써볼까? 😊"
     
