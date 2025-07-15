@@ -718,7 +718,7 @@ answer: "{answer}"
             if not self.story_analysis:
                 return "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래??"
             
-            # 문제점이 있는지 확인 (content 이슈와 order 이슈 모두 체크)
+            # Content 이슈만 확인 (Flow, Order는 _reconstruct_panel에서 처리)
             content_issues = self.story_analysis.get("content", {})
             order_issues = self.story_analysis.get("order", [])
             
@@ -736,22 +736,13 @@ answer: "{answer}"
                 for issues in content_has_issues
             )
             
-            # Flow 이슈 확인 (A→B, B→C flow가 깨진 경우)
-            flow_issues = []
-            for panel, issues in content_issues.items():
-                for issue in issues:
-                    if "Flow" in issue or "flow" in issue:
-                        flow_issues.append(issue)
-            
-            has_flow_issues = len(flow_issues) > 0
-            
             # Order 이슈 확인 (order 배열에 실제 내용이 있는 이슈가 있는지 확인)
             has_order_issues = any(
                 order.strip() for order in order_issues if order.strip()
             )
             
-            # Flow 이슈를 우선적으로 처리, 그 다음 Content 이슈, 마지막으로 Order 이슈
-            has_real_issues = has_flow_issues or has_content_issues or has_order_issues
+            # Content 이슈, 마지막으로 Order 이슈
+            has_real_issues = has_content_issues or has_order_issues
             
             if not has_real_issues:
                 # comic_context 완료 시 다음 단계로 넘어감
@@ -791,7 +782,7 @@ ABCD STRUCTURE:
 - D (panel4): Emotion - writer's own feeling only (emotion word)
 
 === Question-Generation Rules ===
-1. **ALWAYS start with a friendly, enthusiastic reaction to the user's previous answer:**
+1. **ALWAYS start with a friendly, sympathetic reaction to the user's previous answer:**
    - Show genuine interest and excitement about what they shared
    - Use appropriate emojis to match the mood
    - Reference specific details from their answer
@@ -799,6 +790,8 @@ ABCD STRUCTURE:
    - If "problematic": Focus on situational overview questions (context, timing, environment)
    - If "normal": Focus on "HOW" questions (methods, details)
 3. **CRITICAL: Focus on the FIRST missing information in order: A → B → C → D**
+   - **MANDATORY: Check content in story_analysis and focus ONLY on the FIRST panel with missing information**
+   - **MANDATORY: If A has missing info, ask about A ONLY. If A is complete but B has missing info, ask about B ONLY.**
 4. Ask exactly ONE question that can elicit the missing detail.
 5. **CHOICE RULE: Only provide 2-3 choices when the question naturally limits to exactly 2-3 options:**
    - Examples that SHOULD have choices: "학교 안이었어? 밖이었어?" (2 choices), "오전이었어? 오후였어?" (2 choices)

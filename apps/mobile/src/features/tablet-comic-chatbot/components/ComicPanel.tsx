@@ -27,8 +27,8 @@ export const ComicPanel: React.FC<ComicPanelProps> = ({
         isHighlighted ? 'border-red-500 border-3' : 'border-gray-200'
       }`}
       style={{ 
-        height: 330, 
-        maxHeight: 330,
+        height: 300, 
+        maxHeight: 300,
         flex: 1,
         marginHorizontal: 4,
         ...(isHighlighted && {
