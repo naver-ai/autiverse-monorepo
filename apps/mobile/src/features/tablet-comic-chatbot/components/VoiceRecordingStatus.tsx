@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
 import { styleTemplates } from '../../../styles';
 import { voiceRecorder } from '../utils/voiceUtils';
 
@@ -43,6 +43,7 @@ export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
   const voiceRecording = isVoiceRecording ?? false;
   const ttsActive = isTTSActive ?? false;
   const pulseAnimation = useRef(new Animated.Value(1)).current;
+  const bounceAnimation = useRef(new Animated.Value(1)).current;
 
   // 음성 녹음 애니메이션
   useEffect(() => {
@@ -62,7 +63,28 @@ export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
         ])
       );
       pulse.start();
-      return () => pulse.stop();
+      
+      // Bounce 애니메이션
+      const bounce = Animated.loop(
+        Animated.sequence([
+          Animated.timing(bounceAnimation, {
+            toValue: 1.15,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(bounceAnimation, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      bounce.start();
+      
+      return () => {
+        pulse.stop();
+        bounce.stop();
+      };
     }
   }, [voiceRecording]);
 
@@ -76,7 +98,7 @@ export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
       voiceMode && voiceRecording 
         ? 'bg-blue-50 border-2 border-blue-200' 
         : 'bg-white border-2 border-gray-200'
-    }`}>
+    }`} style={{ minHeight: 110 }}>
       <View className="flex-row items-center flex-1">
         {voiceRecording ? (
           <View className="flex-row items-center mr-3">
@@ -94,7 +116,7 @@ export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
         ) : (
           <View className="w-4 h-4 bg-gray-400 rounded-full mr-3" />
         )}
-        <Text className={`text-lg font-semibold ${
+        <Text className={`text-xl font-semibold ${
           voiceRecording 
             ? 'text-blue-800' 
             : 'text-gray-600'
@@ -107,22 +129,33 @@ export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
       
       {/* 완료 버튼은 음성 녹음 중일 때만 표시 */}
       {voiceRecording && (
-        <TouchableOpacity
-          onPress={onComplete}
-          className="bg-green-500 px-4 py-2 rounded-lg"
+        <Animated.View
           style={{
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
+            transform: [{ scale: bounceAnimation }],
           }}
         >
-          <Text className="text-white font-bold text-base" style={styleTemplates.withBoldFont}>
-            완료
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onComplete}
+            className="bg-green-500 rounded-lg items-center justify-center"
+            style={{
+              width: 90, // 정사각형 크기 (기존의 약 2배)
+              height: 90,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 3,
+            }}
+          >
+            <Text className="text-white font-bold text-2xl" style={styleTemplates.withBoldFont}>
+              완료
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
       )}
+      
+      {/* 말하는 중일 때는 빈 공간으로 높이 맞춤 */}
+      {!voiceRecording && <View style={{ width: 90, height: 90 }} />}
     </View>
   );
 }; 

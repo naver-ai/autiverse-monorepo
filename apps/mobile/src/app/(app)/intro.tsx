@@ -97,7 +97,7 @@ export default function IntroScreen() {
         </Animated.View>
 
         {/* 시작하기 버튼 영역 */}
-        <View className="w-full pb-24 items-center">
+        <View className="w-full pb-20 items-center">
           <Animated.View
             style={{
               transform: [{ scale: buttonScaleAnim }],
@@ -109,7 +109,7 @@ export default function IntroScreen() {
               activeOpacity={0.9}
             >
               <Text
-                className="text-2xl text-gray-800 text-center font-bold"
+                className="text-3xl text-gray-800 text-center font-bold"
                 style={styleTemplates.withBoldFont}
               >
                 시작하기

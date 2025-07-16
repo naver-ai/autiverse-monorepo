@@ -24,7 +24,7 @@ export const ChatText: React.FC<ChatTextProps> = ({
   return (
     <View className="flex-row items-center">
       <TextInput
-        className={`flex-1 border-2 rounded-xl px-4 py-3 mr-3 text-base ${
+        className={`flex-1 border-2 rounded-xl px-4 py-3 mr-3 text-lg ${
           (isDisabled && !isVoiceMode) || showButtons ? 'border-gray-300 bg-gray-100' : 'border-gray-200'
         }`}
         placeholder={isVoiceMode ? "채팅으로 하려면 여기를 클릭하세요" : ""}
@@ -38,13 +38,13 @@ export const ChatText: React.FC<ChatTextProps> = ({
         onFocus={onFocus}
         editable={(!isDisabled || isVoiceMode) && !showButtons}
         style={{
-          minHeight: 48,
+          minHeight: 55,
           fontSize: 16,
           ...styleTemplates.withSemiboldFont,
         }}
       />
       <TouchableOpacity
-        className={`px-6 py-3 rounded-xl ${
+        className={`px-6 py-3 rounded-xl justify-center ${
           isDisabled || showButtons
             ? 'bg-gray-400' 
             : 'bg-blue-500'
@@ -56,7 +56,7 @@ export const ChatText: React.FC<ChatTextProps> = ({
         }}
         disabled={isDisabled || !inputText.trim() || showButtons}
         style={{
-          minHeight: 48,
+          minHeight: 55,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: isDisabled ? 0.05 : 0.1,
@@ -64,7 +64,7 @@ export const ChatText: React.FC<ChatTextProps> = ({
           elevation: 3,
         }}
       >
-        <Text className="text-white font-semibold text-base" style={styleTemplates.withBoldFont}>전송</Text>
+        <Text className="text-white font-semibold text-lg" style={styleTemplates.withBoldFont}>전송</Text>
       </TouchableOpacity>
     </View>
   );

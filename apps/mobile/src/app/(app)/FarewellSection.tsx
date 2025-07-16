@@ -80,7 +80,7 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
       <View className="flex-1 px-6">
         {/* 중앙 인사말 영역 */}
         <View className="flex-1 items-center justify-center">
-          <View className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-3xl p-10 shadow-2xl w-full max-w-lg border border-pink-100">
+          <View className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-3xl p-10 w-full max-w-lg border border-pink-100">
             <Text className="text-3xl text-gray-800 leading-relaxed text-center mb-8" style={styleTemplates.withBoldFont}>
             {childName}{childJosa}, 우리 다음에 또 만나서 재미있게 그림 일기 써보자. 안녕~
             </Text>

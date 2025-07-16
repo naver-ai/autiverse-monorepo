@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, Image } from 'react-native';
 import { ChatMessage as ChatMessageType } from '../types';
 import { styleTemplates } from '../../../styles';
 import { speakText, getSpeechManager } from '../utils/speechUtils';
+import { getImageSource } from '../utils/imageUtils';
 
 interface ChatMessageProps {
   messages: ChatMessageType[];
   isLoading: boolean;
   agentName: string;
+  agentConfig?: any;
   onTTSComplete?: () => void;
 }
 
@@ -20,6 +22,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   messages,
   isLoading,
   agentName,
+  agentConfig,
   onTTSComplete
 }) => {
   const lastBotMessage = messages
@@ -66,7 +69,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   if (messages.length === 0) {
     return (
       <View className="items-center justify-center py-8">
-        <Text className="text-base text-gray-600 text-center" style={styleTemplates.withSemiboldFont}>
+        <Text className="text-lg text-gray-600 text-center" style={styleTemplates.withSemiboldFont}>
           왼쪽에서 시작하기를 눌러주세요!
         </Text>
       </View>
@@ -76,10 +79,28 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   if (isLoading) {
     return (
       <View className="items-start">
-        <View className="bg-white border border-gray-200 p-3 rounded-lg">
-          <View className="flex-row items-center">
-            <ActivityIndicator size="small" color="#666" />
-            <Text className="text-gray-600 ml-2 text-sm" style={styleTemplates.withSemiboldFont}>{agentName}가 생각 중...</Text>
+        <View className="flex-row items-start">
+          <Image 
+            source={
+              agentConfig?.avatar_image 
+                ? (agentConfig.avatar_image.startsWith('http') 
+                    ? { uri: agentConfig.avatar_image }
+                    : getImageSource(agentConfig.avatar_image))
+                : require('../../../../assets/robot.png')
+            }
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              marginRight: 12,
+              marginTop: 4
+            }}
+          />
+          <View className="bg-white border border-gray-200 p-3 rounded-lg self-start" style={{ maxWidth: '85%' }}>
+            <View className="flex-row items-center">
+              <ActivityIndicator size="small" color="#666" />
+              <Text className="text-gray-600 ml-2 text-lg" style={styleTemplates.withSemiboldFont}>{agentName}가 생각 중...</Text>
+            </View>
           </View>
         </View>
       </View>
@@ -87,12 +108,46 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   }
   
   if (lastBotMessage) {
+    // 문장 단위로 분리 (마침표, 느낌표, 물음표 기준) - 이모티콘 포함
+    const sentences = lastBotMessage.text
+      .split(/(?<=[.!?])\s+(?=[가-힣])/)
+      .filter(sentence => sentence.trim().length > 0);
+
     return (
       <View className="items-start">
-        <View className="bg-white border border-gray-200 p-3 rounded-lg max-w-[90%]">
-          <Text className="text-sm text-gray-800" style={styleTemplates.withSemiboldFont}>
-            {lastBotMessage.text}
-          </Text>
+        <View className="flex-row items-start">
+          <Image 
+            source={
+              agentConfig?.avatar_image 
+                ? (agentConfig.avatar_image.startsWith('http') 
+                    ? { uri: agentConfig.avatar_image }
+                    : getImageSource(agentConfig.avatar_image))
+                : require('../../../../assets/robot.png')
+            }
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              marginRight: 12,
+              marginTop: 4
+            }}
+          />
+          <View className="flex-1">
+            {sentences.map((sentence, index) => (
+              <View 
+                key={index} 
+                className="bg-white border border-gray-200 p-3 rounded-lg self-start"
+                style={{ 
+                  marginBottom: index < sentences.length - 1 ? 8 : 0,
+                  maxWidth: '85%'
+                }}
+              >
+                <Text className="text-lg text-gray-800" style={styleTemplates.withSemiboldFont}>
+                  {sentence.trim()}
+                </Text>
+              </View>
+            ))}
+          </View>
         </View>
       </View>
     );

@@ -30,6 +30,24 @@ export default function GalleryScreen() {
     });
   };
 
+  // badge 컴포넌트
+  const renderBadge = (stage: string) => {
+    const isComplete = stage === 'complete';
+    return (
+      <View style={[
+        styles.badge,
+        { backgroundColor: isComplete ? '#28A745' : '#FFC107' }
+      ]}>
+        <Text style={[
+          styles.badgeText,
+          { color: isComplete ? '#FFFFFF' : '#000000' }
+        ]}>
+          {isComplete ? '완성' : '미완성'}
+        </Text>
+      </View>
+    );
+  };
+
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -74,28 +92,31 @@ export default function GalleryScreen() {
                 style={styles.comicCard}
                 onPress={() => handleComicPress(comic)}
               >
+                {/* Badge */}
+                {renderBadge(comic.stage)}
+                
                 <View style={styles.comicPreview}>
                   {comic.panels && comic.panels.length > 0 ? (
                     // 4개 패널을 가로 1열로 배치한 미리보기
                     <View style={styles.panelsPreview}>
                       {comic.panels.slice(0, 4).map((panel: any, panelIndex: number) => (
                         <View key={panelIndex} style={styles.panelPreview}>
-                                                     {panel?.grid && panel.grid.length > 0 ? (
-                             // 5x5 그리드 (원본 크기)
-                             (() => {
-                               const grid = Array.from({ length: 5 }, () => 
-                                 Array.from({ length: 5 }, () => ({
-                                   type: 'empty',
-                                   content: '',
-                                   position: [0, 0]
-                                 }))
-                               );
-                               
-                               // layout 데이터를 5x5로 배치 (원본 그대로)
-                               panel.grid.forEach((item: any) => {
-                                 const [x, y] = item.position || [0, 0];
-                                 const safeX = Math.max(0, Math.min(4, Math.floor(x)));
-                                 const safeY = Math.max(0, Math.min(4, Math.floor(y)));
+                          {panel?.grid && panel.grid.length > 0 ? (
+                            // 5x5 그리드 (원본 크기)
+                            (() => {
+                              const grid = Array.from({ length: 5 }, () => 
+                                Array.from({ length: 5 }, () => ({
+                                  type: 'empty',
+                                  content: '',
+                                  position: [0, 0]
+                                }))
+                              );
+                              
+                              // layout 데이터를 5x5로 배치 (원본 그대로)
+                              panel.grid.forEach((item: any) => {
+                                const [x, y] = item.position || [0, 0];
+                                const safeX = Math.max(0, Math.min(4, Math.floor(x)));
+                                const safeY = Math.max(0, Math.min(4, Math.floor(y)));
                                 
                                 grid[safeY][safeX] = {
                                   type: item.type || 'empty',
@@ -119,11 +140,11 @@ export default function GalleryScreen() {
                                 </View>
                               ));
                             })()
-                                                     ) : (
-                             // 빈 5x5 그리드 표시
-                             Array.from({ length: 5 }, (_, y) => (
-                               <View key={y} style={styles.previewGridRow}>
-                                 {Array.from({ length: 5 }, (_, x) => (
+                          ) : (
+                            // 빈 5x5 그리드 표시
+                            Array.from({ length: 5 }, (_, y) => (
+                              <View key={y} style={styles.previewGridRow}>
+                                {Array.from({ length: 5 }, (_, x) => (
                                   <View
                                     key={`${x}-${y}`}
                                     style={styles.previewGridTile}
@@ -288,5 +309,18 @@ const styles = StyleSheet.create({
     color: '#DC3545',
     textAlign: 'center',
     marginTop: 100,
+  },
+  badge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 1,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 }); 

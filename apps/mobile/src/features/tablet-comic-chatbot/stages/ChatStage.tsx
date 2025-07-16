@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, Animated } from 'react-native';
+import { View, Text, Animated, TouchableOpacity } from 'react-native';
 import { ChatMessage } from '../types';
 import { ComicPanel, ChatMessageComponent, ChatInput } from '../components';
 import { convertComicDataToPanels } from '../utils';
 import { styleTemplates } from '../../../styles';
+import { LogoImage } from '../../../components/svg-images';
 
 interface ChatStageProps {
   currentStage: string;
@@ -17,11 +18,13 @@ interface ChatStageProps {
   sendMessage: (message: string) => void;
   isLoading: boolean;
   agentName: string;
+  agentConfig?: any;
   onTTSComplete?: () => void;
   isInputActive?: boolean;
   sessionId?: string;
   loadSessionInfo?: (sessionId: string) => Promise<any>;
   isAfterFarewell?: boolean;
+  onEndSession?: () => void;
 }
 
 export const ChatStage: React.FC<ChatStageProps> = ({
@@ -36,11 +39,13 @@ export const ChatStage: React.FC<ChatStageProps> = ({
   sendMessage,
   isLoading,
   agentName,
+  agentConfig,
   onTTSComplete,
   isInputActive = true,
   sessionId,
   loadSessionInfo,
-  isAfterFarewell = false
+  isAfterFarewell = false,
+  onEndSession
 }) => {
   const convertComicDataToPanelsMemo = React.useMemo(() => {
     return convertComicDataToPanels(comicData);
@@ -96,19 +101,19 @@ export const ChatStage: React.FC<ChatStageProps> = ({
       <View className="flex-1 flex-row">
         {/* 왼쪽: 만화 섹션 */}
         <View className="flex-[1.8] bg-white border-r-2 border-gray-200">
-          {/* 만화 헤더 */}
-          <View className="flex-row justify-between items-center p-3 border-b border-gray-200 pt-6">
-            <Text className="text-lg font-bold text-gray-800" style={styleTemplates.withBoldFont}>🎨 만화일기</Text>
-            <View className="bg-blue-100 px-2 py-1 rounded">
-              <Text className="text-xs font-semibold text-blue-800" style={styleTemplates.withBoldFont}>
-                {currentStage === 'intro' ? '대화' :
-                 currentStage === 'revision_1' ? '내용 검토' :
-                 currentStage === 'comic_context' ? '내용 채우기' :
-                 currentStage === 'revision_2' ? '수정 및 검토' :
-                 currentStage === 'complete' ? '완료' : '대화'}
-              </Text>
+                      {/* 만화 헤더 */}
+            <View className="flex-row justify-between items-center p-3 border-b border-gray-200 pt-4">
+              <LogoImage width={150} height={30} />
+              <TouchableOpacity
+                onPress={onEndSession}
+                className="bg-yellow-500 px-3 py-2 rounded-lg"
+                activeOpacity={0.8}
+              >
+                <Text className="text-white font-semibold text-sm" style={styleTemplates.withBoldFont}>
+                  종료
+                </Text>
+              </TouchableOpacity>
             </View>
-          </View>
           
           {/* 만화 콘텐츠 */}
           <View className="flex-1 relative">
@@ -177,7 +182,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
         <View className="flex-1 bg-white">
                   {/* 채팅 헤더 */}
         <View className="bg-blue-500 p-4">
-          <Text className="text-xl font-bold text-white" style={styleTemplates.withBoldFont}>💬 {agentName}와 대화하기</Text>
+          <Text className="text-2xl font-bold text-white" style={styleTemplates.withBoldFont}>💬 {agentName}와 대화하기</Text>
         </View>
 
           {/* 현재 Agent 메시지 */}
@@ -186,6 +191,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
               messages={messages}
               isLoading={isLoading}
               agentName={agentName}
+              agentConfig={agentConfig}
               onTTSComplete={onTTSComplete}
             />
           </View>

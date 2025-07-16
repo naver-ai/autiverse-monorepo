@@ -240,37 +240,59 @@ def get_gallery(
     dyad: Annotated[Dyad, Depends(get_signed_in_dyad)],
     db: Session = Depends(get_session)
 ):
-    """갤러리에서 완성된 만화들 조회"""
+    """갤러리에서 stage가 intro가 아닌 모든 만화들 조회"""
     try:
-        # 완성된 저널 엔트리들 조회 (status가 completed인 것들)
-        completed_entries = db.query(JournalEntry).filter(
+        # stage가 intro와 revision_1이 아닌 모든 저널 엔트리들 조회
+        journal_entries = db.query(JournalEntry).filter(
             JournalEntry.dyad_id == dyad.id,
-            JournalEntry.status == "completed"
+            JournalEntry.stage != "intro",
+            JournalEntry.stage != "revision_1"
         ).all()
         
         gallery_items = []
-        for entry in completed_entries:
+        for entry in journal_entries:
             # 해당 저널 엔트리의 Comic 데이터 조회
             comic = db.query(Comic).filter(Comic.journal_entry_id == entry.id).first()
             
-            # 완성된 패널 데이터 수집 (second_panel들만)
-            panels = [
-                comic.second_panel1,
-                comic.second_panel2,
-                comic.second_panel3,
-                comic.second_panel4
-            ]
+            # stage별로 적절한 panel 선택 (comic은 항상 second_panel 우선, 없으면 first_panel)
+            panels = []
+            if comic:
+                panels = [
+                    comic.second_panel1 or comic.first_panel1,
+                    comic.second_panel2 or comic.first_panel2,
+                    comic.second_panel3 or comic.first_panel3,
+                    comic.second_panel4 or comic.first_panel4
+                ]
+                # None 값 제거
+                panels = [panel for panel in panels if panel is not None]
             
-            # Journal 테이블의 revision_2 데이터 조회
+            # Journal 테이블의 stage별 데이터 조회
             journal = db.query(Journal).filter(Journal.journal_entry_id == entry.id).first()
-            revision_2_content = journal.revision_2
+            
+            # stage별로 적절한 Journal 데이터 선택
+            journal_data = None
+            if journal:
+                if entry.stage == "comic_context":
+                    # comic_context: comic_context 데이터 사용
+                    journal_data = journal.comic_context or journal.revision_1
+                elif entry.stage == "revision_2":
+                    # revision_2: revision_2 데이터 사용
+                    journal_data = journal.revision_2 or journal.comic_context
+                elif entry.stage == "complete":
+                    # complete: revision_2 데이터 사용 (최종 완성된 데이터)
+                    journal_data = journal.revision_2
+                else:
+                    # 기타 stage: revision_2가 있으면 사용, 없으면 revision_1 사용
+                    journal_data = journal.revision_2 or journal.revision_1
             
             gallery_items.append({
-                "id": comic.id,
+                "id": comic.id if comic else None,
                 "journal_entry_id": entry.id,
+                "stage": entry.stage,
+                "status": entry.status,
                 "created_at": entry.created_at.isoformat() if entry.created_at else None,
                 "panels": panels,
-                "revision_2": revision_2_content,
+                "revision_2": journal_data,  # stage별로 선택된 Journal 데이터
                 "child_name": dyad.child_name,
                 "agent_name": dyad.agents[0].agent_name if dyad.agents else "친구"
             })

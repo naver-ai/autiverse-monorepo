@@ -67,7 +67,7 @@ export class SpeechManager {
         NetworkHelper.ENDPOINTS.APP.TTS.CLOVA,
         {
           text: text,
-          voice: options.voice || 'vhyeri',
+          voice: options.voice || 'nsabina',
           speed: options.rate || 1.4,
           pitch: options.pitch || 1.2,
         }

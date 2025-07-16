@@ -61,18 +61,18 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
 
   return (
     <>
-      {/* Yes/No 버튼 */}
+      {/* Yes/No 버튼 - AI 말하는 높이와 동일하게 설정 */}
       {showYesNoButtons && (
         <View className="flex-row gap-3 mb-4">
           <TouchableOpacity
-            className={`flex-1 px-6 py-4 rounded-xl ${
+            className={`flex-1 px-6 py-4 rounded-xl justify-center ${
               isDisabled ? 'bg-gray-400' : 'bg-gray-500'
             }`}
             onPress={() => sendMessage(buttonTexts.left)}
             disabled={isDisabled}
             style={{
               backgroundColor: isDisabled ? '#9CA3AF' : '#6c757d',
-              minHeight: 56,
+              minHeight: 122, // AI 말하는 높이보다 조금 더 높게
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.1,
@@ -80,17 +80,17 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
               elevation: 3,
             }}
           >
-            <Text className="text-white font-bold text-lg text-center" style={styleTemplates.withBoldFont}>{buttonTexts.left}</Text>
+            <Text className="text-white font-bold text-xl text-center" style={styleTemplates.withBoldFont}>{buttonTexts.left}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className={`flex-1 px-6 py-4 rounded-xl ${
+            className={`flex-1 px-6 py-4 rounded-xl justify-center ${
               isDisabled ? 'bg-gray-400' : 'bg-blue-500'
             }`}
             onPress={() => sendMessage(buttonTexts.right)}
             disabled={isDisabled}
             style={{
               backgroundColor: isDisabled ? '#9CA3AF' : '#4A90E2',
-              minHeight: 56,
+              minHeight: 122, // AI 말하는 높이보다 조금 더 높게
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.1,
@@ -98,12 +98,12 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
               elevation: 3,
             }}
           >
-            <Text className="text-white font-bold text-lg text-center" style={styleTemplates.withBoldFont}>{buttonTexts.right}</Text>
+            <Text className="text-white font-bold text-xl text-center" style={styleTemplates.withBoldFont}>{buttonTexts.right}</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* 감정 버튼 - 3x4 그리드 */}
+      {/* 감정 버튼 - 3x4 그리드 (기존 높이 유지) */}
       {showEmotionButtons && (
         <View className="mb-4 p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
           {[0, 1, 2, 3].map((row) => (
@@ -132,7 +132,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
                       elevation: isSelected ? 4 : 2,
                     }}
                   >
-                    <Text className="text-white font-bold text-sm text-center" style={styleTemplates.withBoldFont}>
+                    <Text className="text-white font-bold text-lg text-center" style={styleTemplates.withBoldFont}>
                       {emotion.emoji} {emotion.text}
                     </Text>
                   </TouchableOpacity>
@@ -143,7 +143,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
           
           {selectedEmotions.length > 0 && (
             <View className="mt-3 items-center">
-              <Text className="text-gray-600 font-bold text-sm mb-2" style={styleTemplates.withSemiboldFont}>
+              <Text className="text-gray-600 font-bold text-lg mb-2" style={styleTemplates.withSemiboldFont}>
                 선택된 감정: {selectedEmotions.join(', ')}
               </Text>
               <TouchableOpacity
@@ -161,7 +161,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
                   elevation: 4,
                 }}
               >
-                <Text className="text-white font-bold text-base text-center" style={styleTemplates.withBoldFont}>
+                <Text className="text-white font-bold text-lg text-center" style={styleTemplates.withBoldFont}>
                   선택 완료
                 </Text>
               </TouchableOpacity>

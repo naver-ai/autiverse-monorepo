@@ -41,10 +41,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [isVoiceRecording, setIsVoiceRecording] = useState<boolean>(false);
   const [isVoiceMode, setIsVoiceMode] = useState<boolean>(false);
   const [hasButtons, setHasButtons] = useState<boolean>(false);
+  const [isVoiceCompleted, setIsVoiceCompleted] = useState<boolean>(false);
   
   const lastBotMessage = messages
     .filter(m => !m.isUser)
-    .pop()?.text;
+    .pop();
   
   // TTS 상태 구독
   useEffect(() => {
@@ -80,6 +81,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         
         // 완료 메시지가 아니고 버튼이 표시되지 않으며, 만화 생성 완료 메시지도 아니고, farewell 이후도 아닐 때만 음성 녹음 시작
         if (!isCompletionMessage && !shouldShowButtons && !isComicCompletionMessage && !isAfterFarewell) {
+          setIsVoiceCompleted(false); // 다음 음성 녹음 시작 전에 완료 상태 초기화
           startVoiceRecording();
         }
       }
@@ -95,24 +97,24 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const showYesNoButtons = (() => {
     // revision_1에서 "다 맞게 들었을까?" 또는 "아직도 틀린 부분 있어?" 또는 "이제 다 맞을까?" 질문일 때만 버튼 표시
     if (currentStage === 'revision_1') {
-      return (lastBotMessage?.includes('다 맞게 들었을까?') || 
-              lastBotMessage?.includes('아직도 틀린 부분 있어?') ||
-              lastBotMessage?.includes('이제 다 맞을까?')) && 
+      return (lastBotMessage?.text?.includes('다 맞게 들었을까?') || 
+              lastBotMessage?.text?.includes('아직도 틀린 부분 있어?') ||
+              lastBotMessage?.text?.includes('이제 다 맞을까?')) && 
              !isDisabled && 
              inputText.trim() === '';
     }
     
     // revision_2에서 "수정하거나 추가하고 싶은 부분 있어?" 또는 "더 추가하거나 바꿀 곳 있어?" 질문일 때만 버튼 표시
     if (currentStage === 'revision_2') {
-      return (lastBotMessage?.includes('수정하거나 추가하고 싶은 부분 있어?') || 
-              lastBotMessage?.includes('더 추가하거나 바꿀 곳 있어?')) && 
+      return (lastBotMessage?.text?.includes('수정하거나 추가하고 싶은 부분 있어?') || 
+              lastBotMessage?.text?.includes('더 추가하거나 바꿀 곳 있어?')) && 
              !isDisabled && 
              inputText.trim() === '';
     }
     
     // comic_context에서 "몇가지 확인해줄래??" 멘트가 포함된 질문일 때 버튼 표시
     if (currentStage === 'comic_context') {
-      return lastBotMessage?.includes('몇가지 확인해줄래??') && 
+      return lastBotMessage?.text?.includes('몇가지 확인해줄래??') && 
              !isDisabled && 
              inputText.trim() === '';
     }
@@ -123,7 +125,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const showEmotionButtons = (() => {
     // comic_context에서 "기분이 어땠어?" 질문일 때 감정 버튼 표시
     if (currentStage === 'comic_context') {
-      return (lastBotMessage?.includes('기분이 어땠어?') || lastBotMessage?.includes('기분이었어?')) && 
+      return (lastBotMessage?.text?.includes('기분이 어땠어?') || lastBotMessage?.text?.includes('기분이었어?')) && 
              !isDisabled && 
              inputText.trim() === '';
     }
@@ -134,10 +136,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   // 버튼 내용 결정
   const getButtonTexts = () => {
     if (currentStage === 'revision_1') {
-      if (lastBotMessage?.includes('다 맞게 들었을까?')) {
+      if (lastBotMessage?.text?.includes('다 맞게 들었을까?')) {
         // 첫 번째 질문
         return { left: '틀린 게 있어', right: '다 맞아' };
-      } else if (lastBotMessage?.includes('아직도 틀린 부분 있어?') || lastBotMessage?.includes('이제 다 맞을까?')) {
+      } else if (lastBotMessage?.text?.includes('아직도 틀린 부분 있어?') || lastBotMessage?.text?.includes('이제 다 맞을까?')) {
         // 수정 후 질문
         return { left: '아직 있어', right: '이제 충분해' };
       }
@@ -156,6 +158,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     try {
       setIsVoiceMode(true);
       setIsVoiceRecording(true);
+      setIsVoiceCompleted(false); // 음성 녹음 시작 시 완료 상태 초기화
       await voiceRecorder.startRecording();
     } catch (error) {
       console.error('음성 녹음 시작 실패:', error);
@@ -172,6 +175,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       if (audioUri) {
         setIsVoiceRecording(false);
         setIsVoiceMode(false);
+        setIsVoiceCompleted(true); // 음성 녹음 완료 상태 업데이트
         
         // sessionId가 있으면 현재 journal의 context 정보를 가져오고, 없으면 dyad 정보 사용
         let peopleNames: string[] = [];
@@ -286,15 +290,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       />
       
       {/* 입력 필드 */}
-      <ChatText
-        inputText={inputText}
-        setInputText={setInputText}
-        sendMessage={sendMessage}
-        isDisabled={isDisabled}
-        isVoiceMode={isVoiceMode}
-        onFocus={handleInputFocus}
-        showButtons={showYesNoButtons || showEmotionButtons}
-      />
+      {isVoiceCompleted ? null : ( // 음성 녹음 완료 상태이면 ChatText를 숨김
+        <ChatText
+          inputText={inputText}
+          setInputText={setInputText}
+          sendMessage={sendMessage}
+          isDisabled={isDisabled}
+          isVoiceMode={isVoiceMode}
+          onFocus={handleInputFocus}
+          showButtons={showYesNoButtons || showEmotionButtons}
+        />
+      )}
     </View>
   );
 }; 

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Dimensions, Animated, Image } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styleTemplates } from '../../styles';
 import { speakText, stopSpeech } from '../../features/tablet-comic-chatbot/utils/speechUtils';
+import { getImageSource } from '../../features/tablet-comic-chatbot/utils/imageUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -46,18 +47,6 @@ export default function PraiseSection({ childName = "친구", agentConfig, onCom
   // 메시지를 문장 단위로 분리
   const sentences = praiseMessage.split('.').filter((s: string) => s.trim().length > 0).map((s: string) => s.trim() + '.');
   
-  // 이미지 매핑 함수
-  const getImageSource = (imageName: string) => {
-    switch (imageName) {
-      case 'robot':
-        return require('../../../assets/robot.png');
-      case 'doll':
-        return require('../../../assets/doll.png');
-      default:
-        return require('../../../assets/icon.png');
-    }
-  };
-
   // TTS 시작
   useEffect(() => {
     if (!hasSpoken) {
@@ -81,7 +70,7 @@ export default function PraiseSection({ childName = "친구", agentConfig, onCom
       const timer = setTimeout(() => {
         setVisibleSentences(prev => [...prev, sentences[currentSentenceIndex]]);
         setCurrentSentenceIndex(prev => prev + 1);
-      }, 1000); // 1초마다 문장 추가
+      }, 500); // 1초마다 문장 추가
 
       return () => clearTimeout(timer);
     } else {
@@ -148,7 +137,7 @@ export default function PraiseSection({ childName = "친구", agentConfig, onCom
                 {visibleSentences.map((sentence, index) => (
                   <Text 
                     key={index} 
-                    className="text-xl text-gray-800 leading-relaxed text-center mb-2" 
+                    className="text-2xl text-gray-800 leading-relaxed text-center mb-2" 
                     style={styleTemplates.withBoldFont}
                   >
                     {sentence}

@@ -14,6 +14,7 @@ import FarewellSection from '../../../app/(app)/FarewellSection';
 import { PresetSelectionStage, ChatStage } from '../stages';
 import { ChatMessage, Preset } from '../types';
 import { stopSpeech, speakText, getSpeechManager } from '../utils/speechUtils';
+import { voiceRecorder } from '../utils/voiceUtils';
 
 export const TabletComicChatbotScreen: React.FC<{
   dyadId?: string;
@@ -529,6 +530,63 @@ export const TabletComicChatbotScreen: React.FC<{
     await startChatbot();
   };
 
+  // 세션 종료 핸들러
+  const handleEndSession = () => {
+    Alert.alert(
+      '세션 종료',
+      '정말로 세션을 종료하시겠습니까?',
+      [
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+        {
+          text: '종료',
+          style: 'destructive',
+          onPress: async () => {
+            // TTS 정지
+            stopSpeech();
+            
+            // 음성 녹음 정리
+            try {
+              if (voiceRecorder.isRecording) {
+                await voiceRecorder.stopRecording();
+              }
+            } catch (error) {
+              console.log('음성 녹음 정리 중 오류:', error);
+            }
+            
+            // 모든 상태 초기화
+            setMessages([]);
+            setInputText('');
+            setIsLoading(false);
+            setCurrentStage('intro');
+            setSessionId(null);
+            setComicData(null);
+            setFocusedPanel(null);
+            setSelectedLocation(null);
+            setSelectedPeople([]);
+            setSelectionStep('location');
+            setShowPresetSelection(true);
+            setSelectedPlaceId(null);
+            setSelectedPersonIds([]);
+            setIsComicCompleted(false);
+            setShowPraiseSection(false);
+            setShowFarewellSection(false);
+            setCompletionMessage('');
+            setIsInputActive(false);
+            setIsAfterFarewell(false);
+            
+            // intro 화면으로 돌아가기
+            if (router) {
+              router.replace('/(app)/intro');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // 인사말 섹션이 표시되어야 하는 경우
   if (showFarewellSection) {
     return (
@@ -588,6 +646,7 @@ export const TabletComicChatbotScreen: React.FC<{
             sendMessage={sendMessage}
             isLoading={isLoading}
             agentName={agentName || "친구"}
+            agentConfig={agentConfig}
             isInputActive={isInputActive}
             sessionId={sessionId || undefined}
             loadSessionInfo={loadSessionInfoFromHook}
@@ -598,6 +657,7 @@ export const TabletComicChatbotScreen: React.FC<{
                 setIsInputActive(true);
               }
             }}
+            onEndSession={handleEndSession}
           />
         )}
       </View>

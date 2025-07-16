@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { Place, Person, Preset } from '../../features/tablet-comic-chatbot/types';
-import { getImageSource, getCurrentDay } from '../../features/tablet-comic-chatbot/utils';
+import { getCurrentDay } from '../../features/tablet-comic-chatbot/utils';
+import { getImageSource } from '../../features/tablet-comic-chatbot/utils/imageUtils';
 import { styleTemplates } from '../../styles';
 import { speakText, stopSpeech } from '../../features/tablet-comic-chatbot/utils/speechUtils';
 
@@ -99,7 +100,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
     <View className="flex-1 p-6">
       <ScrollView className="flex-1">
         {/* 상단 메시지 */}
-        <View className="pt-8 pb-20">
+        <View className="pt-8 pb-12">
           <View className="bg-white rounded-3xl p-6 shadow-lg w-full">
             <View className="flex-row items-center">
               <Image 
@@ -118,7 +119,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                   marginRight: 12
                 }}
               />
-              <Text className="text-xl text-gray-800 leading-relaxed flex-1 text-center" style={styleTemplates.withBoldFont}>
+              <Text className="text-2xl text-gray-800 leading-relaxed flex-1 text-center" style={styleTemplates.withBoldFont}>
                 {selectionStep === 'location' 
                   ? '오늘은 어디서 있었던 일을 그림 일기로 써볼까?'
                   : '거기서 누구랑 있었던 일을 그림 일기로 써볼까? 여러명이면 여러명을 선택해!'
@@ -131,7 +132,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
         {selectionStep === 'location' ? (
           <>
             {/* 장소 선택 그리드 */}
-            <View className="grid grid-cols-2 gap-4 mb-6">
+            <View className="grid grid-cols-2 gap-4 mb-4">
               {places.length > 0 ? (
                 // API 데이터 사용
                 places.map((place) => (
@@ -146,7 +147,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                     disabled={isTTSActive || isLoading}
                   >
                     <Text
-                      className={`text-lg font-semibold text-center ${
+                      className={`text-xl font-semibold text-center ${
                         isTTSActive || isLoading ? 'text-gray-400' : 'text-gray-800'
                       }`}
                       style={styleTemplates.withBoldFont}
@@ -158,7 +159,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               ) : (
                 // API 데이터가 없을 때 빈 상태 표시
                 <View className="p-6 border-2 border-gray-200 rounded-xl bg-white">
-                  <Text className="text-lg font-semibold text-gray-500 text-center" style={styleTemplates.withSemiboldFont}>
+                  <Text className="text-xl font-semibold text-gray-500 text-center" style={styleTemplates.withSemiboldFont}>
                     장소 정보를 불러올 수 없습니다
                   </Text>
                 </View>
@@ -166,7 +167,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
             </View>
             
             {/* 자유롭게 시작하기 버튼들 */}
-            <View className="border-t-2 border-gray-200 pt-6 mt-6">
+            <View className="border-t-2 border-gray-200 pt-6 mt-4">
               <TouchableOpacity
                 className={`rounded-xl p-4 ${
                   isTTSActive || isLoading
@@ -178,7 +179,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                 disabled={isTTSActive || isLoading}
               >
                 <Text
-                  className={`text-lg font-semibold text-center ${
+                  className={`text-xl font-semibold text-center ${
                     isTTSActive || isLoading ? 'text-gray-400' : 'text-white'
                   }`}
                   style={styleTemplates.withBoldFont}
@@ -196,7 +197,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                 disabled={isTTSActive || isLoading}
               >
                 <Text
-                  className={`text-lg font-semibold text-center ${
+                  className={`text-xl font-semibold text-center ${
                     isTTSActive || isLoading ? 'text-gray-400' : 'text-white'
                   }`}
                   style={styleTemplates.withBoldFont}
@@ -214,12 +215,12 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               onPress={() => stopTTSAndExecute(onBackToLocation)}
               disabled={isTTSActive}
             >
-              <Text className={`text-blue-500 text-lg ${isTTSActive ? 'text-gray-400' : ''}`} style={styleTemplates.withBoldFont}>← 장소 다시 선택</Text>
+              <Text className={`text-blue-500 text-xl ${isTTSActive ? 'text-gray-400' : ''}`} style={styleTemplates.withBoldFont}>← 장소 다시 선택</Text>
             </TouchableOpacity>
             
             {/* 선택된 장소 표시 */}
             <View className="mb-6 p-4 bg-blue-50 rounded-lg">
-              <Text className="text-lg text-gray-800" style={styleTemplates.withSemiboldFont}>
+              <Text className="text-xl text-gray-800" style={styleTemplates.withSemiboldFont}>
                 <Text className="font-bold" style={styleTemplates.withBoldFont}>선택된 장소:</Text> {selectedLocation}
               </Text>
             </View>
@@ -244,7 +245,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                     disabled={isTTSActive}
                   >
                     <Text
-                      className={`text-center font-semibold ${
+                      className={`text-center font-semibold text-xl ${
                         selectedPersonIds.includes(person.id)
                           ? isTTSActive
                             ? 'text-blue-300'
@@ -262,7 +263,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               ) : (
                 // API 데이터가 없을 때 빈 상태 표시
                 <View className="p-4 border-2 border-gray-200 rounded-xl bg-white">
-                  <Text className="text-center font-semibold text-gray-500" style={styleTemplates.withSemiboldFont}>
+                  <Text className="text-center font-semibold text-gray-500 text-lg" style={styleTemplates.withSemiboldFont}>
                     사람 정보를 불러올 수 없습니다
                   </Text>
                 </View>
@@ -279,18 +280,18 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               onPress={() => stopTTSAndExecute(onSelectionComplete)}
               disabled={isTTSActive || ((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading}
             >
-              <Text
-                className={`text-white text-lg font-semibold text-center ${
-                  isTTSActive || ((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading
-                    ? 'text-gray-400'
-                    : 'text-white'
-                }`}
-                style={styleTemplates.withBoldFont}
-              >
-                {isLoading ? '시작 중...' : `시작하기 (${
-                  useApiData ? selectedPersonIds.length : selectedPeople.length
-                }명 선택됨)`}
-              </Text>
+                              <Text
+                  className={`text-white text-xl font-semibold text-center ${
+                    isTTSActive || ((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading
+                      ? 'text-gray-400'
+                      : 'text-white'
+                  }`}
+                  style={styleTemplates.withBoldFont}
+                >
+                  {isLoading ? '시작 중...' : `시작하기 (${
+                    useApiData ? selectedPersonIds.length : selectedPeople.length
+                  }명 선택됨)`}
+                </Text>
             </TouchableOpacity>
           </>
         )}
