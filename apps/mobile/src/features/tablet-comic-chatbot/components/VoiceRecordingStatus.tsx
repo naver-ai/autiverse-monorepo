@@ -134,23 +134,23 @@ export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
             transform: [{ scale: bounceAnimation }],
           }}
         >
-          <TouchableOpacity
-            onPress={onComplete}
+        <TouchableOpacity
+          onPress={onComplete}
             className="bg-green-500 rounded-lg items-center justify-center"
-            style={{
+          style={{
               width: 90, // 정사각형 크기 (기존의 약 2배)
               height: 90,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 3,
-            }}
-          >
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
+          }}
+        >
             <Text className="text-white font-bold text-2xl" style={styleTemplates.withBoldFont}>
-              완료
-            </Text>
-          </TouchableOpacity>
+            완료
+          </Text>
+        </TouchableOpacity>
         </Animated.View>
       )}
       

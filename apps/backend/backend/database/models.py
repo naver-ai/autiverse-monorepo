@@ -192,6 +192,7 @@ class JournalEntryStage(StrEnum):
     Revision1="revision_1"
     ComicContext="comic_context"
     Revision2="revision_2"
+    Title="title"
     Complete="complete"
 
 class JournalEntry(SQLModel, IdTimestampMixin, TimezoneTimestampMixin, DyadIdMixin, table=True):
@@ -247,6 +248,7 @@ class Journal(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
     people: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
     events: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
     summary: Optional[str] = Field(nullable=True, default=None)
+    title: Optional[str] = Field(nullable=True, default=None)
     revision_1_count: int = Field(nullable=False, default=0)
     revision_2_count: int = Field(nullable=False, default=0)
     max_revisions: int = Field(nullable=False)

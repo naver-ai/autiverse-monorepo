@@ -280,18 +280,18 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               onPress={() => stopTTSAndExecute(onSelectionComplete)}
               disabled={isTTSActive || ((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading}
             >
-                              <Text
+              <Text
                   className={`text-white text-xl font-semibold text-center ${
-                    isTTSActive || ((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading
-                      ? 'text-gray-400'
-                      : 'text-white'
-                  }`}
-                  style={styleTemplates.withBoldFont}
-                >
-                  {isLoading ? '시작 중...' : `시작하기 (${
-                    useApiData ? selectedPersonIds.length : selectedPeople.length
-                  }명 선택됨)`}
-                </Text>
+                  isTTSActive || ((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading
+                    ? 'text-gray-400'
+                    : 'text-white'
+                }`}
+                style={styleTemplates.withBoldFont}
+              >
+                {isLoading ? '시작 중...' : `시작하기 (${
+                  useApiData ? selectedPersonIds.length : selectedPeople.length
+                }명 선택됨)`}
+              </Text>
             </TouchableOpacity>
           </>
         )}

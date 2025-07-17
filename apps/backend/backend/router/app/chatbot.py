@@ -38,6 +38,10 @@ class ChatbotResponse(BaseModel):
     data: Optional[Dict[str, Any]] = None
     auto_comic_generation: Optional[bool] = None
 
+class UpdateTitleRequest(BaseModel):
+    journal_entry_id: str
+    title: str
+
 @router.post("/start", response_model=ChatbotResponse)
 def start_chatbot(
     request: StartChatbotRequest,
@@ -290,6 +294,7 @@ def get_gallery(
                 "journal_entry_id": entry.id,
                 "stage": entry.stage,
                 "status": entry.status,
+                "title": journal.title if journal else None,
                 "created_at": entry.created_at.isoformat() if entry.created_at else None,
                 "panels": panels,
                 "revision_2": journal_data,  # stage별로 선택된 Journal 데이터
@@ -342,3 +347,21 @@ async def upload_audio(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"파일 업로드 실패: {str(e)}") 
+
+@router.post("/update-title", response_model=Dict[str, Any])
+def update_comic_title(
+    request: UpdateTitleRequest,
+    db: Session = Depends(get_session)
+):
+    """만화 제목 업데이트"""
+    try:
+        from ..database.crud.chatbot import get_journal, update_journal_data
+        journal = get_journal(db, request.journal_entry_id)
+        
+        if journal:
+            update_journal_data(db, request.journal_entry_id, title=request.title)
+            return {"success": True, "title": request.title}
+        else:
+            raise HTTPException(status_code=404, detail="Journal not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 

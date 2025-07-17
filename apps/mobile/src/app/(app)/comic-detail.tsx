@@ -37,18 +37,24 @@ function getKoreanSubjectParticle(name: string): string {
 
 export default function ComicDetailScreen() {
   const router = useRouter();
-  const { comicId, panels, revision2, childName, agentName, createdAt } = useLocalSearchParams();
+  const { comicId, panels, revision2, childName, agentName, createdAt, title } = useLocalSearchParams();
   
   const panelsData = panels ? JSON.parse(panels as string) : [];
   const revision2Data = revision2 ? JSON.parse(revision2 as string) : null;
   const childNameStr = childName as string || '친구';
   const agentNameStr = agentName as string || '친구';
+  const titleStr = title as string || '';
   
   // 만화 생성 날짜
   const comicDate = createdAt ? new Date(createdAt as string) : new Date();
   const month = comicDate.getMonth() + 1;
   const day = comicDate.getDate();
   const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][comicDate.getDay()];
+  
+  // 제목 결정: title이 있으면 사용, 없으면 기본 형식 사용
+  const displayTitle = titleStr && titleStr.trim() !== '' 
+    ? titleStr 
+    : `${month}월 ${day}일 ${dayOfWeek}요일에 ${childNameStr}${getKoreanParticle(childNameStr)} ${agentNameStr}${getKoreanSubjectParticle(agentNameStr)} 함께 쓴 그림일기`;
 
   return (
     <View style={styles.container}>
@@ -60,7 +66,7 @@ export default function ComicDetailScreen() {
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>
-          {month}월 {day}일 {dayOfWeek}요일에 {childNameStr}{getKoreanParticle(childNameStr)} {agentNameStr}{getKoreanSubjectParticle(agentNameStr)} 함께 쓴 그림일기
+          {displayTitle}
         </Text>
         <View style={{ width: 40 }} />
       </View>

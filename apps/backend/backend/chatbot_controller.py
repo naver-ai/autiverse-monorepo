@@ -10,10 +10,12 @@ from .comic_intro_stage import ComicIntroStage
 from .revision_1_stage import Revision1Stage
 from .comic_context_stage import ComicContextStage
 from .revision_2_stage import Revision2Stage
+from .title_stage import TitleStage
 
 class ChatbotController:
     def __init__(self, db: Session):
         self.db = db
+        self.title_stage = None  # TitleStage 인스턴스 저장
         self.current_journal_entry_id: Optional[str] = None
         
     def start_chatbot(self, dyad_id: str, location: str = None, people: List[str] = None) -> Dict[str, Any]:
@@ -86,11 +88,12 @@ class ChatbotController:
             return self._handle_intro_stage(journal_entry_id, message, audio_filename)
         elif current_stage == JournalEntryStage.Revision1 or current_stage == JournalEntryStage.ComicContext or current_stage == JournalEntryStage.Revision2:
             return self._handle_drawing_stage(journal_entry_id, message, audio_filename)
+        elif current_stage == JournalEntryStage.Title:
+            return self._handle_title_stage(journal_entry_id, message, audio_filename)
+        elif current_stage == JournalEntryStage.Complete:
+            return self._handle_complete_stage(journal_entry_id, message, audio_filename)
         else:
-            return {
-                "response": "대화가 완료되었습니다.",
-                "stage": "complete"
-            }
+            raise ValueError(f"Unknown stage: {current_stage}")
     
     def _handle_intro_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """인트로 단계 처리"""
@@ -189,9 +192,8 @@ class ChatbotController:
         context_stage = ComicContextStage(self.db, journal_entry_id)
         response = context_stage.process_message(message, audio_filename)
         
-        # 만화 생성 시작 신호인지 확인
+        # 만화 생성 시작 신호인 경우
         if response == "COMIC_GENERATION_START":
-            # 만화 생성 시작 (프론트엔드에서 모니터링할 수 있도록)
             context_stage._generate_final_comic_panels()
             
             # 만화 생성 시작 메시지 반환
@@ -201,9 +203,22 @@ class ChatbotController:
                 "auto_comic_generation": True
             }
         
+        # focusedPanel 설정 로직 추가
+        focused_panel = None
+        if context_stage.story_analysis:
+            # story_analysis에서 첫 번째로 누락된 정보가 있는 패널 찾기
+            content_issues = context_stage.story_analysis.get("content", {})
+            panels = ["A", "B", "C", "D"] # Assuming these are the panel keys
+            panel_mapping = {"A": "panel1", "B": "panel2", "C": "panel3", "D": "panel4"}
+            for panel in panels:
+                if content_issues.get(panel) and content_issues[panel]:  # 해당 패널에 누락된 정보가 있으면
+                    # A -> panel1, B -> panel2, C -> panel3                   panel_mapping = {"A": "panel1,B": "panel2,C": "panel3,                    focused_panel = panel_mapping[panel]
+                    break
+        
         return {
             "response": response,
-            "stage": "comic_context"
+            "stage": "comic_context",
+            "focusedPanel": focused_panel
         }
     
     def _handle_revision_2_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
@@ -211,16 +226,52 @@ class ChatbotController:
         revision2_stage = Revision2Stage(self.db, journal_entry_id)
         response = revision2_stage.process_message(message, audio_filename)
         
-        # 완료되었는지 확인
-        if "이제 만화일기 완성이닷" in response:
+        # 완료 메시지 감지 시 title stage로 전환
+        if "우와~ 이렇게 멋진 그림 일기 완성이라니!" in response:
+            # title stage 시작
+            self.title_stage = TitleStage(self.db, journal_entry_id)
+            title_response = self.title_stage.start_title_selection()
+            
             return {
-                "response": response,
-                "stage": "complete"
+                "response": title_response,
+                "stage": "title"
             }
         
         return {
             "response": response,
             "stage": "revision_2"
+        }
+    
+    def _handle_title_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
+        """title 단계 처리 (제목 정하기)"""
+        if not self.title_stage:
+            # TitleStage 인스턴스가 없으면 새로 생성
+            self.title_stage = TitleStage(self.db, journal_entry_id)
+        
+        response = self.title_stage.process_message(message, audio_filename)
+        
+        # 제목 선택 완료 감지
+        if message.strip() == "다음":
+            # complete stage로 전환
+            from .database.crud.chatbot import update_journal_entry_stage
+            update_journal_entry_stage(self.db, journal_entry_id, JournalEntryStage.Complete)
+            
+            return {
+                "response": response,
+                "stage": "complete",
+                "title_completed": True
+            }
+        
+        return {
+            "response": response,
+            "stage": "title"
+        }
+    
+    def _handle_complete_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
+        """complete 단계 처리 (최종 완료)"""
+        return {
+            "response": "만화가 완성되었습니다!",
+            "stage": "complete"
         }
     
     def get_session_info(self, journal_entry_id: str) -> Dict[str, Any]:
@@ -240,8 +291,8 @@ class ChatbotController:
         current_panels = {}
         if journal:
             # 현재 단계에 따라 적절한 패널 데이터 선택
-            if journal_entry.stage == JournalEntryStage.Complete:
-                # 완료 단계에서는 revision_2 우선, 없으면 comic_context 사용
+            if journal_entry.stage == JournalEntryStage.Complete or journal_entry.stage == JournalEntryStage.Title:
+                # 완료 단계와 제목 단계에서는 revision_2 우선, 없으면 comic_context 사용
                 current_panels = journal.revision_2 if journal.revision_2 else journal.comic_context
             elif journal_entry.stage == JournalEntryStage.Revision2:
                 # revision_2가 있으면 그것을 사용, 없으면 comic_context 사용
@@ -262,8 +313,8 @@ class ChatbotController:
                 panel_key = f"panel{i}"
                 if panel_key in current_panels:
                     # 현재 단계에 따라 적절한 comic 데이터 선택
-                    if journal_entry.stage == JournalEntryStage.Complete or journal_entry.stage == JournalEntryStage.Revision2:
-                        # 완료 단계에서는 second_panel 사용
+                    if journal_entry.stage == JournalEntryStage.Complete or journal_entry.stage == JournalEntryStage.Title or journal_entry.stage == JournalEntryStage.Revision2:
+                        # 완료 단계, 제목 단계, revision_2에서는 second_panel 사용
                         comic_panel = getattr(comic, f"second_panel{i}", None)
                     else:
                         # 그 외 단계에서는 first_panel 사용
@@ -280,6 +331,10 @@ class ChatbotController:
                                 "grid": comic_panel.get("grid", [])
                             }
         
+        # 백엔드에서 내려주는 focusedPanel 사용
+        focused_panel = self._get_focused_panel(journal_entry_id, journal_entry.stage) if journal_entry.stage == JournalEntryStage.ComicContext else None
+        print(f"[DEBUG] get_session_info: stage={journal_entry.stage}, focused_panel={focused_panel}")
+        
         return {
             "journal_entry_id": journal_entry_id,
             "stage": journal_entry.stage.value if journal_entry.stage else "intro",
@@ -288,8 +343,10 @@ class ChatbotController:
             "people": journal.people if journal else None,
             "events": journal.events if journal else None,
             "summary": journal.summary if journal else None,
+            "title": journal.title if journal else None,
             "panels": current_panels,
-            "message_count": len(messages) if messages else 0
+            "message_count": len(messages) if messages else 0,
+            "focusedPanel": focused_panel
         }
     
     def reset_session(self, journal_entry_id: str) -> Dict[str, Any]:
@@ -392,3 +449,34 @@ class ChatbotController:
                 "response": "만화 생성을 시작할 수 없습니다.",
                 "stage": "error"
             } 
+
+    def _get_focused_panel(self, journal_entry_id: str, stage) -> str:
+        """현재 질문하고 있는 패널을 찾아서 focusedPanel로 설정"""
+        if stage != JournalEntryStage.ComicContext:
+            print(f"[DEBUG] _get_focused_panel: stage is not ComicContext, returning None")
+            return None
+            
+        try:
+            # ComicContextStage 객체 생성 후 story_analysis 다시 생성
+            context_stage = ComicContextStage(self.db, journal_entry_id)
+            context_stage.story_analysis = context_stage._analyze_story_flow()  # story_analysis 다시 생성
+            
+            # story_analysis가 없으면 첫 번째 메시지("짜잔" 메시지)이므로 focusedPanel 설정하지 않음
+            if not context_stage.story_analysis:
+                print(f"[DEBUG] _get_focused_panel: story_analysis is None (first message), returning None")
+                return None
+            
+            # story_analysis에서 첫 번째로 누락된 정보가 있는 패널 찾기
+            content_issues = context_stage.story_analysis.get("content", {})
+            panels = ["A", "B", "C", "D"] # Assuming these are the panel keys
+            panel_mapping = {"A": "panel1", "B": "panel2", "C": "panel3", "D": "panel4"}
+            for panel in panels:
+                panel_issues = content_issues.get(panel, [])
+                # 빈 문자열이 아닌 첫 번째 패널 찾기
+                if panel_issues and any(issue for issue in panel_issues if issue and issue != ''):
+                    return panel_mapping[panel]
+        except Exception as e:
+            print(f"Error getting focused panel: {e}")
+        
+        print(f"[DEBUG] _get_focused_panel: returning None")
+        return None 

@@ -11,6 +11,9 @@ export default function TabletComicChatbotPage() {
       dyadId={params.dyadId as string}
       dyadName={params.dyadName as string}
       passcode={params.passcode as string}
+      journalEntryId={params.journalEntryId as string}
+      stage={params.stage as string}
+      continueExisting={params.continueExisting === 'true'}
       router={router}
     />
   );

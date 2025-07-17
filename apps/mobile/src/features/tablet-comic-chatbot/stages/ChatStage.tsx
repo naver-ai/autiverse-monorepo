@@ -65,7 +65,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
 
     const renderPanel = (panelId: string, panelIndex: number) => {
       const panel = convertComicDataToPanelsMemo[panelId];
-      const isHighlighted = currentStage === 'comic_context' && focusedPanel === panelId;
+      const isHighlighted = focusedPanel === panelId;
 
       return (
         <ComicPanel
@@ -101,7 +101,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
       <View className="flex-1 flex-row">
         {/* 왼쪽: 만화 섹션 */}
         <View className="flex-[1.8] bg-white border-r-2 border-gray-200">
-                      {/* 만화 헤더 */}
+          {/* 만화 헤더 */}
             <View className="flex-row justify-between items-center p-3 border-b border-gray-200 pt-4">
               <LogoImage width={150} height={30} />
               <TouchableOpacity
@@ -111,15 +111,15 @@ export const ChatStage: React.FC<ChatStageProps> = ({
               >
                 <Text className="text-white font-semibold text-sm" style={styleTemplates.withBoldFont}>
                   종료
-                </Text>
+              </Text>
               </TouchableOpacity>
-            </View>
+          </View>
           
           {/* 만화 콘텐츠 */}
           <View className="flex-1 relative">
             {/* 기존 만화 또는 기본 메시지 */}
             <View className={`flex-1 ${comicGenerationStatus.status === 'generating' ? 'opacity-30' : ''}`}>
-              {comicData && (currentStage === 'revision_1' || currentStage === 'comic_context' || currentStage === 'revision_2' || currentStage === 'complete') ? (
+              {comicData && (currentStage === 'revision_1' || currentStage === 'comic_context' || currentStage === 'revision_2' || currentStage === 'title' || currentStage === 'complete') ? (
                 renderComicPanels()
               ) : (
                 <View className="flex-1 items-center justify-center">

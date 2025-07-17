@@ -83,8 +83,19 @@ def update_journal_data(db: Session, journal_entry_id: str, **kwargs) -> Optiona
         for key, value in kwargs.items():
             if hasattr(journal, key):
                 setattr(journal, key, value)
-        db.commit()
-        db.refresh(journal)
+            else:
+                print(f"[DEBUG] update_journal_data: Journal does not have attribute: {key}")
+        
+        try:
+            db.commit()
+            db.refresh(journal)
+        except Exception as e:
+            print(f"[DEBUG] update_journal_data: Database commit failed: {e}")
+            db.rollback()
+            raise
+    else:
+        print(f"[DEBUG] update_journal_data: Journal not found for journal_entry_id: {journal_entry_id}")
+    
     return journal
 
 def create_comic(db: Session, journal_entry_id: str, journal_id: str, dyad_id: str) -> Comic:

@@ -56,7 +56,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       // TTS가 완료되면 바로 음성 녹음 모드로 전환
       if (!isSpeaking && !isLoading) {
         const lastMessage = messages.filter(m => !m.isUser).pop();
-        const isCompletionMessage = lastMessage?.text?.includes('우와~ 이렇게 멋진 그림 일기 완성이라니!');
+        const isCompletionMessage = lastMessage?.text?.includes('우와~ 이렇게 멋진 그림 일기 완성이라니!') || 
+                                   lastMessage?.text?.includes('다음 버튼을 눌러줘!');
         
         // 버튼이 표시될 조건인지 확인
         const shouldShowButtons = (() => {
@@ -71,6 +72,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           }
           if (currentStage === 'comic_context') {
             return lastMessage?.text?.includes('기분이 어땠어?') || lastMessage?.text?.includes('기분이었어?') || lastMessage?.text?.includes('몇가지 확인해줄래??');
+          }
+          if (currentStage === 'title') {
+            return (lastMessage?.text?.includes('어때?') ||
+                    lastMessage?.text?.includes('이걸로 할까?'));
           }
           return false;
         })();
@@ -119,6 +124,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
              inputText.trim() === '';
     }
     
+    // title stage에서 제목 정하기 관련 버튼 표시
+    if (currentStage === 'title') {
+      return (lastBotMessage?.text?.includes('어때?') || 
+              lastBotMessage?.text?.includes('이걸로 할까?')) && 
+             !isDisabled && 
+             inputText.trim() === '';
+    }
+    
     return false;
   })();
 
@@ -126,6 +139,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     // comic_context에서 "기분이 어땠어?" 질문일 때 감정 버튼 표시
     if (currentStage === 'comic_context') {
       return (lastBotMessage?.text?.includes('기분이 어땠어?') || lastBotMessage?.text?.includes('기분이었어?')) && 
+             !isDisabled && 
+             inputText.trim() === '';
+    }
+    
+    return false;
+  })();
+
+  const showNextButton = (() => {
+    // title stage에서 제목 정하기 완료 시 다음 버튼 표시
+    if (currentStage === 'title') {
+      return lastBotMessage?.text?.includes('다음 버튼을 눌러줘!') && 
              !isDisabled && 
              inputText.trim() === '';
     }
@@ -147,6 +171,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       return { left: '있어', right: '없어' };
     } else if (currentStage === 'comic_context') {
       return { left: '좋아!', right: '알겠어!' };
+    } else if (currentStage === 'title') {
+      if (lastBotMessage?.text?.includes('어때?')) {
+        // 첫 번째 제목 제안
+        return { left: '별로야', right: '좋아' };
+      } else if (lastBotMessage?.text?.includes('이걸로 할까?')) {
+        // 커스텀 제목 확인
+        return { left: '아니, 다른 걸로', right: '응, 좋아!' };
+      }
     }
     return { left: '응', right: '아니' };
   };
@@ -283,6 +315,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       <ChatButtons
         showYesNoButtons={showYesNoButtons || false}
         showEmotionButtons={showEmotionButtons || false}
+        showNextButton={showNextButton || false}
         buttonTexts={buttonTexts}
         isDisabled={isDisabled}
         sendMessage={sendMessage}

@@ -5,15 +5,17 @@ import { styleTemplates } from '../../../styles';
 interface ChatButtonsProps {
   showYesNoButtons: boolean;
   showEmotionButtons: boolean;
+  showNextButton: boolean;
   buttonTexts: { left: string; right: string };
   isDisabled: boolean;
-  sendMessage: (message: string) => void;
-  onButtonsVisibilityChange?: (hasButtons: boolean) => void;
+  sendMessage: (message: string, audioFilename?: string) => void;
+  onButtonsVisibilityChange: (hasButtons: boolean) => void;
 }
 
 export const ChatButtons: React.FC<ChatButtonsProps> = ({
   showYesNoButtons,
   showEmotionButtons,
+  showNextButton,
   buttonTexts,
   isDisabled,
   sendMessage,
@@ -167,6 +169,31 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
               </TouchableOpacity>
             </View>
           )}
+        </View>
+      )}
+
+      {/* 다음 버튼 - AI 말하는 박스와 동일한 스타일 */}
+      {showNextButton && (
+        <View className="flex-row justify-center mb-4">
+          <TouchableOpacity
+            className={`px-6 py-4 rounded-xl justify-center ${
+              isDisabled ? 'bg-gray-400' : 'bg-blue-500'
+            }`}
+            onPress={() => sendMessage('다음')}
+            disabled={isDisabled}
+            style={{
+              backgroundColor: isDisabled ? '#9CA3AF' : '#4A90E2',
+              minHeight: 122, // AI 말하는 높이와 동일
+              minWidth: 200, // 적절한 너비 설정
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 3,
+            }}
+          >
+            <Text className="text-white font-bold text-2xl text-center" style={styleTemplates.withBoldFont}>다음</Text>
+          </TouchableOpacity>
         </View>
       )}
     </>

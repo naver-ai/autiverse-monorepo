@@ -79,3 +79,23 @@ export const uploadAudioFile = async (audioUri: string, journalEntryId: string, 
     throw error;
   }
 }; 
+
+export const updateComicTitleAPI = async (journalEntryId: string, title: string): Promise<any> => {
+  try {
+    const response = await NetworkHelper.axiosClient.post(
+      NetworkHelper.ENDPOINTS.APP.CHATBOT.UPDATE_TITLE,
+      {
+        journal_entry_id: journalEntryId,
+        title: title
+      },
+      {
+        headers: await NetworkHelper.getHeaders(),
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error('Error updating comic title:', error);
+    throw error;
+  }
+}; 

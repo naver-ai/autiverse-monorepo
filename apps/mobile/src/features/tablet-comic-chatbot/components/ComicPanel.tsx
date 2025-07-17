@@ -32,13 +32,13 @@ export const ComicPanel: React.FC<ComicPanelProps> = ({
         flex: 1,
         marginHorizontal: 4,
         ...(isHighlighted && {
-          borderWidth: 3,
-          borderColor: '#e53935',
-          shadowColor: '#e53935',
+          borderWidth: 4,
+          borderColor: '#ff0000',
+          shadowColor: '#ff0000',
           shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.15,
-          shadowRadius: 4,
-          elevation: 8
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 12
         })
       }}
     >

@@ -13,18 +13,24 @@ import PraiseSection from '../../../app/(app)/PraiseSection';
 import FarewellSection from '../../../app/(app)/FarewellSection';
 import { PresetSelectionStage, ChatStage } from '../stages';
 import { ChatMessage, Preset } from '../types';
-import { stopSpeech, speakText, getSpeechManager } from '../utils/speechUtils';
+import { stopSpeech, getSpeechManager } from '../utils/speechUtils';
 import { voiceRecorder } from '../utils/voiceUtils';
 
 export const TabletComicChatbotScreen: React.FC<{
   dyadId?: string;
   dyadName?: string;
   passcode?: string;
+  journalEntryId?: string;
+  stage?: string;
+  continueExisting?: boolean;
   router?: Router;
 }> = ({ 
   dyadId, 
   dyadName, 
   passcode, 
+  journalEntryId,
+  stage,
+  continueExisting,
   router 
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -52,6 +58,7 @@ export const TabletComicChatbotScreen: React.FC<{
   const [showPraiseSection, setShowPraiseSection] = useState(false);
   const [showFarewellSection, setShowFarewellSection] = useState(false);
   const [completionMessage, setCompletionMessage] = useState<string>('');
+  const [comicTitle, setComicTitle] = useState<string>('그림 일기');
   
   // ChatInput 활성화 상태 (초기에는 비활성화)
   const [isInputActive, setIsInputActive] = useState(false);
@@ -107,6 +114,7 @@ export const TabletComicChatbotScreen: React.FC<{
     setIsComicCompleted(false);
     setShowPraiseSection(false);
     setCompletionMessage('');
+    setComicTitle('그림 일기');
     
     // TTS 정지
     stopSpeech();
@@ -144,7 +152,7 @@ export const TabletComicChatbotScreen: React.FC<{
       // 세션 정보를 다시 로드하여 최신 만화 데이터 가져오기
       setTimeout(() => {
         loadSessionInfo();
-      }, 100);
+      }, 200); // 200ms
     }
   }, [comicGenerationStatus.status]);
 
@@ -157,6 +165,47 @@ export const TabletComicChatbotScreen: React.FC<{
       // dyad 정보는 useDyad 훅에서 자동으로 로드됨
     }
   }, [dyadId, dyadName, passcode]);
+
+  // 이어가기 기능 처리
+  useEffect(() => {
+    if (continueExisting && journalEntryId && stage) {
+      console.log('Continuing existing work:', { journalEntryId, stage });
+      
+      // 기존 session 설정
+      setSessionId(journalEntryId);
+      setCurrentStage(stage);
+      setShowPresetSelection(false); // preset selection 건너뛰기
+      
+      // 기존 session 정보 로드
+      const loadExistingSession = async () => {
+        try {
+          const data = await loadSessionInfoFromHook(journalEntryId);
+          if (data) {
+            if (data.panels) {
+              setComicData(data.panels);
+            }
+            if (data.stage) {
+              setCurrentStage(data.stage);
+            }
+            if (data.stage === 'comic_context' && data.focusedPanel) {
+              setFocusedPanel(data.focusedPanel);
+            } else {
+              setFocusedPanel(null);
+            }
+            
+            // 기존 메시지들 로드 (필요한 경우)
+            if (data.messages) {
+              setMessages(data.messages);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading existing session:', error);
+        }
+      };
+      
+      loadExistingSession();
+    }
+  }, [continueExisting, journalEntryId, stage, loadSessionInfoFromHook]);
 
   // 프로그레스바 애니메이션 업데이트
   useEffect(() => {
@@ -197,9 +246,16 @@ export const TabletComicChatbotScreen: React.FC<{
         if (data.stage) {
           setCurrentStage(data.stage);
         }
-        if (data.stage === 'comic_context' && data.focusedPanel) {
+        if (data.title) {
+          setComicTitle(data.title);
+        }
+        
+        // 백엔드에서 내려주는 focusedPanel 사용
+        if (data.focusedPanel) {
+          console.log('Setting focusedPanel from session info:', data.focusedPanel);
           setFocusedPanel(data.focusedPanel);
         } else {
+          console.log('No focusedPanel in session info, clearing focus');
           setFocusedPanel(null);
         }
       }
@@ -283,6 +339,25 @@ export const TabletComicChatbotScreen: React.FC<{
   const sendMessage = async (messageText: string, audioFilename?: string) => {
     if (!sessionId || !messageText.trim()) return;
 
+    // "다음" 버튼 클릭 시 백엔드에 메시지 전송 후 칭찬 섹션으로 넘어가기
+    if (messageText === '다음' && completionMessage.includes('다음 버튼을 눌러줘')) {
+      console.log('Next button clicked, sending message to backend and showing praise section...');
+      
+      // 백엔드에 '다음' 메시지 전송
+      try {
+        const data = await sendMessageFromHook(sessionId, messageText, audioFilename);
+        if (data) {
+          console.log('Next button message sent to backend:', data);
+        }
+      } catch (error) {
+        console.error('Failed to send next button message:', error);
+      }
+      
+      // 칭찬 섹션으로 넘어가기
+      setShowPraiseSection(true);
+      return;
+    }
+
     // TTS 상태 확인 - TTS가 진행 중이면 메시지 전송 차단
     const speechManager = getSpeechManager();
     if (speechManager.getIsSpeaking()) {
@@ -328,39 +403,28 @@ export const TabletComicChatbotScreen: React.FC<{
           timestamp: new Date(),
         };
 
-        // 완료 메시지 감지 (TTS 완료 후 0.5초 후 칭찬 섹션 표시)
-        if (data.response.includes('우와~ 이렇게 멋진 그림 일기 완성이라니!')) {
-          console.log('Completion message detected, will show praise section after TTS...');
+        // 완료 메시지 감지 (다음 버튼을 눌러야 넘어감)
+        if (data.response.includes('다음 버튼을 눌러줘')) {
           setCompletionMessage(data.response);
           setMessages(prev => [...prev, botMessage]);
           
-          // 완료 메시지 감지 시 ChatInput 비활성화 유지
-          setIsInputActive(false);
-          
-          speakText(data.response, {
-            language: 'ko-KR',
-            pitch: 1.0,
-            rate: 0.8,
-            onDone: () => {
-              console.log('Completion TTS done, showing praise section...');
-              // TTS 완료 후 0.5초 뒤에 칭찬 섹션 표시
-              setTimeout(() => {
-                setShowPraiseSection(true);
-              }, 500);
-            },
-            onError: (error) => {
-              console.error('Completion TTS error:', error);
-              // 에러 발생 시에도 0.5초 후 칭찬 섹션 표시
-              setTimeout(() => {
-                setShowPraiseSection(true);
-              }, 500);
-            }
-          });
+          // 다음 버튼을 기다리므로 ChatInput 활성화 유지
+          setIsInputActive(true);
         }
-        // comic_context 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 "다행이다~" 메시지가 제거됨)
+        // comic_context 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 다행이다~ 메시지가 제거됨)
         else if (data.stage === 'comic_context') {
           console.log('Comic context message detected, adding immediately...');
+          setCompletionMessage(''); // 완료 메시지가 아니므로 초기화
           setMessages(prev => [...prev, botMessage]);
+          
+          // 백엔드에서 내려주는 focusedPanel 사용
+          if (data.focusedPanel) {
+            console.log('Setting focusedPanel from backend response:', data.focusedPanel);
+            setFocusedPanel(data.focusedPanel);
+          } else {
+            console.log('No focusedPanel in backend response, clearing focus');
+            setFocusedPanel(null);
+          }
         } else if (data.stage === 'revision_2' && data.response.includes('완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔')) {
           // Revision_2에서 만화 생성이 시작될 때 고정 메시지 추가
           console.log('Revision_2 comic generation detected, adding fixed message...');
@@ -374,9 +438,11 @@ export const TabletComicChatbotScreen: React.FC<{
           setMessages(prev => [...prev, fixedMessage]);
           
           // revision_2 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 고정 메시지가 제거됨)
+          setCompletionMessage(''); // 완료 메시지가 아니므로 초기화
           setMessages(prev => [...prev, botMessage]);
         } else {
           // 다른 메시지들은 바로 표시
+          setCompletionMessage(''); // 완료 메시지가 아니므로 초기화
           setMessages(prev => [...prev, botMessage]);
         }
         
@@ -567,13 +633,14 @@ export const TabletComicChatbotScreen: React.FC<{
             setSelectedLocation(null);
             setSelectedPeople([]);
             setSelectionStep('location');
-            setShowPresetSelection(true);
+            setShowPresetSelection(false); // 세션 종료 시에는 preset selection을 false로 설정
             setSelectedPlaceId(null);
             setSelectedPersonIds([]);
             setIsComicCompleted(false);
             setShowPraiseSection(false);
             setShowFarewellSection(false);
             setCompletionMessage('');
+            setComicTitle('그림 일기');
             setIsInputActive(false);
             setIsAfterFarewell(false);
             

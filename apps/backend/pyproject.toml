@@ -40,6 +40,7 @@ readme = 'README.md'
   nanoid = "^2.0.0"
   python-socketio = "^5.13.0"
   questionary = "^2.1.0"
+  alembic = "^1.16.4"
 
   [tool.poetry.group.dev.dependencies]
   autopep8 = "2.3.1"

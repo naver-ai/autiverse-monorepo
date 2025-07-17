@@ -25,7 +25,8 @@ export default function GalleryScreen() {
         revision2: JSON.stringify(comic.revision_2),
         childName: comic.child_name,
         agentName: comic.agent_name,
-        createdAt: comic.created_at
+        createdAt: comic.created_at,
+        title: comic.title || ''
       }
     });
   };
