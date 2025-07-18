@@ -1,16 +1,15 @@
+from typing import Dict, Any, Optional
+from langchain_openai import ChatOpenAI
+from langchain.schema import HumanMessage, SystemMessage
+from backend.utils.environment import get_env_variable, EnvironmentVariables
+from backend.database.crud.chatbot import *
+
+from sqlmodel import Session
+import json
 import openai
-from typing import Dict, Any, List, Optional
-from .database.crud.chatbot import (
-    get_journal_entry, update_journal_entry_stage, get_journal, 
-    update_journal_data, create_interaction_turn, create_message,
-    get_messages_by_journal_entry, update_comic_data
-)
-from .database.models import JournalEntryStage, MessageRole
-from sqlalchemy.orm import Session
-from backend.utils.network_helper import NetworkHelper
 
 
-class Revision1Stage:
+class Revision2Stage:
     def __init__(self, db: Session, journal_entry_id: str):
         self.db = db
         self.journal_entry_id = journal_entry_id
@@ -21,47 +20,90 @@ class Revision1Stage:
     
     def _get_child_name(self) -> str:
         """dyad의 child_name을 가져오기"""
-        from .database.crud.chatbot import get_journal_entry
+        from backend.database.crud.chatbot import get_journal_entry
         
         journal_entry = get_journal_entry(self.db, self.journal_entry_id)
         if journal_entry and journal_entry.dyad:
-            return journal_entry.dyad.child_name
-        return "유찬"  # fallback
+            child_name = journal_entry.dyad.child_name
+            return child_name
+        else:
+            return "사용자"  # fallback
     
     def _get_revision_count(self) -> int:
-        """Journal에서 revision_1_count 가져오기"""
-        from .database.crud.chatbot import get_journal
+        """Journal에서 revision_2_count 가져오기"""
+        from backend.database.crud.chatbot import get_journal
         
         journal = get_journal(self.db, self.journal_entry_id)
         if journal:
-            return journal.revision_1_count
+            return journal.revision_2_count
         return 0
     
+    def _get_vocative_particle(self, name: str) -> str:
+        """한국어 종성에 따른 호격 조사 처리 함수"""
+        if not name or len(name) == 0:
+            return ''
+        
+        last_char = name[-1]
+        code = ord(last_char)
+        
+        # 한글 범위 체크 (가-힣: 44032-55203)
+        if code < 44032 or code > 55203:
+            return ''
+        
+        # 종성 계산: (유니코드 - 44032) % 28
+        unicode_val = code - 44032
+        jong = unicode_val % 28
+        
+        # 종성이 있으면 '이', 없으면 ''
+        return '이' if jong != 0 else ''
+    
     def _update_revision_count(self, new_count: int) -> None:
-        """Journal의 revision_1_count 업데이트"""
-        from .database.crud.chatbot import update_journal_data
+        """Journal의 revision_2_count 업데이트"""
+        from backend.database.crud.chatbot import update_journal_data
         
         update_journal_data(
             self.db, self.journal_entry_id,
-            revision_1_count=new_count
+            revision_2_count=new_count
         )
         self.revision_count = new_count
         
     def start_revision(self) -> str:
-        """첫 번째 수정 단계 시작"""
+        """두 번째 수정 단계 시작"""
         # Journal entry stage 업데이트
-        update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Revision1)
+        update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Revision2)
         
         # 새로운 interaction turn 생성
         interaction_turn = create_interaction_turn(
-            self.db, self.journal_entry_id, JournalEntryStage.Revision1
+            self.db, self.journal_entry_id, JournalEntryStage.Revision2
         )
         
+        # Comic 테이블에서 second_panel 데이터 불러오기
+        from backend.database.crud.chatbot import get_comic
+        comic = get_comic(self.db, self.journal_entry_id)
+        
+        if comic:
+            # second_panel 데이터가 있으면 Journal의 revision_2에 저장
+            second_panels = {}
+            for i in range(1, 5):
+                panel_data = getattr(comic, f"second_panel{i}", None)
+                if panel_data and isinstance(panel_data, dict):
+                    second_panels[f"panel{i}"] = panel_data.get("content", "")
+                else:
+                    second_panels[f"panel{i}"] = ""
+            
+            # Journal의 revision_2 필드에 저장
+            if any(second_panels.values()):
+                update_journal_data(
+                    self.db, self.journal_entry_id,
+                    revision_2=second_panels
+                )
+                print(f"[DEBUG] revision_2: Loaded second_panel data: {second_panels}")
+        
         # 첫 번째 수정 질문 생성
-        initial_question = "그럼 네가 지금 말해준 내용으로 오늘의 그림일기를 써보자! 먼저 내가 잘 들었는지 왼쪽 내용을 읽어서 확인해줘~ 내가 다 맞게 들었을까? 🤔"
+        initial_question = "우와앙~ 우리가 같이 만든 그림일기다! 지금부터 내용이 제대로 들어갔는지 확인해보자~ 수정하거나 추가하고 싶은 부분 있어? 🤔"
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            initial_question, MessageRole.Assistant, JournalEntryStage.Revision1
+            initial_question, MessageRole.Assistant, JournalEntryStage.Revision2
         )
         
         return initial_question
@@ -69,27 +111,22 @@ class Revision1Stage:
     def process_message(self, user_message: str, audio_filename: str = None) -> str:
         """사용자 메시지 처리"""
         # 현재 interaction turn 가져오기
-        interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Revision1)
+        interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Revision2)
         
         # 사용자 메시지 저장 (audio_filename 포함)
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            user_message, MessageRole.User, JournalEntryStage.Revision1,
+            user_message, MessageRole.User, JournalEntryStage.Revision2,
             audio_filename=audio_filename
         )
         
         # 봇 응답 생성
         bot_response = self._generate_response(user_message)
         
-        # 만화 생성 시작 신호인지 확인
-        if bot_response == "COMIC_GENERATION_START":
-            # 만화 생성 시작 신호만 반환
-            return "COMIC_GENERATION_START"
-        
         # 봇 응답 저장
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            bot_response, MessageRole.Assistant, JournalEntryStage.Revision1
+            bot_response, MessageRole.Assistant, JournalEntryStage.Revision2
         )
         
         return bot_response
@@ -97,59 +134,53 @@ class Revision1Stage:
     def _generate_response(self, user_message: str) -> str:
         """사용자 메시지에 대한 응답 생성"""
         
-        # "네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까?" 질문에 대한 답변 처리
+        # "네가 말해준 내용대로 바꿔봤어. 더 추가하거나 바꿀 곳 있어?" 질문에 대한 답변 처리
         if self._is_correction_confirmation_question():
-            if self._is_negative_response(user_message):
+            if self._is_positive_response(user_message):
                 # 수정할 부분이 있다면 revision_count 증가하고 수정 요청
                 new_count = self.revision_count + 1
                 self._update_revision_count(new_count)
-                print(f"[DEBUG] revision_1: revision_count: {self.revision_count}")
+                print(f"[DEBUG] revision_2: revision_count: {self.revision_count}")
                 if self.revision_count > self.max_revisions:
-                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 고치고 싶은 부분이 있다면 말해줘~"
+                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 수정하거나 추가하고 싶은 부분이 있다면 말해줘~"
                 elif self.revision_count == self.max_revisions:
-                    return "아앗;; 이제 마지막 기회야! 지금 틀린 부분이 있다면 다 말해줘~ 😅"
+                    return "아앗;; 이제 마지막 기회야! 지금 수정하거나 추가하고 싶은 부분이 있다면 다 말해줘~ 😅"
                 else:
-                    return "아앗;; 어디가 어떻게 틀렸어? 😅"
-            elif self._is_positive_response(user_message):
-                # 수정 완료, 만화 생성 시작 메시지 전송
-                return "COMIC_GENERATION_START"
+                    return "어디를 어떻게 수정해볼까?? 🤔"
+            elif self._is_negative_response(user_message):
+                # 수정 완료, 완료 단계로
+                self._complete_journal_entry()
+                return f"우와~ 이렇게 멋진 그림 일기 완성이라니! 역시 {self.child_name}{self._get_vocative_particle(self.child_name)}야. 내가 너한테 관심이 많다보니 질문이 많았는데 잘 답변해줘서 고마워. 덕분에 {self.child_name}{self._get_vocative_particle(self.child_name)}에게 오늘 어떤 일이 있었는지 잘 알 수 있어 정말 너무나 기뻤어!!"
             else:
                 return "응 아니 중에 골라줘! 😅"
         
         # 질문에 대한 답변 처리
         if self._is_question_response():
             if self._is_negative_response(user_message):
+                # 수정할 부분이 없다면 완료
+                self._complete_journal_entry()
+                return f"우와~ 이렇게 멋진 그림 일기 완성이라니! 역시 {self.child_name}{self._get_vocative_particle(self.child_name)}야. 내가 너한테 관심이 많다보니 질문이 많았는데 잘 답변해줘서 고마워. 덕분에 {self.child_name}{self._get_vocative_particle(self.child_name)}에게 오늘 어떤 일이 있었는지 잘 알 수 있어 정말 너무나 기뻤어!!"
+            elif self._is_positive_response(user_message):
                 # 수정할 부분이 있다면 revision_count 증가하고 수정 요청
                 new_count = self.revision_count + 1
                 self._update_revision_count(new_count)
-                print(f"[DEBUG] revision_1: revision_count: {self.revision_count}")
+                print(f"[DEBUG] revision_2: revision_count: {self.revision_count}")
                 if self.revision_count > self.max_revisions:
-                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 고치고 싶은 부분이 있다면 말해줘~"
+                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 수정하거나 추가하고 싶은 부분이 있다면 말해줘~"
                 elif self.revision_count == self.max_revisions:
-                    return "아앗;; 이제 마지막 기회야! 지금 틀린 부분이 있다면 다 말해줘~ 😅"
+                    return "아앗;; 이제 마지막 기회야! 지금 수정하거나 추가하고 싶은 부분이 있다면 다 말해줘~ 😅"
                 else:
-                    return "아앗;; 어디가 어떻게 틀렸어? 😅"
-            elif self._is_positive_response(user_message):
-                # 수정할 부분이 없다면 comic_intro를 revision_1에 저장하고 만화 생성 시작 메시지 전송
-                journal = get_journal(self.db, self.journal_entry_id)
-                if journal and journal.comic_intro:
-                    update_journal_data(
-                        self.db, self.journal_entry_id,
-                        revision_1=journal.comic_intro
-                    )
-                return "COMIC_GENERATION_START"
+                    return "어디를 어떻게 수정해볼까?? 🤔"
             else:
                 return "응 아니 중에 골라줘! 😅"
         else:
             # 구체적인 수정 내용이 들어온 경우
             try:
                 self._apply_user_correction(user_message)
-                return "네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까? 🤔"
+                return "네가 말해준 내용대로 바꿔봤어. 더 추가하거나 바꿀 곳 있어? 🤔"
             except Exception as e:
-                print(f"[DEBUG] revision_1: Error applying user correction: {e}")
+                print(f"[DEBUG] revision_2: Error applying user correction: {e}")
                 return "수정하는데 문제가 생겼어. 다시 말해줘! 😅"
-        
-
     
     def _is_correction_confirmation_question(self) -> bool:
         """현재 질문이 수정 확인 질문인지 확인"""
@@ -174,9 +205,8 @@ class Revision1Stage:
                     last_bot_message = messages[i].content
                     # 질문인지 확인
                     question_keywords = [
-                        "다 맞게 들었을까?",
-                        "아직도 틀린 부분 있어?",
-                        "이제 다 맞을까?"
+                        "수정하거나 추가하고 싶은 부분 있어?",
+                        "더 추가하거나 바꿀 곳 있어?"
                     ]
                     result = any(keyword in last_bot_message for keyword in question_keywords)
                     return result
@@ -185,29 +215,21 @@ class Revision1Stage:
     
     def _is_negative_response(self, message: str) -> bool:
         """부정적인 응답인지 확인"""
-        negative_keywords = ["아니", "no", "n", "틀렸어", "아니야", "틀린 게 있어", "아직 있어"]
+        negative_keywords = ["아니", "no", "n", "틀렸어", "아니야", "없어"]
         result = any(keyword in message.lower() for keyword in negative_keywords)
         return result
     
     def _is_positive_response(self, message: str) -> bool:
         """긍정적인 응답인지 확인"""
-        positive_keywords = ["응", "네", "yes", "y", "맞아", "좋아", "다 맞아", "이제 충분해"]
+        positive_keywords = ["응", "네", "yes", "y", "맞아", "좋아", "있어"]
         result = any(keyword in message.lower() for keyword in positive_keywords)
         return result
     
     def _apply_user_correction(self, correction: str) -> None:
         """사용자 수정 내용 적용"""
         journal = get_journal(self.db, self.journal_entry_id)
-        if not journal:
+        if not journal or not journal.revision_2:
             return
-        
-        # 수정 기준 패널 결정: revision_1이 있으면 그것을 사용, 없으면 comic_intro 사용
-        if journal.revision_1:
-            current_panels = journal.revision_1
-        elif journal.comic_intro:
-            current_panels = journal.comic_intro
-        else:
-            return  # 수정할 패널이 없으면 종료
         
         # OpenAI로 수정 적용
         client = openai.OpenAI()
@@ -249,6 +271,7 @@ REVISION RULES:
 14. Write in natural Korean
 15. **IMPORTANT**: Make sure the story remains coherent and logical after revision"""
 
+        current_panels = journal.revision_2
         user_prompt = f"""Current comic panels:
 "panel1": "{current_panels.get('panel1', 'null')}",
 "panel2": "{current_panels.get('panel2', 'null')}",
@@ -280,24 +303,46 @@ User's correction request: {correction}
                 if panel_key in updated_panels:
                     updated_panels[panel_key] = new_content if new_content != "null" else None
             
-            # Journal에 수정된 데이터 저장 (revision_1 필드에만 저장)
+            # Journal에 수정된 데이터 저장
             update_journal_data(
                 self.db, self.journal_entry_id,
-                revision_1=updated_panels
+                revision_2=updated_panels
             )
             
         except json.JSONDecodeError as e:
-            print(f"[DEBUG] revision_1: Failed to parse revision response: {e}")
+            print(f"[DEBUG] revision_2: Failed to parse revision response: {e}")
         except Exception as e:
-            print(f"[DEBUG] revision_1: Unexpected error in _apply_user_correction: {e}")
+            print(f"[DEBUG] revision_2: Unexpected error in _apply_user_correction: {e}")
     
-    # def _apply_final_corrections(self) -> None:
-    #     """최종 수정사항 적용 (revision_1을 comic_intro에 반영) - 사용하지 않음"""
-    #     pass
+    def _complete_journal_entry(self) -> None:
+        """journal entry 완료 처리"""
+        from backend.database.models import JournalEntryStatus
+        
+        try:
+            # 최종 수정사항 적용 (revision_2를 comic_context에 반영)
+            journal = get_journal(self.db, self.journal_entry_id)
+            if journal and journal.revision_2:
+                update_journal_data(
+                    self.db, self.journal_entry_id,
+                    comic_context=journal.revision_2
+                )
+            
+            # Journal entry를 완료 상태로 업데이트
+            update_journal_entry_stage(
+                self.db, self.journal_entry_id, 
+                JournalEntryStage.Complete, 
+                JournalEntryStatus.Completed
+            )
+                
+        except Exception as e:
+            print(f"[DEBUG] revision_2: Error in _complete_journal_entry: {e}")
+            raise
+    
+
     
     def _get_or_create_interaction_turn(self, stage: JournalEntryStage) -> Any:
         """현재 단계의 interaction turn 가져오기 또는 생성"""
-        from .database.crud.chatbot import get_latest_interaction_turn
+        from backend.database.crud.chatbot import get_latest_interaction_turn
         
         latest_turn = get_latest_interaction_turn(self.db, self.journal_entry_id)
         if latest_turn and latest_turn.stage == stage:
@@ -305,50 +350,6 @@ User's correction request: {correction}
         else:
             return create_interaction_turn(self.db, self.journal_entry_id, stage)
 
-    def _generate_comic_panels(self) -> None:
-        """revision_1 완료 시 만화 패널 생성 및 Comic 테이블에 저장"""
-        try:
-            journal = get_journal(self.db, self.journal_entry_id)
-            if not journal or not journal.revision_1:
-                return
-            
-            # 패널 내용 추출 (Null은 빈 문자열로 처리)
-            panel_contents = {
-                "panel1": journal.revision_1.get("panel1", "") if journal.revision_1.get("panel1") != "null" else "",
-                "panel2": journal.revision_1.get("panel2", "") if journal.revision_1.get("panel2") != "null" else "",
-                "panel3": journal.revision_1.get("panel3", "") if journal.revision_1.get("panel3") != "null" else "",
-                "panel4": journal.revision_1.get("panel4", "") if journal.revision_1.get("panel4") != "null" else ""
-            }
-            
-            # NetworkHelper를 사용하여 API 호출
-            try:
-                endpoints = NetworkHelper.get_comic_generation_endpoints()
-                start_url = endpoints['START']
-                
-                # 만화 생성 시작 (첫 번째 만화 생성)
-                response = NetworkHelper.make_internal_request('POST', start_url, {
-                    'journal_entry_id': self.journal_entry_id,
-                    'panel_contents': panel_contents,
-                    'is_first_generation': True
-                })
-                
-                if response.status_code == 200:
-                    print(f"[DEBUG] revision_1: Comic generation started for {self.journal_entry_id}")
-                else:
-                    print(f"[DEBUG] revision_1: Failed to start comic generation: {response.status_code}")
-                    
-            except Exception as e:
-                print(f"[DEBUG] revision_1: Error starting comic generation: {e}")
-            
-        except Exception as e:
-            print(f"[DEBUG] revision_1: Error generating comic panels: {e}")
-            import traceback
-            traceback.print_exc()
-    
-
-    
     def get_initial_question(self) -> str:
         """첫 번째 수정 질문을 반환합니다."""
-        return "여기서 틀린 부분 있어? 🤔"
-    
- 
+        return "완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔" 

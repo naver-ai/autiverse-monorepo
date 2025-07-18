@@ -69,7 +69,7 @@ class ComicIntroStage:
     
     def _get_child_name(self) -> str:
         """dyad의 child_name을 가져오기"""
-        from .database.crud.chatbot import get_journal_entry, get_dyad_by_id
+        from backend.database.crud.chatbot import get_journal_entry, get_dyad_by_id
         
         journal_entry = get_journal_entry(self.db, self.journal_entry_id)
         if journal_entry and journal_entry.dyad:
@@ -78,7 +78,7 @@ class ComicIntroStage:
     
     def _get_child_age(self) -> int:
         """dyad의 child_age를 가져오기"""
-        from .database.crud.chatbot import get_journal_entry
+        from backend.database.crud.chatbot import get_journal_entry
         
         journal_entry = get_journal_entry(self.db, self.journal_entry_id)
         if journal_entry and journal_entry.dyad:
@@ -87,7 +87,7 @@ class ComicIntroStage:
     
     def _get_agent_name(self) -> str:
         """agent의 agent_name을 가져오기"""
-        from .database.crud.chatbot import get_journal_entry
+        from backend.database.crud.chatbot import get_journal_entry
         
         journal_entry = get_journal_entry(self.db, self.journal_entry_id)
         if journal_entry and journal_entry.dyad and journal_entry.dyad.agents:
@@ -97,7 +97,7 @@ class ComicIntroStage:
     
     def _get_agent_interests(self) -> list[str]:
         """agent의 interest 목록을 가져오기"""
-        from .database.crud.chatbot import get_journal_entry
+        from backend.database.crud.chatbot import get_journal_entry
         
         journal_entry = get_journal_entry(self.db, self.journal_entry_id)
         if journal_entry and journal_entry.dyad and journal_entry.dyad.agents:
@@ -111,7 +111,7 @@ class ComicIntroStage:
     
     def _get_child_gender(self) -> str:
         """dyad의 child_gender를 가져오기"""
-        from .database.crud.chatbot import get_journal_entry
+        from backend.database.crud.chatbot import get_journal_entry
         
         journal_entry = get_journal_entry(self.db, self.journal_entry_id)
         if journal_entry and journal_entry.dyad:
@@ -174,7 +174,7 @@ class ComicIntroStage:
         journal = get_journal(self.db, self.journal_entry_id)
         if journal:
             # DB에서 장소와 사람 정보 가져오기
-            from .database.crud.chatbot import get_dyad_places, get_place_people
+            from backend.database.crud.chatbot import get_dyad_places, get_place_people
             dyad = get_journal_entry(self.db, self.journal_entry_id).dyad
             places = get_dyad_places(self.db, dyad.id)
             people = get_place_people(self.db, dyad.id)
@@ -541,7 +541,7 @@ Recent conversation:
     
     def _get_or_create_interaction_turn(self, stage: JournalEntryStage) -> Any:
         """현재 단계의 interaction turn 가져오기 또는 생성"""
-        from .database.crud.chatbot import get_latest_interaction_turn
+        from backend.database.crud.chatbot import get_latest_interaction_turn
         
         latest_turn = get_latest_interaction_turn(self.db, self.journal_entry_id)
         if latest_turn and latest_turn.stage == stage:

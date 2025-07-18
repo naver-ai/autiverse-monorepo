@@ -1,13 +1,8 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
-import asyncio
-import threading
-import time
-from sqlalchemy.orm import Session
-from ...database.engine import get_session
-from ...database.crud.chatbot import get_journal, update_comic_data
-from ...utils.comic_grid_generator import ComicGridGenerator
+from backend.database.crud.chatbot import update_comic_data
+from backend.core.ai import ComicGridGenerator
 
 router = APIRouter()
 

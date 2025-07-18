@@ -1,16 +1,12 @@
 from typing import Dict, Any, Optional, List
 from sqlalchemy.orm import Session
-from .database.crud.chatbot import (
+from backend.database.crud.chatbot import (
     get_dyad_by_passcode, get_dyad_by_id, create_journal_entry, get_journal_entry, 
     create_journal, get_journal, update_journal_data, 
     get_messages_by_journal_entry, delete_journal_entry, reset_journal_entry
 )
-from .database.models import JournalEntryStage, JournalEntryStatus, MessageRole
-from .comic_intro_stage import ComicIntroStage
-from .revision_1_stage import Revision1Stage
-from .comic_context_stage import ComicContextStage
-from .revision_2_stage import Revision2Stage
-from .title_stage import TitleStage
+from backend.database.models import JournalEntryStage, JournalEntryStatus, MessageRole
+from backend.core.ai.pipelines import ComicIntroStage, Revision1Stage, ComicContextStage, Revision2Stage, TitleStage
 
 class ChatbotController:
     def __init__(self, db: Session):
@@ -33,7 +29,7 @@ class ChatbotController:
         journal = create_journal(self.db, journal_entry.id, dyad_id, location, people)
         
         # Comic 테이블 생성 (comic generation을 위해 필요)
-        from .database.crud.chatbot import create_comic
+        from backend.database.crud.chatbot import create_comic
         create_comic(self.db, journal_entry.id, journal.id, dyad_id)
         
         # comic intro 단계 시작
@@ -61,7 +57,7 @@ class ChatbotController:
         journal = create_journal(self.db, journal_entry.id, dyad_id, None, None)
         
         # Comic 테이블 생성 (comic generation을 위해 필요)
-        from .database.crud.chatbot import create_comic
+        from ...database.crud.chatbot import create_comic
         create_comic(self.db, journal_entry.id, journal.id, dyad_id)
         
         # comic intro 단계 시작 (suggestion 모드)
@@ -108,7 +104,7 @@ class ChatbotController:
         # 다음 단계로 진행할 준비가 되었는지 확인
         if intro_stage.is_ready_for_next_stage():
             # 마지막 assistant 메시지 삭제 (UI에 표시되지 않는 메시지)
-            from .database.crud.chatbot import get_messages_by_journal_entry, delete_message
+            from ...database.crud.chatbot import get_messages_by_journal_entry, delete_message
             messages = get_messages_by_journal_entry(self.db, journal_entry_id)
             if messages and messages[-1].role == MessageRole.Assistant:
                 delete_message(self.db, messages[-1].id)
@@ -253,7 +249,7 @@ class ChatbotController:
         # 제목 선택 완료 감지
         if message.strip() == "다음":
             # complete stage로 전환
-            from .database.crud.chatbot import update_journal_entry_stage
+            from ...database.crud.chatbot import update_journal_entry_stage
             update_journal_entry_stage(self.db, journal_entry_id, JournalEntryStage.Complete)
             
             return {
@@ -284,7 +280,7 @@ class ChatbotController:
         messages = get_messages_by_journal_entry(self.db, journal_entry_id)
         
         # Comic 테이블에서 comic 데이터 조회
-        from .database.crud.chatbot import get_comic
+        from ...database.crud.chatbot import get_comic
         comic = get_comic(self.db, journal_entry_id)
         
         # 현재 패널 데이터 결정

@@ -1,10 +1,10 @@
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
-from .database.crud.chatbot import (
+from backend.database.crud.chatbot import (
     get_journal, update_journal_data, create_interaction_turn, 
     create_message, get_messages_by_journal_entry_and_stage
 )
-from .database.models import JournalEntryStage, MessageRole
+from backend.database.models import JournalEntryStage, MessageRole
 from .title_generator import TitleGenerator
 
 class TitleStage:
@@ -15,7 +15,7 @@ class TitleStage:
         
     def _get_child_name(self) -> str:
         """dyad의 child_name을 가져오기"""
-        from .database.crud.chatbot import get_journal_entry
+        from backend.database.crud.chatbot import get_journal_entry
         journal_entry = get_journal_entry(self.db, self.journal_entry_id)
         if journal_entry and journal_entry.dyad:
             return journal_entry.dyad.child_name or "친구"
@@ -25,7 +25,7 @@ class TitleStage:
         """제목 선택 시작"""
         try:
             # Journal entry stage 업데이트
-            from .database.crud.chatbot import update_journal_entry_stage
+            from backend.database.crud.chatbot import update_journal_entry_stage
             update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Title)
             
             # 새로운 interaction turn 생성
@@ -141,7 +141,7 @@ class TitleStage:
     
     def _get_or_create_interaction_turn(self, stage: JournalEntryStage):
         """현재 interaction turn 가져오기 또는 생성"""
-        from .database.crud.chatbot import get_latest_interaction_turn, create_interaction_turn
+        from backend.database.crud.chatbot import get_latest_interaction_turn, create_interaction_turn
         
         # 현재 stage의 interaction turn 찾기
         latest_turn = get_latest_interaction_turn(self.db, self.journal_entry_id)

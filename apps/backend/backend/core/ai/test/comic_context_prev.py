@@ -1,12 +1,9 @@
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
-from langchain_openai import ChatOpenAI
-from langchain.schema import HumanMessage, SystemMessage
-from backend.utils.environment import get_env_variable, EnvironmentVariables
 from backend.database.crud.chatbot import *
 from backend.database.crud.chatbot import update_journal_entry_stage, update_comic_panels, update_comic_data
-from .database.crud.chatbot import get_messages_by_journal_entry_and_stage
-from .database.models import JournalEntryStage, MessageRole
+from backend.database.crud.chatbot import get_messages_by_journal_entry_and_stage
+from backend.database.models import JournalEntryStage, MessageRole
 
 
 from sqlmodel import Session
@@ -45,7 +42,7 @@ class ComicContextStage:
     
     def _get_dyad_info(self) -> tuple[str, int, str, str, list[str]]:
         """dyad 정보를 한 번에 가져오기 (child_name, child_age, child_gender, agent_name, agent_interests)"""
-        from .database.crud.chatbot import get_journal_entry
+        from backend.database.crud.chatbot import get_journal_entry
         
         journal_entry = get_journal_entry(self.db, self.journal_entry_id)
         if not journal_entry or not journal_entry.dyad:
@@ -1018,7 +1015,7 @@ Please generate a question that addresses the FIRST missing information gap."""
     
     def _get_or_create_interaction_turn(self, stage: JournalEntryStage) -> Any:
         """현재 단계의 interaction turn 가져오기 또는 생성"""
-        from .database.crud.chatbot import get_latest_interaction_turn
+        from backend.database.crud.chatbot import get_latest_interaction_turn
         
         latest_turn = get_latest_interaction_turn(self.db, self.journal_entry_id)
         if latest_turn and latest_turn.stage == stage:
