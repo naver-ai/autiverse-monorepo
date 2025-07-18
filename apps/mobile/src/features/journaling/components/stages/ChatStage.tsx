@@ -1,52 +1,45 @@
 import React from 'react';
 import { View, Text, Animated, TouchableOpacity } from 'react-native';
-import { ChatMessage } from '../../types';
 import { ComicPanel, ChatMessageComponent, ChatInput } from '..';
 import { convertComicDataToPanels } from '../../utils';
 import { styleTemplates } from '../../../../styles';
 import { LogoImage } from '../../../../components/svg-images';
+import { useJournalingStore } from '../../store';
 
 interface ChatStageProps {
-  currentStage: string;
-  comicData: any;
-  focusedPanel: string | null;
   comicGenerationStatus: any;
   progressAnimation: Animated.Value;
-  messages: ChatMessage[];
-  inputText: string;
-  setInputText: (text: string) => void;
   sendMessage: (message: string) => void;
-  isLoading: boolean;
   agentName: string;
   agentConfig?: any;
   onTTSComplete?: () => void;
-  isInputActive?: boolean;
   sessionId?: string;
   loadSessionInfo?: (sessionId: string) => Promise<any>;
-  isAfterFarewell?: boolean;
   onEndSession?: () => void;
 }
 
 export const ChatStage: React.FC<ChatStageProps> = ({
-  currentStage,
-  comicData,
-  focusedPanel,
   comicGenerationStatus,
   progressAnimation,
-  messages,
-  inputText,
-  setInputText,
   sendMessage,
-  isLoading,
   agentName,
   agentConfig,
   onTTSComplete,
-  isInputActive = true,
   sessionId,
   loadSessionInfo,
-  isAfterFarewell = false,
   onEndSession
 }) => {
+  const {
+    currentStage,
+    comicData,
+    focusedPanel,
+    messages,
+    inputText,
+    setInputText,
+    isLoading,
+    isInputActive,
+    isAfterFarewell
+  } = useJournalingStore();
   const convertComicDataToPanelsMemo = React.useMemo(() => {
     return convertComicDataToPanels(comicData);
   }, [comicData]);

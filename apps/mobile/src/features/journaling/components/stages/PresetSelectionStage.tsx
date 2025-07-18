@@ -4,36 +4,29 @@ import { getImageSource } from '../../utils/imageUtils';
 import { styleTemplates } from '../../../../styles';
 import { speakText, stopSpeech } from '../../utils/speechUtils';
 import { useDyad } from '../../../../api/dyad';
+import { useJournalingStore } from '../../store';
 
 interface PresetSelectionStageProps {
-  selectionStep: 'location' | 'people';
-  selectedLocation: string | null;
-  selectedPeople: string[];
-  selectedPlaceId: string | null;
-  selectedPersonIds: string[];
-  isLoading: boolean;
-  onLocationSelect: (location: string, placeId?: string) => void;
-  onPersonToggle: (person: string, personId?: string) => void;
-  onBackToLocation: () => void;
   onSelectionComplete: () => void;
   onStartChatbotWithSuggestion: () => void;
   onFreeStart: () => void;
 }
 
 export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
-  selectionStep,
-  selectedLocation,
-  selectedPeople,
-  selectedPlaceId,
-  selectedPersonIds,
-  isLoading,
-  onLocationSelect,
-  onPersonToggle,
-  onBackToLocation,
   onSelectionComplete,
   onStartChatbotWithSuggestion,
   onFreeStart
 }) => {
+  const {
+    selectionStep,
+    selectedLocation,
+    selectedPersonIds,
+    isLoading,
+    handleLocationSelect,
+    handlePersonToggle,
+    handleBackToLocation
+  } = useJournalingStore();
+  
   const [hasSpoken, setHasSpoken] = useState(false);
   const [isTTSActive, setIsTTSActive] = useState(false);
 
@@ -136,7 +129,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                         ? 'border-gray-200 bg-gray-200'
                         : 'border-gray-200 bg-white'
                     }`}
-                    onPress={() => stopTTSAndExecute(() => onLocationSelect(place.name, place.id))}
+                    onPress={() => stopTTSAndExecute(() => handleLocationSelect(place.name, place.id))}
                     disabled={isTTSActive || isLoading}
                   >
                     <Text
@@ -205,7 +198,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
             {/* 뒤로가기 버튼 */}
             <TouchableOpacity
               className={`mb-4 p-2 ${isTTSActive ? 'bg-gray-200' : ''}`}
-              onPress={() => stopTTSAndExecute(onBackToLocation)}
+                              onPress={() => stopTTSAndExecute(handleBackToLocation)}
               disabled={isTTSActive}
             >
               <Text className={`text-blue-500 text-xl ${isTTSActive ? 'text-gray-400' : ''}`} style={styleTemplates.withBoldFont}>← 장소 다시 선택</Text>
@@ -234,7 +227,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                           ? 'border-gray-200 bg-gray-200'
                           : 'border-gray-200 bg-white'
                     }`}
-                    onPress={() => executeWithConditionalTTSStop(() => onPersonToggle(person.name, person.id))}
+                    onPress={() => executeWithConditionalTTSStop(() => handlePersonToggle(person.name, person.id))}
                     disabled={isTTSActive}
                   >
                     <Text

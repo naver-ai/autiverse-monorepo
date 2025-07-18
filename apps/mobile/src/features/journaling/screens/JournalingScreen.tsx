@@ -16,6 +16,7 @@ import { ChatMessage, Preset } from '../types';
 import { stopSpeech, getSpeechManager } from '../utils/speechUtils';
 import { voiceRecorder } from '../utils/voiceUtils';
 import { useDyad } from '../../../api/dyad';
+import { useJournalingStore } from '../store';
 
 export const JournalingScreen = () => {
   const router = useRouter();
@@ -26,38 +27,38 @@ export const JournalingScreen = () => {
 
   const {dyad, agentName, agentConfig, childName} = useDyad();
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputText, setInputText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentStage, setCurrentStage] = useState('intro');
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [comicData, setComicData] = useState<any>(null);
-  const [focusedPanel, setFocusedPanel] = useState<string | null>(null);
-  
-  // 2단계 선택을 위한 state
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
-  const [selectionStep, setSelectionStep] = useState<'location' | 'people'>('location');
-  const [showPresetSelection, setShowPresetSelection] = useState(true);
-  
-  // 새로운 API 기반 state
-  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
-  const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([]);
-
-  // 만화 생성 완료 플래그 (무한 루프 방지)
-  const [isComicCompleted, setIsComicCompleted] = useState(false);
-
-  // 칭찬 섹션 관련 상태
-  const [showPraiseSection, setShowPraiseSection] = useState(false);
-  const [showFarewellSection, setShowFarewellSection] = useState(false);
-  const [completionMessage, setCompletionMessage] = useState<string>('');
-  const [comicTitle, setComicTitle] = useState<string>('그림 일기');
-  
-  // ChatInput 활성화 상태 (초기에는 비활성화)
-  const [isInputActive, setIsInputActive] = useState(false);
-  
-  // Farewell 이후 음성 녹음 방지 플래그
-  const [isAfterFarewell, setIsAfterFarewell] = useState(false);
+  // Store 사용
+  const {
+    messages,
+    setMessages,
+    addMessage,
+    addMessages,
+    setIsLoading,
+    currentStage,
+    setCurrentStage,
+    sessionId,
+    comicData,
+    selectedLocation,
+    selectedPeople,
+    selectedPersonIds,
+    showPresetSelection,
+    isComicCompleted,
+    showPraiseSection,
+    showFarewellSection,
+    completionMessage,
+    setIsInputActive,
+    setIsAfterFarewell,
+    resetAll,
+    resetForNewSession,
+    // Semantic setters
+    initializeSession,
+    updateSessionInfo,
+    startChatbotSession,
+    transitionToPraiseSection,
+    transitionToFarewellSection,
+    prepareForMessageSend,
+    handleMessageResponse
+  } = useJournalingStore();
 
   // Chatbot 훅 사용
   const {
@@ -71,36 +72,18 @@ export const JournalingScreen = () => {
   // 칭찬 섹션 완료 콜백
   const handlePraiseComplete = () => {
     console.log('Praise section completed');
-    setShowPraiseSection(false);
-    setShowFarewellSection(true);
+    transitionToFarewellSection();
   };
 
   // 인사말 섹션 완료 콜백 (intro 화면으로 돌아가기)
   const handleFarewellComplete = () => {
     console.log('Farewell section completed, navigating to intro');
-    setShowFarewellSection(false);
     
     // Farewell 이후 플래그 설정
     setIsAfterFarewell(true);
     
     // 모든 상태 초기화
-    setMessages([]);
-    setInputText('');
-    setIsLoading(false);
-    setCurrentStage('intro');
-    setSessionId(null);
-    setComicData(null);
-    setFocusedPanel(null);
-    setSelectedLocation(null);
-    setSelectedPeople([]);
-    setSelectionStep('location');
-    setShowPresetSelection(false); // intro로 돌아갈 때는 false로 설정
-    setSelectedPlaceId(null);
-    setSelectedPersonIds([]);
-    setIsComicCompleted(false);
-    setShowPraiseSection(false);
-    setCompletionMessage('');
-    setComicTitle('그림 일기');
+    resetForNewSession();
     
     // TTS 정지
     stopSpeech();
@@ -127,13 +110,11 @@ export const JournalingScreen = () => {
       console.log('Comic generation completed:', comicGenerationStatus.comic_data);
       
       // 만화 생성이 완료되면 고정 메시지들을 제거
-      setMessages(prev => {
-        const filteredMessages = prev.filter(msg => 
-          msg.text !== '다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~' &&
-          msg.text !== '내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~'
-        );
-        return filteredMessages;
-      });
+      const filteredMessages = messages.filter(msg => 
+        msg.text !== '다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~' &&
+        msg.text !== '내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~'
+      );
+      addMessages(filteredMessages);
       
       // 세션 정보를 다시 로드하여 최신 만화 데이터 가져오기
       setTimeout(() => {
@@ -151,26 +132,23 @@ export const JournalingScreen = () => {
       console.log('Continuing existing work:', { journalEntryId, stage });
       
       // 기존 session 설정
-      setSessionId(journalEntryId);
-      setCurrentStage(stage);
-      setShowPresetSelection(false); // preset selection 건너뛰기
+      initializeSession({
+        journalEntryId,
+        stage,
+        showPresetSelection: false
+      });
       
       // 기존 session 정보 로드
       const loadExistingSession = async () => {
         try {
           const data = await loadSessionInfoFromHook(journalEntryId);
           if (data) {
-            if (data.panels) {
-              setComicData(data.panels);
-            }
-            if (data.stage) {
-              setCurrentStage(data.stage);
-            }
-            if (data.stage === 'comic_context' && data.focusedPanel) {
-              setFocusedPanel(data.focusedPanel);
-            } else {
-              setFocusedPanel(null);
-            }
+            updateSessionInfo({
+              panels: data.panels,
+              stage: data.stage,
+              title: data.title,
+              focusedPanel: data.focusedPanel
+            });
             
             // 기존 메시지들 로드 (필요한 경우)
             if (data.messages) {
@@ -219,23 +197,17 @@ export const JournalingScreen = () => {
     try {
       const data = await loadSessionInfoFromHook(sessionId);
       if (data) {
-        if (data.panels) {
-          setComicData(data.panels);
-        }
-        if (data.stage) {
-          setCurrentStage(data.stage);
-        }
-        if (data.title) {
-          setComicTitle(data.title);
-        }
+        updateSessionInfo({
+          panels: data.panels,
+          stage: data.stage,
+          title: data.title,
+          focusedPanel: data.focusedPanel
+        });
         
-        // 백엔드에서 내려주는 focusedPanel 사용
         if (data.focusedPanel) {
           console.log('Setting focusedPanel from session info:', data.focusedPanel);
-          setFocusedPanel(data.focusedPanel);
         } else {
           console.log('No focusedPanel in session info, clearing focus');
-          setFocusedPanel(null);
         }
       }
     } catch (error) {
@@ -250,8 +222,10 @@ export const JournalingScreen = () => {
       const data = await startChatbotFromHook(preset || {});
       if (data) {
         console.log('Response data:', data);
-        setSessionId(data.journal_entry_id);
-        setCurrentStage(data.stage);
+        startChatbotSession({
+          journalEntryId: data.journal_entry_id,
+          stage: data.stage
+        });
         
         const newMessage: ChatMessage = {
           id: Date.now().toString(),
@@ -260,8 +234,7 @@ export const JournalingScreen = () => {
           timestamp: new Date(),
         };
         
-        setMessages([newMessage]);
-        setShowPresetSelection(false);
+        addMessages([newMessage]);
         
         // 세션 정보에서 패널 데이터 가져오기
         await loadSessionInfo();
@@ -285,8 +258,10 @@ export const JournalingScreen = () => {
       const data = await startChatbotWithSuggestionFromHook();
       if (data) {
         console.log('Response data:', data);
-        setSessionId(data.journal_entry_id);
-        setCurrentStage(data.stage);
+        startChatbotSession({
+          journalEntryId: data.journal_entry_id,
+          stage: data.stage
+        });
         
         const newMessage: ChatMessage = {
           id: Date.now().toString(),
@@ -295,8 +270,7 @@ export const JournalingScreen = () => {
           timestamp: new Date(),
         };
         
-        setMessages([newMessage]);
-        setShowPresetSelection(false);
+        addMessages([newMessage]);
         
         // 세션 정보에서 패널 데이터 가져오기
         await loadSessionInfo();
@@ -331,7 +305,7 @@ export const JournalingScreen = () => {
       }
       
       // 칭찬 섹션으로 넘어가기
-      setShowPraiseSection(true);
+      transitionToPraiseSection();
       return;
     }
 
@@ -349,9 +323,8 @@ export const JournalingScreen = () => {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputText('');
-    setIsLoading(true);
+    addMessage(userMessage);
+    prepareForMessageSend();
 
     // Revision_1에서 다음 단계로 넘어가는 기준이 달성될 때 고정 메시지를 먼저 추가
     if (currentStage === 'revision_1' && 
@@ -365,14 +338,12 @@ export const JournalingScreen = () => {
         isUser: false,
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, fixedMessage]);
+      addMessages([fixedMessage]);
     }
 
     try {
       const data = await sendMessageFromHook(sessionId, messageText, audioFilename);
       if (data) {
-        setCurrentStage(data.stage);
-        
         const botMessage: ChatMessage = {
           id: (Date.now() + 2).toString(),
           text: data.response,
@@ -380,28 +351,22 @@ export const JournalingScreen = () => {
           timestamp: new Date(),
         };
 
+        // 기본 응답 처리
+        handleMessageResponse({
+          stage: data.stage,
+          response: data.response,
+          focusedPanel: data.focusedPanel,
+          auto_comic_generation: data.auto_comic_generation
+        });
+
         // 완료 메시지 감지 (다음 버튼을 눌러야 넘어감)
         if (data.response.includes('다음 버튼을 눌러줘')) {
-          setCompletionMessage(data.response);
-          setMessages(prev => [...prev, botMessage]);
-          
-          // 다음 버튼을 기다리므로 ChatInput 활성화 유지
-          setIsInputActive(true);
+          addMessage(botMessage);
         }
         // comic_context 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 다행이다~ 메시지가 제거됨)
         else if (data.stage === 'comic_context') {
           console.log('Comic context message detected, adding immediately...');
-          setCompletionMessage(''); // 완료 메시지가 아니므로 초기화
-          setMessages(prev => [...prev, botMessage]);
-          
-          // 백엔드에서 내려주는 focusedPanel 사용
-          if (data.focusedPanel) {
-            console.log('Setting focusedPanel from backend response:', data.focusedPanel);
-            setFocusedPanel(data.focusedPanel);
-          } else {
-            console.log('No focusedPanel in backend response, clearing focus');
-            setFocusedPanel(null);
-          }
+          addMessage(botMessage);
         } else if (data.stage === 'revision_2' && data.response.includes('완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔')) {
           // Revision_2에서 만화 생성이 시작될 때 고정 메시지 추가
           console.log('Revision_2 comic generation detected, adding fixed message...');
@@ -412,15 +377,13 @@ export const JournalingScreen = () => {
             isUser: false,
             timestamp: new Date(),
           };
-          setMessages(prev => [...prev, fixedMessage]);
+          addMessage(fixedMessage);
           
           // revision_2 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 고정 메시지가 제거됨)
-          setCompletionMessage(''); // 완료 메시지가 아니므로 초기화
-          setMessages(prev => [...prev, botMessage]);
+          addMessage(botMessage);
         } else {
           // 다른 메시지들은 바로 표시
-          setCompletionMessage(''); // 완료 메시지가 아니므로 초기화
-          setMessages(prev => [...prev, botMessage]);
+          addMessage(botMessage);
         }
         
         // 세션 정보에서 최신 패널 데이터 가져오기 (만화 생성이 진행 중이지 않을 때만)
@@ -475,7 +438,7 @@ export const JournalingScreen = () => {
                   timestamp: new Date(),
                 };
                 
-                setMessages(prev => [...prev, autoBotMessage]);
+                addMessage(autoBotMessage);
                 
                 // 세션 정보 다시 로드 (한 번만)
                 if (!isComicCompleted) {
@@ -498,32 +461,6 @@ export const JournalingScreen = () => {
       Alert.alert('오류', '메시지를 보낼 수 없습니다.');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // 장소 선택 핸들러 (API 데이터 또는 프리셋 데이터 사용)
-  const handleLocationSelect = (location: string, placeId?: string) => {
-    setSelectedLocation(location);
-    setSelectedPlaceId(placeId || null);
-    setSelectedPeople([]);
-    setSelectedPersonIds([]);
-    setSelectionStep('people');
-  };
-
-  // 등장인물 선택/해제 핸들러 (API 데이터 또는 프리셋 데이터 사용)
-  const handlePersonToggle = (person: string, personId?: string) => {
-    if (personId) {
-      setSelectedPersonIds(prev => 
-        prev.includes(personId) 
-          ? prev.filter(p => p !== personId)
-          : [...prev, personId]
-      );
-    } else {
-      setSelectedPeople(prev => 
-        prev.includes(person) 
-          ? prev.filter(p => p !== person)
-          : [...prev, person]
-      );
     }
   };
 
@@ -551,13 +488,6 @@ export const JournalingScreen = () => {
         await startChatbot(customPreset);
       }
     }
-  };
-
-  // 뒤로가기 핸들러
-  const handleBackToLocation = () => {
-    setSelectedLocation(null);
-    setSelectedPeople([]);
-    setSelectionStep('location');
   };
 
   // 자유롭게 시작하기 핸들러
@@ -593,26 +523,7 @@ export const JournalingScreen = () => {
             }
             
             // 모든 상태 초기화
-            setMessages([]);
-            setInputText('');
-            setIsLoading(false);
-            setCurrentStage('intro');
-            setSessionId(null);
-            setComicData(null);
-            setFocusedPanel(null);
-            setSelectedLocation(null);
-            setSelectedPeople([]);
-            setSelectionStep('location');
-            setShowPresetSelection(false); // 세션 종료 시에는 preset selection을 false로 설정
-            setSelectedPlaceId(null);
-            setSelectedPersonIds([]);
-            setIsComicCompleted(false);
-            setShowPraiseSection(false);
-            setShowFarewellSection(false);
-            setCompletionMessage('');
-            setComicTitle('그림 일기');
-            setIsInputActive(false);
-            setIsAfterFarewell(false);
+            resetAll();
             
             // Home 화면으로 돌아가기
             if (router) {
@@ -653,37 +564,19 @@ export const JournalingScreen = () => {
       <View className="flex-1 bg-gray-100">
         {showPresetSelection ? (
           <PresetSelectionStage
-            selectionStep={selectionStep}
-            selectedLocation={selectedLocation}
-            selectedPeople={selectedPeople}
-            selectedPlaceId={selectedPlaceId}
-            selectedPersonIds={selectedPersonIds}
-            isLoading={isLoading}
-            onLocationSelect={handleLocationSelect}
-            onPersonToggle={handlePersonToggle}
-            onBackToLocation={handleBackToLocation}
             onSelectionComplete={handleSelectionComplete}
             onStartChatbotWithSuggestion={startChatbotWithSuggestion}
             onFreeStart={handleFreeStart}
           />
         ) : (
           <ChatStage
-            currentStage={currentStage}
-            comicData={comicData}
-            focusedPanel={focusedPanel}
             comicGenerationStatus={comicGenerationStatus}
             progressAnimation={progressAnimation}
-            messages={messages}
-            inputText={inputText}
-            setInputText={setInputText}
             sendMessage={sendMessage}
-            isLoading={isLoading}
             agentName={agentName || "친구"}
             agentConfig={agentConfig}
-            isInputActive={isInputActive}
             sessionId={sessionId || undefined}
             loadSessionInfo={loadSessionInfoFromHook}
-            isAfterFarewell={isAfterFarewell}
             onTTSComplete={() => {
               // 완료 메시지가 아닐 때만 ChatInput 활성화
               if (!completionMessage) {
