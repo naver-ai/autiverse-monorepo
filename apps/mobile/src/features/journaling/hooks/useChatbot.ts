@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { NetworkHelper } from '@autiverse-monorepo/ts-core';
-import { useAuthStore } from '../../../features/auth/store';
+import { useAuthStore } from '../../auth/store';
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 const createNewSessionAPI = async (jwt: string, location?: string, people?: Array<string>) => {

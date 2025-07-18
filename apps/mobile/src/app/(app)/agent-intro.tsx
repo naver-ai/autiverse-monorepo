@@ -1,3 +1,3 @@
-import { AgentIntroScreen } from "../../features/tablet-comic-chatbot/screens/AgentIntroScreen";
+import { AgentIntroScreen } from "../../features/journaling/screens/AgentIntroScreen";
 
 export default AgentIntroScreen

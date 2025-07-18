@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../features/auth/store';
 import { getGalleryAPI } from '../../../api/dyad';
 import { useQuery } from '@tanstack/react-query';
-import { getTileColor } from '../../../features/tablet-comic-chatbot/utils';
+import { getTileColor } from '../../journaling/utils';
 
 export default function JournalListScreen() {
   const router = useRouter();

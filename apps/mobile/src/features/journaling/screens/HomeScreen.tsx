@@ -91,7 +91,7 @@ export default function HomeScreen() {
     setShowContinueModal(false);
     // 기존 작업 이어가기 - 해당 stage로 직접 이동
     router.push({
-      pathname: '/(app)/tablet-comic-chatbot',
+      pathname: '/(app)/create-comic',
       params: {
         journalEntryId: latestEntry.id,
         stage: latestEntry.stage,

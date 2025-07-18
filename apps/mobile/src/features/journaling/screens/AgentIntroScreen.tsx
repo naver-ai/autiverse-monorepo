@@ -88,7 +88,7 @@ export function AgentIntroScreen() {
     if (autoNavigate && !hasNavigated) {
       setHasNavigated(true);
       router.push({
-        pathname: '/(app)/tablet-comic-chatbot',
+        pathname: '/(app)/create-comic',
       });
     }
   }, [autoNavigate, router, hasNavigated]);

@@ -1,3 +1,3 @@
-import HomeScreen from "../../features/tablet-comic-chatbot/screens/HomeScreen";
+import HomeScreen from "../../features/journaling/screens/HomeScreen";
 
 export default HomeScreen

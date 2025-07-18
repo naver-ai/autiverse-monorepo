@@ -13,7 +13,7 @@ export default function AppLayout() {
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="home" options={{ headerShown: false }} />
       <Stack.Screen name="agent-intro" options={{ headerShown: false }} />
-      <Stack.Screen name="tablet-comic-chatbot" options={{ headerShown: false }} />
+      <Stack.Screen name="create-comic" options={{ headerShown: false }} />
       <Stack.Screen name="gallery" options={{ headerShown: false }} />
       <Stack.Screen name="comic-detail" options={{ headerShown: false }} />
     </Stack>

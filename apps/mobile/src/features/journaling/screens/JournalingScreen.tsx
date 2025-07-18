@@ -6,7 +6,7 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-import { Router } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useComicGeneration } from '../hooks/useComicGenerationQuery';
 import { useChatbot } from '../hooks/useChatbot';
 import PraiseSection from '../components/sections/PraiseSection';
@@ -17,24 +17,12 @@ import { stopSpeech, getSpeechManager } from '../utils/speechUtils';
 import { voiceRecorder } from '../utils/voiceUtils';
 import { useDyad } from '../../../api/dyad';
 
-export const TabletComicChatbotScreen: React.FC<{
-  dyadId?: string;
-  dyadName?: string;
-  passcode?: string;
-  journalEntryId?: string;
-  stage?: string;
-  continueExisting?: boolean;
-  router?: Router;
-}> = ({ 
-  dyadId, 
-  dyadName, 
-  passcode, 
-  journalEntryId,
-  stage,
-  continueExisting,
-  router 
-}) => {
+export const JournalingScreen = () => {
+  const router = useRouter();
 
+  const {journalEntryId, stage, continueExistingStr}: {journalEntryId?: string, stage?: string, continueExistingStr?: string} = useLocalSearchParams();
+
+  const continueExisting = continueExistingStr === 'true';
 
   const {dyad, agentName, agentConfig, childName} = useDyad();
 
@@ -157,13 +145,6 @@ export const TabletComicChatbotScreen: React.FC<{
   // 프로그레스바 애니메이션
   const progressAnimation = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    if (dyadId && dyadName) {
-      console.log('Dyad authenticated:', { dyadId, dyadName, passcode });
-      // dyad 정보는 useDyad 훅에서 자동으로 로드됨
-    }
-  }, [dyadId, dyadName, passcode]);
-
   // 이어가기 기능 처리
   useEffect(() => {
     if (continueExisting && journalEntryId && stage) {
@@ -264,7 +245,6 @@ export const TabletComicChatbotScreen: React.FC<{
 
   const startChatbot = async (preset?: Preset) => {
     console.log('startChatbot called with preset:', preset);
-    console.log('dyadId value:', dyadId);
     setIsLoading(true);
     try {
       const data = await startChatbotFromHook(preset || {});
@@ -300,7 +280,6 @@ export const TabletComicChatbotScreen: React.FC<{
 
   const startChatbotWithSuggestion = async () => {
     console.log('startChatbotWithSuggestion called');
-    console.log('dyadId value:', dyadId);
     setIsLoading(true);
     try {
       const data = await startChatbotWithSuggestionFromHook();

@@ -1,3 +1,3 @@
-import ComicDetailScreen from "../../features/tablet-comic-chatbot/screens/ComicDetailScreen";
+import ComicDetailScreen from "../../features/journaling/screens/ComicDetailScreen";
 
 export default ComicDetailScreen
