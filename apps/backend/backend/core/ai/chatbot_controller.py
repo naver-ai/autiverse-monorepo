@@ -345,6 +345,17 @@ class ChatbotController:
         focused_panel = self._get_focused_panel(journal_entry_id, journal_entry.stage) if journal_entry.stage == JournalEntryStage.ComicContext else None
         print(f"[DEBUG] get_session_info: stage={journal_entry.stage}, focused_panel={focused_panel}")
         
+        # 메시지를 프론트엔드에서 사용할 수 있는 형태로 변환
+        formatted_messages = []
+        if messages:
+            for msg in messages:
+                formatted_messages.append({
+                    "id": msg.id,
+                    "text": msg.content,
+                    "isUser": msg.role == MessageRole.User,
+                    "timestamp": msg.created_at.isoformat() if msg.created_at else None
+                })
+        
         return {
             "journal_entry_id": journal_entry_id,
             "stage": journal_entry.stage.value if journal_entry.stage else "intro",
@@ -356,7 +367,8 @@ class ChatbotController:
             "title": journal.title if journal else None,
             "panels": current_panels,
             "message_count": len(messages) if messages else 0,
-            "focusedPanel": focused_panel
+            "focusedPanel": focused_panel,
+            "messages": formatted_messages
         }
     
     def reset_session(self, journal_entry_id: str) -> Dict[str, Any]:
