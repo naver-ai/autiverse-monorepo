@@ -1,7 +1,7 @@
 import fs from 'fs-extra'
 import dotenv from 'dotenv'
 import path from 'path'
-import { input, password, select } from '@inquirer/prompts';
+import { input, password, select, confirm } from '@inquirer/prompts';
 import { nanoid } from 'nanoid';
 import bcrypt from 'bcrypt';
 
@@ -129,8 +129,19 @@ async function setup(){
         })
     }
 
+    answers["USE_HTTPS"] = (await confirm({
+        default: env["USE_HTTPS"] == "1" || false,
+        message: 'Use HTTPS instead of HTTP?'
+    })) == true ? "1" : "0"
+
      // second pass
      if(answers["USE_HTTPS"] == "1"){
+
+        answers["USE_HTTPS_IN_DEV"] = (await confirm({
+            default: env["USE_HTTPS_IN_DEV"] == "1" || false,
+            message: 'Use HTTPS in development mode (for local development)?'
+        })) == true ? "1" : "0"
+
         answers["PRODUCTION_CERTIFICATE_PATH"] = await input({
             default: env["PRODUCTION_CERTIFICATE_PATH"],
             message: 'Insert path to production certificate:',

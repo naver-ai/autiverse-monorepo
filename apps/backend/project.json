@@ -88,6 +88,22 @@
       }
     },
 
+    "stop-prod": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "poetry run python backend/kill_production_server.py",
+        "cwd": "{projectRoot}"
+      }
+    },
+
+    "status-prod": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "poetry run python backend/kill_production_server.py --status",
+        "cwd": "{projectRoot}"
+      }
+    },
+
     "test_langchain": {
       "executor": "@nxlv/python:run-commands",
       "options": {

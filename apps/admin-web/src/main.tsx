@@ -14,7 +14,11 @@ const queryClient = new QueryClient({
   },
 });
 
-NetworkHelper.init(import.meta.env.DEV ? 'http://localhost:3000' : `http://${import.meta.env.VITE_BACKEND_HOSTNAME}:${import.meta.env.VITE_BACKEND_PORT}`);
+
+const protocol = import.meta.env.VITE_USE_HTTPS === '1' && (!import.meta.env.DEV || import.meta.env.VITE_USE_HTTPS_IN_DEV === '1') ? 'https' : 'http';
+const backendUrl = import.meta.env.DEV ? `${protocol}://localhost:3000` : `${protocol}://${import.meta.env.VITE_BACKEND_HOSTNAME}:${import.meta.env.VITE_BACKEND_PORT}`;
+
+NetworkHelper.init(backendUrl, () => Intl.DateTimeFormat().resolvedOptions().timeZone);
 
 
 const router = createRouter({ 
