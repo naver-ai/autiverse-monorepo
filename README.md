@@ -45,6 +45,34 @@ Run initial setup script:
 npm run setup # Prepare OpenAI API Key.
 ```
 
+
+## Database Settings (If selected `Postgresql`)
+1. Install Postgresql on the system
+- MacOS (Development):
+    ```bash
+    brew install postgresql
+    brew services start postgresql
+    ```
+
+- Ubuntu (Production):
+
+    ```bash
+    sudo apt install postgresql postgresql-contrib
+    ```
+
+    - On Ubuntu, Postgresql by default requires Peer authentication; the role in the Postgresql should be the same as the ubuntu username. Therefore, you should first create a postgresql role with the same name as the ubuntu user and with superuser privilages:
+
+        ```bash
+        sudo -u postgres psql # Enter psql shell with default postgres user
+
+        psql> CREATE ROLE your_ubuntu_account_name WITH LOGIN # Replace `your_ubuntu_account_name` into your ubuntu account name that will also run the server.
+        psql> ALTER ROLE your_ubuntu_account_name WITH SUPERUSER; # Assign superuser privileges.
+        psql> \q #Quit the psql shell.
+        ```
+
+
+
+
 ## Development Commands
 
 ### Test commands

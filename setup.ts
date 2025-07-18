@@ -1,7 +1,7 @@
 import fs from 'fs-extra'
 import dotenv from 'dotenv'
 import path from 'path'
-import { input, password } from '@inquirer/prompts';
+import { input, password, select } from '@inquirer/prompts';
 import { nanoid } from 'nanoid';
 import bcrypt from 'bcrypt';
 
@@ -22,7 +22,11 @@ function makeExistingValidator(message: string) {
     }
 }
 
-const CLIENT_BLACKLISTS = ["OPENAI_API_KEY", "AUTH_SECRET", "ADMIN_ID", "ADMIN_HASHED_PW", "CLOVA_CLIENT_ID", "CLOVA_CLIENT_SECRET"]
+const CLIENT_BLACKLISTS = ["OPENAI_API_KEY", "AUTH_SECRET", "ADMIN_ID", "ADMIN_HASHED_PW", "CLOVA_CLIENT_ID", "CLOVA_CLIENT_SECRET",
+    "PRODUCTION_CERTIFICATE_PATH", "PRODUCTION_CERTIFICATE_KEY_PATH",
+    "DATABASE_TYPE", 
+    "POSTGRES_DB_NAME", "POSTGRES_USER", "POSTGRES_PASSWORD"
+]
 
 async function hashPassword(password: string): Promise<string>{
     let hp = await bcrypt.hash(password.trim(), 10)
@@ -90,6 +94,53 @@ async function setup(){
             message: 'Insert Clova Client Secret:',
             required: true,
             validate: makeExistingValidator("Please enter a valid Client Secret.")
+        }),
+
+        "DATABASE_TYPE": await select({
+            message: 'Select database type:',
+            choices: [
+                {name: 'SQLite', value: 'sqlite'},
+                {name: 'PostgreSQL', value: 'postgres'}
+            ],
+            default: env["DATABASE_TYPE"] || 'sqlite'
+        })
+    }
+
+    if(answers["DATABASE_TYPE"] == "postgres"){
+        answers["POSTGRES_DB_NAME"] = await input({
+            default: env["POSTGRES_DB_NAME"] || 'autiversedb',
+            message: 'Insert Postgres DB name:',
+            required: true,
+            validate: makeExistingValidator("Please enter a valid DB name.")
+        })
+
+        answers["POSTGRES_USER"] = await input({
+            default: env["POSTGRES_USER"] || 'autiverse',
+            message: 'Insert Postgres user:',
+            required: true,
+            validate: makeExistingValidator("Please enter a valid user.")
+        })
+
+        answers["POSTGRES_PASSWORD"] = await input({
+            default: env["POSTGRES_PASSWORD"] || 'secret',
+            message: 'Insert Postgres password (Use an easy string as it is not sanitized):',
+            required: true,
+            validate: makeExistingValidator("Please enter a valid password.")
+        })
+    }
+
+     // second pass
+     if(answers["USE_HTTPS"] == "1"){
+        answers["PRODUCTION_CERTIFICATE_PATH"] = await input({
+            default: env["PRODUCTION_CERTIFICATE_PATH"],
+            message: 'Insert path to production certificate:',
+            required: false
+        })
+
+        answers["PRODUCTION_CERTIFICATE_KEY_PATH"] = await input({
+            default: env["PRODUCTION_CERTIFICATE_KEY_PATH"],
+            message: 'Insert path to production certificate key:',
+            required: false
         })
     }
 

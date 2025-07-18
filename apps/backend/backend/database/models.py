@@ -3,7 +3,8 @@ from enum import StrEnum
 from nanoid import generate
 from typing import Optional
 from pydantic import BaseModel, ConfigDict
-from sqlmodel import DateTime, Relationship, SQLModel, Field, func, UniqueConstraint, Column, JSON
+from sqlmodel import DateTime, Relationship, SQLModel, Field, func, UniqueConstraint, Column, JSON, Enum as SQLEnum
+from sqlalchemy import BigInteger
 import json
 from backend.utils.time import get_timestamp
 import uuid
@@ -26,7 +27,7 @@ class IdTimestampMixin(BaseModel):
 
 class TimezoneTimestampMixin(BaseModel):
     created_timezone: str = Field(nullable=True, default=None)
-    created_timestamp: int = Field(nullable=False, default_factory=get_timestamp)
+    created_timestamp: int = Field(sa_type=BigInteger, nullable=False, default_factory=get_timestamp)
 
 
 
@@ -47,9 +48,9 @@ class UserLocale(StrEnum):
 class DyadInfo(IdTimestampMixin):
     model_config = ConfigDict(use_enum_values=True)
 
-    locale: UserLocale = Field(nullable=False)
-    caregiver_type: CaregiverType = Field(nullable=False)
-    child_gender: ChildGender = Field(nullable=False)
+    locale: UserLocale = Field(sa_type=SQLEnum(UserLocale, native_enum=False), nullable=False, index=True)
+    caregiver_type: CaregiverType = Field(sa_type=SQLEnum(CaregiverType, native_enum=False), nullable=False, index=True)
+    child_gender: ChildGender = Field(sa_type=SQLEnum(ChildGender, native_enum=False), nullable=False, index=True)
     child_name: str = Field(nullable=False, min_length=1, max_length=100)
     child_age: int = Field(nullable=False, ge=0)
 
@@ -119,7 +120,7 @@ class PlacePersonLink(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
 
 class ContextEntityBase(BaseModel):
 
-    name: str = Field(nullable=False)
+    name: str = Field(nullable=False, index=True)
 
 class Agent(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
     __table_args__ = (
@@ -198,8 +199,8 @@ class JournalEntryStage(StrEnum):
 class JournalEntry(SQLModel, IdTimestampMixin, TimezoneTimestampMixin, DyadIdMixin, table=True):
     model_config = ConfigDict(use_enum_values=True)
     
-    status: JournalEntryStatus = Field(nullable=False, default=JournalEntryStatus.Initial)
-    stage: Optional[JournalEntryStage] = Field(nullable=True, default=None)
+    status: JournalEntryStatus = Field(sa_type=SQLEnum(JournalEntryStatus, native_enum=False), nullable=False, default=JournalEntryStatus.Initial)
+    stage: Optional[JournalEntryStage] = Field(sa_type=SQLEnum(JournalEntryStage, native_enum=False), nullable=True, default=None)
     whole_audio: Optional[str] = Field(nullable=True, default=None)
 
     interaction_turns: list['InteractionTurn'] = Relationship(back_populates="journal_entry", sa_relationship_kwargs={'lazy': 'selectin'}, cascade_delete=True)
@@ -211,7 +212,7 @@ class JournalEntryIdMixin(BaseModel):
 
 class InteractionTurn(SQLModel, IdTimestampMixin, JournalEntryIdMixin, table=True):
     model_config = ConfigDict(use_enum_values=True)
-    stage: JournalEntryStage = Field(nullable=False)
+    stage: JournalEntryStage = Field(sa_type=SQLEnum(JournalEntryStage, native_enum=False), nullable=False)
 
     journal_entry: JournalEntry = Relationship(back_populates="interaction_turns", sa_relationship_kwargs={'lazy': 'selectin'})
     messages: list['Message'] = Relationship(back_populates="interaction_turn", sa_relationship_kwargs={'lazy': 'selectin'}, cascade_delete=True)
@@ -230,9 +231,9 @@ class Message(SQLModel, IdTimestampMixin, JournalEntryIdMixin, InteractionTurnId
     model_config = ConfigDict(use_enum_values=True)
 
     content: str = Field(nullable=False)
-    role: MessageRole = Field(nullable=False)
+    role: MessageRole = Field(sa_type=SQLEnum(MessageRole, native_enum=False), nullable=False)
     audio_filename: Optional[str] = Field(nullable=True, default=None)
-    stage: Optional[JournalEntryStage] = Field(nullable=True, default=None)
+    stage: Optional[JournalEntryStage] = Field(sa_type=SQLEnum(JournalEntryStage, native_enum=False), nullable=True, default=None)
     
     interaction_turn: InteractionTurn = Relationship(back_populates="messages", sa_relationship_kwargs={'lazy': 'selectin'})
     journal_entry: JournalEntry = Relationship(back_populates="messages", sa_relationship_kwargs={'lazy': 'selectin'})

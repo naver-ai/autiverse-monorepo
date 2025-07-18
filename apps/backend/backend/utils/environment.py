@@ -1,7 +1,7 @@
 from enum import StrEnum
 from os import getcwd, getenv, path, makedirs
 import re
-
+from typing import Literal
 from dotenv import load_dotenv
 
 class EnvironmentVariables(StrEnum):
@@ -13,6 +13,19 @@ class EnvironmentVariables(StrEnum):
     ADMIN_HASHED_PW = "ADMIN_HASHED_PW"
     CLOVA_CLIENT_ID = "CLOVA_CLIENT_ID"
     CLOVA_CLIENT_SECRET = "CLOVA_CLIENT_SECRET"
+
+    USE_HTTPS = "USE_HTTPS"
+    PRODUCTION_CERTIFICATE_PATH = "PRODUCTION_CERTIFICATE_PATH"
+    PRODUCTION_CERTIFICATE_KEY_PATH = "PRODUCTION_CERTIFICATE_KEY_PATH"
+
+
+    DATABASE_TYPE = "DATABASE_TYPE"
+    POSTGRES_DB_NAME = "POSTGRES_DB_NAME"
+    POSTGRES_USER = "POSTGRES_USER"
+    POSTGRES_PASSWORD = "POSTGRES_PASSWORD"
+
+    DATABASE_TYPE_SQLITE = "sqlite"
+    DATABASE_TYPE_POSTGRES = "postgres"
 
 def get_env_variable(key: str) -> str:
     env_path = path.join(getcwd(), "../../.env")
@@ -27,6 +40,10 @@ def get_env_variable(key: str) -> str:
         return getenv(key)
     else:
         raise ValueError("Could not load dotenv.")
+    
+
+def get_database_type() -> Literal[EnvironmentVariables.DATABASE_TYPE_SQLITE, EnvironmentVariables.DATABASE_TYPE_POSTGRES]:
+    return get_env_variable(EnvironmentVariables.DATABASE_TYPE)
     
 
 class FilePaths:

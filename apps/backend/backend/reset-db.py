@@ -1,6 +1,7 @@
-from os import path, remove
+import asyncio
 import questionary
-from backend.utils.environment import FilePaths
+from backend.database.engine import engine
+from sqlmodel import SQLModel
 
 if __name__ == "__main__":
 
@@ -8,11 +9,10 @@ if __name__ == "__main__":
         print("Operation cancelled.")
         exit(0)
 
-    db_path = FilePaths.get_database_file_path()
-    if path.exists(db_path):
-        remove(db_path)
-    print("Database deleted.")
+    async def reset_db():
+        async with engine.begin() as conn:
+            await conn.run_sync(SQLModel.metadata.drop_all)
+            await conn.run_sync(SQLModel.metadata.create_all)
+        print("Database reset.")
 
-
-
-#Just trying git add
+    asyncio.run(reset_db())

@@ -41,6 +41,8 @@ readme = 'README.md'
   python-socketio = "^5.13.0"
   questionary = "^2.1.0"
   alembic = "^1.16.4"
+  asyncpg = "^0.30.0"
+  psycopg2-binary = "^2.9.10"
 
   [tool.poetry.group.dev.dependencies]
   autopep8 = "2.3.1"

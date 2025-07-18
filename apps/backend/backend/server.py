@@ -8,7 +8,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from backend.database.engine import create_db_and_tables, engine
+from backend.database.engine import create_db_and_tables, engine, initialize_postgres_db
+from backend.utils.environment import get_database_type, EnvironmentVariables
 from backend.router import admin, app as app_router
 from backend.core.socket import socket_app
 from re import compile
@@ -16,6 +17,10 @@ from re import compile
 @asynccontextmanager
 async def server_lifespan(app: FastAPI):
     print("Server launched.")
+
+    if get_database_type() == EnvironmentVariables.DATABASE_TYPE_POSTGRES:
+        initialize_postgres_db()
+
     await create_db_and_tables(engine)
 
     # Start resume_generation_tasks in the background
