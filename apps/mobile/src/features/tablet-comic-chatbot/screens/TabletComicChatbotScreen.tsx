@@ -9,9 +9,9 @@ import {
 import { Router } from 'expo-router';
 import { useComicGeneration } from '../hooks/useComicGenerationQuery';
 import { useChatbot } from '../hooks/useChatbot';
-import PraiseSection from '../../../app/(app)/PraiseSection';
-import FarewellSection from '../../../app/(app)/FarewellSection';
-import { PresetSelectionStage, ChatStage } from '../stages';
+import PraiseSection from '../components/sections/PraiseSection';
+import FarewellSection from '../components/sections/FarewellSection';
+import { PresetSelectionStage, ChatStage } from '../components/stages';
 import { ChatMessage, Preset } from '../types';
 import { stopSpeech, getSpeechManager } from '../utils/speechUtils';
 import { voiceRecorder } from '../utils/voiceUtils';
@@ -117,9 +117,9 @@ export const TabletComicChatbotScreen: React.FC<{
     // TTS 정지
     stopSpeech();
     
-    // intro 화면으로 돌아가기
+    // Home 화면으로 돌아가기
     if (router) {
-      router.replace('/(app)/intro');
+      router.replace('/(app)/home');
     } else {
       console.log('Router is null or undefined');
     }
@@ -635,9 +635,9 @@ export const TabletComicChatbotScreen: React.FC<{
             setIsInputActive(false);
             setIsAfterFarewell(false);
             
-            // intro 화면으로 돌아가기
+            // Home 화면으로 돌아가기
             if (router) {
-              router.replace('/(app)/intro');
+              router.replace('/(app)/home');
             }
           },
         },

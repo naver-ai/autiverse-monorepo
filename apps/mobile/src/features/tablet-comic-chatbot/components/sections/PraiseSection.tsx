@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Dimensions, Animated, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { styleTemplates } from '../../styles';
-import { speakText, stopSpeech } from '../../features/tablet-comic-chatbot/utils/speechUtils';
-import { getImageSource } from '../../features/tablet-comic-chatbot/utils/imageUtils';
+import { styleTemplates } from '../../../../styles';
+import { speakText, stopSpeech } from '../../utils/speechUtils';
+import { getImageSource } from '../../utils/imageUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -123,7 +123,7 @@ export default function PraiseSection({ childName = "친구", agentConfig, onCom
                     ? (agentConfig.avatar_image.startsWith('http') 
                         ? { uri: agentConfig.avatar_image }
                         : getImageSource(agentConfig.avatar_image))
-                    : require('../../../assets/robot.png')
+                    : require('../../../../../assets/robot.png')
                 }
                 style={{
                   width: 50,

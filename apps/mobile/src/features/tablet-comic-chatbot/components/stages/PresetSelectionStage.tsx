@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
-import { getImageSource } from '../../features/tablet-comic-chatbot/utils/imageUtils';
-import { styleTemplates } from '../../styles';
-import { speakText, stopSpeech } from '../../features/tablet-comic-chatbot/utils/speechUtils';
-import { useDyad } from '../../api/dyad';
+import { getImageSource } from '../../utils/imageUtils';
+import { styleTemplates } from '../../../../styles';
+import { speakText, stopSpeech } from '../../utils/speechUtils';
+import { useDyad } from '../../../../api/dyad';
 
 interface PresetSelectionStageProps {
   selectionStep: 'location' | 'people';
@@ -102,7 +102,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                     ? (agentConfig.avatar_image.startsWith('http') 
                         ? { uri: agentConfig.avatar_image }
                         : getImageSource(agentConfig.avatar_image))
-                    : require('../../../assets/robot.png')
+                    : require('../../../../../assets/robot.png')
                 }
                 style={{
                   width: 50,

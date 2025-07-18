@@ -11,7 +11,7 @@ export default function AppLayout() {
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="intro" options={{ headerShown: false }} />
+      <Stack.Screen name="home" options={{ headerShown: false }} />
       <Stack.Screen name="agent-intro" options={{ headerShown: false }} />
       <Stack.Screen name="tablet-comic-chatbot" options={{ headerShown: false }} />
       <Stack.Screen name="gallery" options={{ headerShown: false }} />

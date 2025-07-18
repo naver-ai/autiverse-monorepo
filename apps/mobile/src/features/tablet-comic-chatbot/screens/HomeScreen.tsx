@@ -10,14 +10,14 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { styleTemplates } from '../../styles';
-import { LogoImage } from '../../components/svg-images';
-import { stopSpeech } from '../../features/tablet-comic-chatbot/utils/speechUtils';
-import { useDyad } from '../../api/dyad';
+import { styleTemplates } from '../../../styles';
+import { LogoImage } from '../../../components/svg-images';
+import { stopSpeech } from '../utils/speechUtils';
+import { useDyad } from '../../../api/dyad';
 
 const { width, height } = Dimensions.get('window');
 
-export default function IntroScreen() {
+export default function HomeScreen() {
   const router = useRouter();
   const { dyad } = useDyad();
   const fadeAnim = useRef(new Animated.Value(0)).current;

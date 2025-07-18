@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { styleTemplates } from '../../styles';
-import { speakText, stopSpeech } from '../../features/tablet-comic-chatbot/utils/speechUtils';
+import { styleTemplates } from '../../../../styles';
+import { speakText, stopSpeech } from '../../utils/speechUtils';
 
 const { width, height } = Dimensions.get('window');
 
