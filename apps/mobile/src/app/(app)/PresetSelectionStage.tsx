@@ -1,21 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
-import { Place, Person, Preset } from '../../features/tablet-comic-chatbot/types';
-import { getCurrentDay } from '../../features/tablet-comic-chatbot/utils';
 import { getImageSource } from '../../features/tablet-comic-chatbot/utils/imageUtils';
 import { styleTemplates } from '../../styles';
 import { speakText, stopSpeech } from '../../features/tablet-comic-chatbot/utils/speechUtils';
+import { useDyad } from '../../api/dyad';
 
 interface PresetSelectionStageProps {
   selectionStep: 'location' | 'people';
-  places: Place[];
-  people: Person[];
   selectedLocation: string | null;
   selectedPeople: string[];
   selectedPlaceId: string | null;
   selectedPersonIds: string[];
-  useApiData: boolean;
-  agentConfig: any;
   isLoading: boolean;
   onLocationSelect: (location: string, placeId?: string) => void;
   onPersonToggle: (person: string, personId?: string) => void;
@@ -27,14 +22,10 @@ interface PresetSelectionStageProps {
 
 export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
   selectionStep,
-  places,
-  people,
   selectedLocation,
   selectedPeople,
   selectedPlaceId,
   selectedPersonIds,
-  useApiData,
-  agentConfig,
   isLoading,
   onLocationSelect,
   onPersonToggle,
@@ -45,6 +36,8 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
 }) => {
   const [hasSpoken, setHasSpoken] = useState(false);
   const [isTTSActive, setIsTTSActive] = useState(false);
+
+  const {dyad, agentConfig} = useDyad();
 
   // TTS 시작
   useEffect(() => {
@@ -133,9 +126,9 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
           <>
             {/* 장소 선택 그리드 */}
             <View className="grid grid-cols-2 gap-4 mb-4">
-              {places.length > 0 ? (
+              {dyad && dyad.places.length > 0 ? (
                 // API 데이터 사용
-                places.map((place) => (
+                dyad.places.map((place) => (
                   <TouchableOpacity
                     key={place.id}
                     className={`p-6 border-2 rounded-xl ${
@@ -227,9 +220,9 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
             
             {/* 사람 선택 그리드 */}
             <View className="grid grid-cols-2 gap-4 mb-6">
-              {useApiData && people.length > 0 ? (
+              {dyad && dyad.people.length > 0 ? (
                 // API 데이터 사용
-                people.map((person) => (
+                dyad?.people.map((person) => (
                   <TouchableOpacity
                     key={person.id}
                     className={`p-4 border-2 rounded-xl ${
@@ -273,23 +266,23 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
             {/* 시작하기 버튼 */}
             <TouchableOpacity
               className={`rounded-xl p-4 ${
-                isTTSActive || ((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading
+                isTTSActive || (selectedPersonIds.length === 0) || isLoading
                   ? 'bg-gray-200'
                   : 'bg-blue-500'
               }`}
               onPress={() => stopTTSAndExecute(onSelectionComplete)}
-              disabled={isTTSActive || ((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading}
+              disabled={isTTSActive || (selectedPersonIds.length === 0) || isLoading}
             >
               <Text
                   className={`text-white text-xl font-semibold text-center ${
-                  isTTSActive || ((useApiData && selectedPersonIds.length === 0) || (!useApiData && selectedPeople.length === 0)) || isLoading
+                  isTTSActive || (selectedPersonIds.length === 0) || isLoading
                     ? 'text-gray-400'
                     : 'text-white'
                 }`}
                 style={styleTemplates.withBoldFont}
               >
                 {isLoading ? '시작 중...' : `시작하기 (${
-                  useApiData ? selectedPersonIds.length : selectedPeople.length
+                  selectedPersonIds.length
                 }명 선택됨)`}
               </Text>
             </TouchableOpacity>

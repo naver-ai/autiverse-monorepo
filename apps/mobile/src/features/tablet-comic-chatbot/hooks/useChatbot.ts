@@ -1,50 +1,7 @@
 import { useState, useCallback } from 'react';
 import { NetworkHelper } from '@autiverse-monorepo/ts-core';
-import { useDyad } from '../../../api/dyad';
 import { useAuthStore } from '../../../features/auth/store';
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-
-interface Place {
-  id: string;
-  name: string;
-  monday?: boolean;
-  tuesday?: boolean;
-  wednesday?: boolean;
-  thursday?: boolean;
-  friday?: boolean;
-  saturday?: boolean;
-  sunday?: boolean;
-}
-
-interface Person {
-  id: string;
-  name: string;
-  avatar_config?: any;
-}
-
-interface AgentInfo {
-  name: string;
-  config: any;
-}
-
-interface SessionInfo {
-  journal_entry_id: string;
-  stage: string;
-  status: string;
-  location?: string;
-  people?: string[];
-  events?: string[];
-  summary?: string;
-  panels: any;
-  message_count: number;
-}
-
-interface Preset {
-  location: string;
-  people: string[];
-  label: string;
-  dayInfo?: string[];
-}
 
 const createNewSessionAPI = async (jwt: string, location?: string, people?: Array<string>) => {
 
@@ -76,31 +33,10 @@ const createNewSessionWithSuggestionsAPI = async (jwt: string) => {
 
 
 export const useChatbot = () => {
-  const [people, setPeople] = useState<Person[]>([]);
-  const [useApiData, setUseApiData] = useState(true);
-
+  
   const queryClient = useQueryClient();
 
   const { jwt } = useAuthStore();
-
-  const { dyad } = useDyad();
-
-  const loadPeople = useCallback(async (placeId: string) => {
-    try {
-      const response = await NetworkHelper.axiosClient.get(
-        NetworkHelper.ENDPOINTS.APP.CHATBOT.getPlacePeopleEndpoint(placeId)
-      );
-      if (response.status === 200) {
-        const data = response.data;
-        setPeople(data.people);
-        console.log('Loaded people:', data.people);
-      } else {
-        console.log('Failed to load people');
-      }
-    } catch (error) {
-      console.error('Error loading people:', error);
-    }
-  }, []);
 
   const loadSessionInfo = useCallback(async (sessionId: string) => {
     if (!sessionId) {
@@ -196,16 +132,7 @@ export const useChatbot = () => {
   }, []);
 
   return {
-    // State
-    places: dyad?.places,
-    people,
-    agentName: dyad?.agents[0].agent_name,
-    agentConfig: dyad?.agents[0].agent_config,
-    childName: dyad?.child_name,
-    useApiData,
-    
     // Actions
-    loadPeople,
     loadSessionInfo,
     startChatbot: startChatbotMutation.mutateAsync,
     startChatbotWithSuggestion: startChatbotWithSuggestionMutation.mutateAsync,

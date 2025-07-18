@@ -48,6 +48,11 @@ def start_chatbot(
     dyad: Annotated[Dyad, Depends(get_signed_in_dyad)],
     db: Session = Depends(get_session)
 ):
+    
+    print("dyad id: ", dyad.id)
+    print("location: ", request.location)
+    print("people: ", request.people)
+
     """챗봇 시작"""
     try:
         controller = ChatbotController(db)
@@ -65,6 +70,7 @@ def start_chatbot(
             auto_comic_generation=result.get("auto_comic_generation")
         )
     except ValueError as e:
+        print(f"[DEBUG] ValueError: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

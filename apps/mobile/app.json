@@ -18,9 +18,9 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.autiverse-mobile",
+      "bundleIdentifier": "com.naver.ai.autiverse",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "음성 녹음을 위해 마이크 권한이 필요합니다."
+        "NSMicrophoneUsageDescription": "음성 인식을 위해 마이크 권한이 필요합니다."
       }
     },
     "android": {
@@ -28,7 +28,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.anonymous.autiversemobile",
+      "package": "com.naver.ai.autiverse",
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ]

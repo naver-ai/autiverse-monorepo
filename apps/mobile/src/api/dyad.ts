@@ -33,8 +33,13 @@ export function useDyad() {
         enabled: !!jwt
       });
 
+    console.log("Dyad: ", JSON.stringify(dyad, null, 2));
+
     return {
         dyad,
+        agentName: dyad?.agents?.[0]?.agent_name,
+        agentConfig: dyad?.agents?.[0]?.agent_config,
+        childName: dyad?.child_name,
         isDyadLoading,
         dyadError
     }

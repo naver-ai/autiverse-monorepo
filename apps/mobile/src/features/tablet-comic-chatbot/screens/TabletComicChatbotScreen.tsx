@@ -15,6 +15,7 @@ import { PresetSelectionStage, ChatStage } from '../stages';
 import { ChatMessage, Preset } from '../types';
 import { stopSpeech, getSpeechManager } from '../utils/speechUtils';
 import { voiceRecorder } from '../utils/voiceUtils';
+import { useDyad } from '../../../api/dyad';
 
 export const TabletComicChatbotScreen: React.FC<{
   dyadId?: string;
@@ -33,6 +34,10 @@ export const TabletComicChatbotScreen: React.FC<{
   continueExisting,
   router 
 }) => {
+
+
+  const {dyad, agentName, agentConfig, childName} = useDyad();
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -68,13 +73,6 @@ export const TabletComicChatbotScreen: React.FC<{
 
   // Chatbot 훅 사용
   const {
-    places,
-    people,
-    agentName,
-    agentConfig,
-    childName,
-    useApiData,
-    loadPeople: loadPeopleFromHook,
     loadSessionInfo: loadSessionInfoFromHook,
     startChatbot: startChatbotFromHook,
     startChatbotWithSuggestion: startChatbotWithSuggestionFromHook,
@@ -528,12 +526,6 @@ export const TabletComicChatbotScreen: React.FC<{
   const handleLocationSelect = (location: string, placeId?: string) => {
     setSelectedLocation(location);
     setSelectedPlaceId(placeId || null);
-    
-    if (placeId) {
-      // API 데이터 사용
-      loadPeopleFromHook(placeId);
-    }
-    
     setSelectedPeople([]);
     setSelectedPersonIds([]);
     setSelectionStep('people');
@@ -541,7 +533,7 @@ export const TabletComicChatbotScreen: React.FC<{
 
   // 등장인물 선택/해제 핸들러 (API 데이터 또는 프리셋 데이터 사용)
   const handlePersonToggle = (person: string, personId?: string) => {
-    if (useApiData && personId) {
+    if (personId) {
       setSelectedPersonIds(prev => 
         prev.includes(personId) 
           ? prev.filter(p => p !== personId)
@@ -558,13 +550,12 @@ export const TabletComicChatbotScreen: React.FC<{
 
   // 선택 완료 핸들러 (API 데이터 또는 프리셋 데이터 사용)
   const handleSelectionComplete = async () => {
-    if (selectedLocation) {
+    if (selectedLocation && dyad) {
       let peopleList: string[] = [];
       
-      if (useApiData && selectedPersonIds.length > 0) {
+      if (selectedPersonIds.length > 0) {
         // API 데이터에서 선택된 사람들의 이름 가져오기
-        peopleList = people
-          .filter(person => selectedPersonIds.includes(person.id))
+        peopleList = dyad.people.filter(person => selectedPersonIds.includes(person.id))
           .map(person => person.name);
       } else if (selectedPeople.length > 0) {
         // 프리셋 데이터 사용
@@ -684,14 +675,10 @@ export const TabletComicChatbotScreen: React.FC<{
         {showPresetSelection ? (
           <PresetSelectionStage
             selectionStep={selectionStep}
-            places={places || []}
-            people={people}
             selectedLocation={selectedLocation}
             selectedPeople={selectedPeople}
             selectedPlaceId={selectedPlaceId}
             selectedPersonIds={selectedPersonIds}
-            useApiData={useApiData}
-            agentConfig={agentConfig}
             isLoading={isLoading}
             onLocationSelect={handleLocationSelect}
             onPersonToggle={handlePersonToggle}
