@@ -10,7 +10,7 @@ from .models import *
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy import create_engine, Engine
+from sqlalchemy import create_engine
 
 def json_serializer(a):
     return a.model_dump_json() if isinstance(a, BaseModel) else json.dumps(a)
@@ -80,21 +80,19 @@ async def with_db_session() -> AsyncSession:
         yield session
 
 # Synchronous session for chatbot
-
-def create_sync_database_engine(db_path: str, verbose: bool = False) -> Engine:
+def create_sync_engine(verbose: bool = False):
     database_type = get_database_type()
+    
     if database_type == EnvironmentVariables.DATABASE_TYPE_SQLITE:
-        DATABASE_URL = f"sqlite:///{db_path}"
+        DATABASE_URL = f"sqlite:///{FilePaths.get_database_file_path()}"
     elif database_type == EnvironmentVariables.DATABASE_TYPE_POSTGRES:
-        DATABASE_URL = f"postgresql+psycopg2://{get_env_variable(EnvironmentVariables.POSTGRES_USER)}:{get_env_variable(EnvironmentVariables.POSTGRES_PASSWORD)}@localhost:5432/{get_env_variable(EnvironmentVariables.POSTGRES_DB_NAME)}"
+        DATABASE_URL = f"postgresql://{get_env_variable(EnvironmentVariables.POSTGRES_USER)}:{get_env_variable(EnvironmentVariables.POSTGRES_PASSWORD)}@localhost:5432/{get_env_variable(EnvironmentVariables.POSTGRES_DB_NAME)}"
     else:
         raise ValueError(f"Invalid database type: {database_type}")
     
-    print(f"Creating synchronous database engine with {database_type}...")
-
     return create_engine(DATABASE_URL, echo=verbose, json_serializer=json_serializer)
 
-sync_engine = create_sync_database_engine(FilePaths.get_database_file_path(), verbose=False)
+sync_engine = create_sync_engine(verbose=False)
 sync_sessionmaker = sessionmaker(bind=sync_engine, class_=Session, expire_on_commit=False)
 
 def get_session() -> Session:

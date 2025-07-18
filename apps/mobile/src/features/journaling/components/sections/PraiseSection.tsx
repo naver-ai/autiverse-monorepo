@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Dimensions, Animated, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styleTemplates } from '../../../../styles';
@@ -13,15 +13,43 @@ interface PraiseSectionProps {
   onComplete?: () => void;
 }
 
-
-
 export default function PraiseSection({ childName = "친구", agentConfig, onComplete }: PraiseSectionProps) {
   const [showStamp, setShowStamp] = useState(false);
   const [stampScale] = useState(new Animated.Value(0));
   const [hasCompleted, setHasCompleted] = useState(false);
-  const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
-  const [visibleSentences, setVisibleSentences] = useState<string[]>([]);
   const [hasSpoken, setHasSpoken] = useState(false);
+  const [poppedStamps, setPoppedStamps] = useState<boolean[]>([false, false, false]);
+  
+  // 단계별 메시지 상태
+  const [currentStage, setCurrentStage] = useState(0); // 0: 첫번째 메시지, 1: 두번째 메시지, 2: 스탬프 메시지
+  const [showFirstMessage, setShowFirstMessage] = useState(false);
+  const [showSecondMessage, setShowSecondMessage] = useState(false);
+  const [showStampMessage, setShowStampMessage] = useState(false);
+  const [stampsActive, setStampsActive] = useState(false);
+  
+  // 각 스탬프의 애니메이션 값들
+  const [stampAnimations] = useState([
+    new Animated.Value(1),
+    new Animated.Value(1),
+    new Animated.Value(1)
+  ]);
+  
+  // 각 스탬프의 bubble 애니메이션 값들 (터트릴 때 사라짐)
+  const [bubbleAnimations] = useState([
+    new Animated.Value(1),
+    new Animated.Value(1),
+    new Animated.Value(1)
+  ]);
+  
+  // 각 스탬프의 콘텐츠 애니메이션 값들 (터트린 후 움직임)
+  const [contentAnimations] = useState([
+    new Animated.Value(1),
+    new Animated.Value(1),
+    new Animated.Value(1)
+  ]);
+  
+  // bounce 애니메이션 ref들
+  const bounceAnimations = useRef<Animated.CompositeAnimation[]>([]);
   
   // 한국어 종성에 따른 호격 조사 처리 함수
   const getVocativeParticle = (name: string): string => {
@@ -41,79 +69,187 @@ export default function PraiseSection({ childName = "친구", agentConfig, onCom
     return jong !== 0 ? '이' : '';
   };
   
-  // 종성에 따른 조사를 적용한 칭찬 메시지
-  const praiseMessage = `우리 ${childName}${getVocativeParticle(childName)} 오늘 그림 일기 쓰는 모습 만점!! 오늘 있었던 일 잘 떠올리고, 질문에 답변 잘해주고, 내가 그림 그리는 거 기다려줘서 고마워~`;
+  // 단계별 메시지들
+  const firstMessage = `우리 ${childName}${getVocativeParticle(childName)} 오늘 그림 일기 쓰는 모습 만점!!`;
+  const secondMessage = `오늘 있었던 일 잘 떠올리고, 질문에 답변 잘해주고, 내가 그림 그리는 거 기다려줘서 고마워~`;
+  const stampMessage = `우리 아래 스탬프 팡팡팡 터트리면서 마무리해보자~`;
   
-  // 메시지를 문장 단위로 분리
-  const sentences = praiseMessage.split('.').filter((s: string) => s.trim().length > 0).map((s: string) => s.trim() + '.');
-  
-  // TTS 시작
-  useEffect(() => {
-    if (!hasSpoken) {
-      speakText(praiseMessage, {
-        language: 'ko-KR',
-        pitch: 1.0,
-        rate: 0.8,
-        onDone: () => {
-          setHasSpoken(true);
-        },
-        onError: (error) => {
-          setHasSpoken(true);
-        }
-      });
-    }
-  }, [hasSpoken, praiseMessage]);
-
-  // 문장 애니메이션 효과
-  useEffect(() => {
-    if (currentSentenceIndex < sentences.length) {
-      const timer = setTimeout(() => {
-        setVisibleSentences(prev => [...prev, sentences[currentSentenceIndex]]);
-        setCurrentSentenceIndex(prev => prev + 1);
-      }, 500); // 1초마다 문장 추가
-
-      return () => clearTimeout(timer);
-    } else {
-      // 모든 문장이 표시된 후 2초 뒤에 스탬프 표시
-      const timer = setTimeout(() => {
-        setShowStamp(true);
-        Animated.spring(stampScale, {
-          toValue: 1,
+  // 지속적인 bounce 애니메이션 시작
+  const startBounceAnimation = (index: number) => {
+    const bounceAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(stampAnimations[index], {
+          toValue: 1.15,
+          duration: 1000,
           useNativeDriver: true,
-          tension: 100,
-          friction: 8,
-        }).start();
-      }, 2000);
-
-      return () => clearTimeout(timer);
+        }),
+        Animated.timing(stampAnimations[index], {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        })
+      ])
+    );
+    
+    bounceAnimations.current[index] = bounceAnimation;
+    bounceAnimation.start();
+  };
+  
+  // 스탬프 터트리기 함수
+  const popStamp = (index: number) => {
+    if (poppedStamps[index] || !stampsActive) return; // 이미 터트린 스탬프이거나 비활성화 상태면 무시
+    
+    // bounce 애니메이션 정지
+    if (bounceAnimations.current[index]) {
+      bounceAnimations.current[index].stop();
     }
-  }, [currentSentenceIndex, sentences.length]);
-
-  useEffect(() => {
-    // TTS 완료 후 스탬프 애니메이션 완료까지 기다린 후 완료 콜백 호출
-    if (showStamp && hasSpoken) {
-      const timer = setTimeout(() => {
+    
+    // 터트리는 애니메이션 시퀀스
+    Animated.parallel([
+      // bubble 사라지는 애니메이션
+      Animated.timing(bubbleAnimations[index], {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      // 콘텐츠가 튀어나오는 애니메이션
+      Animated.sequence([
+        Animated.timing(contentAnimations[index], {
+          toValue: 1.4,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(contentAnimations[index], {
+          toValue: 1.2,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(contentAnimations[index], {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        })
+      ])
+    ]).start();
+    
+    // 터트린 상태로 설정
+    const newPoppedStamps = [...poppedStamps];
+    newPoppedStamps[index] = true;
+    setPoppedStamps(newPoppedStamps);
+    
+    // 모든 스탬프가 터트렸는지 확인
+    if (newPoppedStamps.every(popped => popped)) {
+      setTimeout(() => {
         if (!hasCompleted) {
           setHasCompleted(true);
           onComplete?.();
         }
-      }, 500); // 0.5초로 단축
-
-      return () => clearTimeout(timer);
+      }, 500); // 0.5초 후 farewell section으로 이동
     }
-  }, [showStamp, hasSpoken, hasCompleted, onComplete]);
+  };
+  
+  // 첫 번째 메시지 시작
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowFirstMessage(true);
+      speakText(firstMessage, {
+        language: 'ko-KR',
+        pitch: 1.0,
+        rate: 0.8,
+        onDone: () => {
+          // 첫 번째 메시지 TTS 완료 후 1초 뒤에 사라지고 두 번째 메시지 시작
+          setTimeout(() => {
+            setShowFirstMessage(false);
+            setShowSecondMessage(true);
+            setShowStamp(true); // 스탬프도 함께 등장 (비활성화 상태)
+            
+            // 스탬프 애니메이션 시작
+            Animated.spring(stampScale, {
+              toValue: 1,
+              useNativeDriver: true,
+              tension: 100,
+              friction: 8,
+            }).start(() => {
+              // 스탬프가 나타난 후 bounce 애니메이션 시작 (비활성화 상태)
+              startBounceAnimation(0);
+              startBounceAnimation(1);
+              startBounceAnimation(2);
+            });
+            
+            // 두 번째 메시지 TTS 시작
+            speakText(secondMessage, {
+              language: 'ko-KR',
+              pitch: 1.0,
+              rate: 0.8,
+              onDone: () => {
+                // 두 번째 메시지 TTS 완료 후 1초 뒤에 사라지고 스탬프 메시지 시작
+                setTimeout(() => {
+                  setShowSecondMessage(false);
+                  setShowStampMessage(true);
+                  
+                  // 스탬프 메시지 TTS 시작
+                  speakText(stampMessage, {
+                    language: 'ko-KR',
+                    pitch: 1.0,
+                    rate: 0.8,
+                    onDone: () => {
+                      // 스탬프 메시지 TTS 완료 후 스탬프 활성화
+                      setTimeout(() => {
+                        setStampsActive(true);
+                      }, 500);
+                    },
+                    onError: (error) => {
+                      // 에러 시에도 스탬프 활성화
+                      setTimeout(() => {
+                        setStampsActive(true);
+                      }, 500);
+                    }
+                  });
+                }, 500);
+              },
+              onError: (error) => {
+                // 에러 시에도 다음 단계로 진행
+                setTimeout(() => {
+                  setShowSecondMessage(false);
+                  setShowStampMessage(true);
+                  setStampsActive(true);
+                }, 500);
+              }
+            });
+          }, 500);
+        },
+        onError: (error) => {
+          // 에러 시에도 다음 단계로 진행
+          setTimeout(() => {
+            setShowFirstMessage(false);
+            setShowSecondMessage(true);
+            setShowStamp(true);
+            setStampsActive(true);
+          }, 500);
+        }
+      });
+    }, 500); // 1초 후 첫 번째 메시지 시작
 
-  // 컴포넌트 언마운트 시 TTS 정지
+    return () => clearTimeout(timer);
+  }, []);
+
+  // 컴포넌트 언마운트 시 TTS 정지 및 애니메이션 정리
   useEffect(() => {
     return () => {
       stopSpeech();
+      // 모든 bounce 애니메이션 정지
+      bounceAnimations.current.forEach(animation => {
+        if (animation) {
+          animation.stop();
+        }
+      });
     };
   }, []);
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
       <View className="flex-1 px-6">
-        {/* 상단 Agent + 문구 영역 (장소 고를 때와 동일한 스타일) */}
+        {/* 상단 Agent + 문구 영역 */}
         <View className="pt-8 pb-4">
           <View className="bg-white rounded-3xl p-6 shadow-lg w-full">
             <View className="flex-row items-center">
@@ -134,58 +270,205 @@ export default function PraiseSection({ childName = "친구", agentConfig, onCom
                 }}
               />
               <View className="flex-1">
-                {visibleSentences.map((sentence, index) => (
+                {showFirstMessage && (
                   <Text 
-                    key={index} 
                     className="text-2xl text-gray-800 leading-relaxed text-center mb-2" 
                     style={styleTemplates.withBoldFont}
                   >
-                    {sentence}
+                    {firstMessage}
                   </Text>
-                ))}
+                )}
+                {showSecondMessage && (
+                  <Text 
+                    className="text-2xl text-gray-800 leading-relaxed text-center mb-2" 
+                    style={styleTemplates.withBoldFont}
+                  >
+                    {secondMessage}
+                  </Text>
+                )}
+                {showStampMessage && (
+                  <Text 
+                    className="text-2xl text-gray-800 leading-relaxed text-center mb-2" 
+                    style={styleTemplates.withBoldFont}
+                  >
+                    {stampMessage}
+                  </Text>
+                )}
               </View>
             </View>
           </View>
         </View>
 
         {/* 중앙 스탬프 3개 영역 */}
-        <View className="flex-1 items-center justify-center">
+        <View className="flex-1 items-center justify-center" style={{ backgroundColor: 'transparent' }}>
           {showStamp && (
-            <View className="flex-row justify-center space-x-6">
+            <View className="flex-row justify-center space-x-24" style={{ backgroundColor: 'transparent' }}>
               <Animated.View
                 style={{
-                  transform: [{ scale: stampScale }],
+                  transform: [
+                    { scale: stampScale },
+                    { scale: stampAnimations[0] }
+                  ],
+                  backgroundColor: 'transparent',
                 }}
               >
-                <View className="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full p-12 shadow-2xl border-4 border-white">
-                  <Text className="text-8xl text-white text-center" style={styleTemplates.withBoldFont}>
-                    🏆
-                  </Text>
-                </View>
+                <TouchableOpacity
+                  onPress={() => popStamp(0)}
+                  disabled={poppedStamps[0] || !stampsActive}
+                  activeOpacity={stampsActive ? 0.8 : 1}
+                  style={{ backgroundColor: 'transparent' }}
+                >
+                  <Animated.View 
+                    style={{
+                      opacity: bubbleAnimations[0],
+                      transform: [{ scale: bubbleAnimations[0] }],
+                      backgroundColor: '#f8fafc',
+                      borderWidth: 3,
+                      borderColor: 'rgba(255, 255, 255, 0.4)',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 6 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 16,
+                      elevation: 10,
+                      borderRadius: 100,
+                      padding: 64,
+                    }}
+                  >
+                    <Animated.View
+                      style={{
+                        transform: [{ scale: contentAnimations[0] }],
+                        backgroundColor: 'transparent',
+                      }}
+                    >
+                      <Text 
+                        className="text-9xl text-center" 
+                        style={[
+                          styleTemplates.withBoldFont,
+                          {
+                            textAlign: 'center',
+                            includeFontPadding: false,
+                            textAlignVertical: 'center',
+                          }
+                        ]}
+                        allowFontScaling={false}
+                      >
+                        🏆
+                      </Text>
+                    </Animated.View>
+                  </Animated.View>
+                </TouchableOpacity>
               </Animated.View>
               
               <Animated.View
                 style={{
-                  transform: [{ scale: stampScale }],
+                  transform: [
+                    { scale: stampScale },
+                    { scale: stampAnimations[1] }
+                  ],
+                  backgroundColor: 'transparent',
                 }}
               >
-                <View className="bg-gradient-to-br from-green-400 to-blue-500 rounded-full p-12 shadow-2xl border-4 border-white">
-                  <Text className="text-8xl text-white text-center" style={styleTemplates.withBoldFont}>
-                    ⭐
-                  </Text>
-                </View>
+                <TouchableOpacity
+                  onPress={() => popStamp(1)}
+                  disabled={poppedStamps[1] || !stampsActive}
+                  activeOpacity={stampsActive ? 0.8 : 1}
+                  style={{ backgroundColor: 'transparent' }}
+                >
+                  <Animated.View 
+                    style={{
+                      opacity: bubbleAnimations[1],
+                      transform: [{ scale: bubbleAnimations[1] }],
+                      backgroundColor: '#f8fafc',
+                      borderWidth: 3,
+                      borderColor: 'rgba(255, 255, 255, 0.4)',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 6 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 16,
+                      elevation: 10,
+                      borderRadius: 100,
+                      padding: 64,
+                    }}
+                  >
+                    <Animated.View
+                      style={{
+                        transform: [{ scale: contentAnimations[1] }],
+                        backgroundColor: 'transparent',
+                      }}
+                    >
+                      <Text 
+                        className="text-9xl text-center" 
+                        style={[
+                          styleTemplates.withBoldFont,
+                          {
+                            textAlign: 'center',
+                            includeFontPadding: false,
+                            textAlignVertical: 'center',
+                          }
+                        ]}
+                        allowFontScaling={false}
+                      >
+                        ⭐
+                      </Text>
+                    </Animated.View>
+                  </Animated.View>
+                </TouchableOpacity>
               </Animated.View>
               
               <Animated.View
                 style={{
-                  transform: [{ scale: stampScale }],
+                  transform: [
+                    { scale: stampScale },
+                    { scale: stampAnimations[2] }
+                  ],
+                  backgroundColor: 'transparent',
                 }}
               >
-                <View className="bg-gradient-to-br from-purple-400 to-pink-500 rounded-full p-12 shadow-2xl border-4 border-white">
-                  <Text className="text-8xl text-white text-center" style={styleTemplates.withBoldFont}>
-                    🎯
-                  </Text>
-                </View>
+                <TouchableOpacity
+                  onPress={() => popStamp(2)}
+                  disabled={poppedStamps[2] || !stampsActive}
+                  activeOpacity={stampsActive ? 0.8 : 1}
+                  style={{ backgroundColor: 'transparent' }}
+                >
+                  <Animated.View 
+                    style={{
+                      opacity: bubbleAnimations[2],
+                      transform: [{ scale: bubbleAnimations[2] }],
+                      backgroundColor: '#f8fafc',
+                      borderWidth: 3,
+                      borderColor: 'rgba(255, 255, 255, 0.4)',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 6 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 16,
+                      elevation: 10,
+                      borderRadius: 100,
+                      padding: 64,
+                    }}
+                  >
+                    <Animated.View
+                      style={{
+                        transform: [{ scale: contentAnimations[2] }],
+                        backgroundColor: 'transparent',
+                      }}
+                    >
+                      <Text 
+                        className="text-9xl text-center" 
+                        style={[
+                          styleTemplates.withBoldFont,
+                          {
+                            textAlign: 'center',
+                            includeFontPadding: false,
+                            textAlignVertical: 'center',
+                          }
+                        ]}
+                        allowFontScaling={false}
+                      >
+                        🏅
+                      </Text>
+                    </Animated.View>
+                  </Animated.View>
+                </TouchableOpacity>
               </Animated.View>
             </View>
           )}

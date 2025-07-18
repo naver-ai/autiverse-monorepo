@@ -219,11 +219,20 @@ class ChatbotController:
     
     def _handle_revision_2_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """revision_2 단계 처리"""
-        revision2_stage = Revision2Stage(self.db, journal_entry_id)
-        response = revision2_stage.process_message(message, audio_filename)
-        
-        # 완료 메시지 감지 시 title stage로 전환
-        if "우와~ 이렇게 멋진 그림 일기 완성이라니!" in response:
+        print(f"[DEBUG] _handle_revision_2_stage: message={message.strip()}")
+        if message.strip() == "좋아!" or message.strip() == "그러자!":
+            # 사용자 메시지를 DB에 저장
+            revision2_stage = Revision2Stage(self.db, journal_entry_id)
+            interaction_turn = revision2_stage._get_or_create_interaction_turn(JournalEntryStage.Revision2)
+            
+            from backend.database.crud.chatbot import create_message
+            
+            create_message(
+                self.db, journal_entry_id, interaction_turn.id,
+                message, MessageRole.User, JournalEntryStage.Revision2,
+                audio_filename=audio_filename
+            )
+            
             # title stage 시작
             self.title_stage = TitleStage(self.db, journal_entry_id)
             title_response = self.title_stage.start_title_selection()
@@ -233,10 +242,15 @@ class ChatbotController:
                 "stage": "title"
             }
         
+        revision2_stage = Revision2Stage(self.db, journal_entry_id)
+        response = revision2_stage.process_message(message, audio_filename)
+        
         return {
             "response": response,
             "stage": "revision_2"
         }
+    
+
     
     def _handle_title_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """title 단계 처리 (제목 정하기)"""

@@ -127,7 +127,7 @@ class VoiceRecorderImpl implements VoiceRecorder {
       });
 
       if (!response.ok) {
-        throw new Error(`Whisper API 오류: ${response.status}`);
+        throw new Error(`STT API 오류: ${response.status}`);
       }
 
       const result = await response.json();

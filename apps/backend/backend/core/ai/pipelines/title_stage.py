@@ -6,12 +6,14 @@ from backend.database.crud.chatbot import (
 )
 from backend.database.models import JournalEntryStage, MessageRole
 from .title_generator import TitleGenerator
+import re
 
 class TitleStage:
     def __init__(self, db: Session, journal_entry_id: str):
         self.db = db
         self.journal_entry_id = journal_entry_id
         self.title_generator = TitleGenerator()
+        print(f"[DEBUG] title_stage: TitleStage initialized for journal_entry_id={journal_entry_id}")
         
     def _get_child_name(self) -> str:
         """dyad의 child_name을 가져오기"""
@@ -66,7 +68,6 @@ class TitleStage:
     
     def process_message(self, user_message: str, audio_filename: str = None) -> str:
         """사용자 메시지 처리"""
-        print(f"[DEBUG] title_stage: process_message called with user_message='{user_message}'")
         
         try:
             # 현재 interaction turn 가져오기
@@ -92,7 +93,7 @@ class TitleStage:
                     break
             
             if not last_assistant_message:
-                return "미안해! 다시 말해줘! 😅"
+                return ""
             
             # 마지막 메시지에 따라 처리
             if "어때??" in last_assistant_message:
@@ -101,17 +102,26 @@ class TitleStage:
                 
             elif "이걸로 할까??" in last_assistant_message:
                 # 커스텀 제목 확인에 대한 피드백
-                response = self.title_generator.process_custom_title_feedback(user_message, "", child_name)
+                # 마지막 메시지에서 제목 추출 (따옴표 안의 내용)
                 
-            elif "그럼 어떤 제목으로 하고 싶어?" in last_assistant_message:
+                title_match = re.search(r"'([^']+)' 이걸로 할까\?\?", last_assistant_message)
+                custom_title = title_match.group(1) if title_match else ""
+                
+                # 전체 메시지 히스토리에서 '아니, 다른 걸로' 버튼을 클릭한 횟수 계산 (새로운 제목이 나와도 유지)
+                reject_count = 0
+                for message in messages:
+                    if message.role == MessageRole.User and message.content == "아니, 다른 걸로":
+                        reject_count += 1
+                
+                response = self.title_generator.process_custom_title_feedback(user_message, custom_title, child_name, reject_count)
+                
+            elif ("그럼 어떤 제목으로 하고 싶어?" in last_assistant_message) or ("채팅으로 쳐서 정확하게 알려줘!" in last_assistant_message):
                 # 커스텀 제목 입력
                 self._save_title(user_message.strip())
                 response = self.title_generator.confirm_custom_title(user_message.strip(), child_name)
-                
             else:
-                response = "미안해! 다시 말해줘! 😅"
-            
-            print(f"[DEBUG] title_stage: Response: {response}")
+                # 기본 응답 (예상치 못한 상황)
+                response = ""
             
             # 봇 응답 저장
             create_message(
@@ -125,17 +135,12 @@ class TitleStage:
             print(f"[DEBUG] title_stage: Error in process_message: {e}")
             import traceback
             traceback.print_exc()
-            return "미안해! 다시 말해줘! 😅"
+            return ""
     
     def _save_title(self, title: str) -> None:
         """제목을 데이터베이스에 저장"""
         try:
-            print(f"[DEBUG] title_stage: Saving title: '{title}'")
             result = update_journal_data(self.db, self.journal_entry_id, title=title)
-            if result:
-                print(f"[DEBUG] title_stage: Title saved successfully: {result.title}")
-            else:
-                print(f"[DEBUG] title_stage: Failed to save title")
         except Exception as e:
             print(f"[DEBUG] title_stage: Error saving title: {e}")
     

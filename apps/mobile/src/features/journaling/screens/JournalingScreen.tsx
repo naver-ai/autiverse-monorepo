@@ -309,6 +309,8 @@ export const JournalingScreen = () => {
       return;
     }
 
+
+
     // TTS 상태 확인 - TTS가 진행 중이면 메시지 전송 차단
     const speechManager = getSpeechManager();
     if (speechManager.getIsSpeaking()) {

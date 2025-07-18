@@ -3,6 +3,7 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 from backend.utils.environment import get_env_variable, EnvironmentVariables
 from backend.database.crud.chatbot import *
+from .completion_message_generator import CompletionMessageGenerator
 
 from sqlmodel import Session
 import json
@@ -17,6 +18,7 @@ class Revision2Stage:
         # Journal에서 revision_count 가져오기
         self.revision_count = self._get_revision_count()
         self.max_revisions = 2
+        self.completion_message_generator = CompletionMessageGenerator()
     
     def _get_child_name(self) -> str:
         """dyad의 child_name을 가져오기"""
@@ -150,7 +152,10 @@ class Revision2Stage:
             elif self._is_negative_response(user_message):
                 # 수정 완료, 완료 단계로
                 self._complete_journal_entry()
-                return f"우와~ 이렇게 멋진 그림 일기 완성이라니! 역시 {self.child_name}{self._get_vocative_particle(self.child_name)}야. 내가 너한테 관심이 많다보니 질문이 많았는데 잘 답변해줘서 고마워. 덕분에 {self.child_name}{self._get_vocative_particle(self.child_name)}에게 오늘 어떤 일이 있었는지 잘 알 수 있어 정말 너무나 기뻤어!!"
+                # 완성된 그림 일기 내용을 바탕으로 개인화된 마무리 메시지 생성
+                comic_data = self._get_completed_comic_data()
+                completion_message = self.completion_message_generator.generate_completion_message(comic_data, self.child_name)
+                return completion_message
             else:
                 return "응 아니 중에 골라줘! 😅"
         
@@ -159,7 +164,10 @@ class Revision2Stage:
             if self._is_negative_response(user_message):
                 # 수정할 부분이 없다면 완료
                 self._complete_journal_entry()
-                return f"우와~ 이렇게 멋진 그림 일기 완성이라니! 역시 {self.child_name}{self._get_vocative_particle(self.child_name)}야. 내가 너한테 관심이 많다보니 질문이 많았는데 잘 답변해줘서 고마워. 덕분에 {self.child_name}{self._get_vocative_particle(self.child_name)}에게 오늘 어떤 일이 있었는지 잘 알 수 있어 정말 너무나 기뻤어!!"
+                # 완성된 그림 일기 내용을 바탕으로 개인화된 마무리 메시지 생성
+                comic_data = self._get_completed_comic_data()
+                completion_message = self.completion_message_generator.generate_completion_message(comic_data, self.child_name)
+                return completion_message
             elif self._is_positive_response(user_message):
                 # 수정할 부분이 있다면 revision_count 증가하고 수정 요청
                 new_count = self.revision_count + 1
@@ -215,13 +223,13 @@ class Revision2Stage:
     
     def _is_negative_response(self, message: str) -> bool:
         """부정적인 응답인지 확인"""
-        negative_keywords = ["아니", "no", "n", "틀렸어", "아니야", "없어"]
+        negative_keywords = ["없어"]
         result = any(keyword in message.lower() for keyword in negative_keywords)
         return result
     
     def _is_positive_response(self, message: str) -> bool:
         """긍정적인 응답인지 확인"""
-        positive_keywords = ["응", "네", "yes", "y", "맞아", "좋아", "있어"]
+        positive_keywords = ["있어"]
         result = any(keyword in message.lower() for keyword in positive_keywords)
         return result
     
@@ -326,13 +334,7 @@ User's correction request: {correction}
                     self.db, self.journal_entry_id,
                     comic_context=journal.revision_2
                 )
-            
-            # Journal entry를 완료 상태로 업데이트
-            update_journal_entry_stage(
-                self.db, self.journal_entry_id, 
-                JournalEntryStage.Complete, 
-                JournalEntryStatus.Completed
-            )
+
                 
         except Exception as e:
             print(f"[DEBUG] revision_2: Error in _complete_journal_entry: {e}")
@@ -350,6 +352,16 @@ User's correction request: {correction}
         else:
             return create_interaction_turn(self.db, self.journal_entry_id, stage)
 
+    def _get_completed_comic_data(self) -> Dict[str, Any]:
+        """완성된 그림 일기 데이터 가져오기"""
+        from backend.database.crud.chatbot import get_journal
+        
+        journal = get_journal(self.db, self.journal_entry_id)
+        if journal:
+            # revision_2가 있으면 우선 사용, 없으면 comic_context 사용
+            return journal.revision_2 if journal.revision_2 else journal.comic_context
+        return {}
+    
     def get_initial_question(self) -> str:
         """첫 번째 수정 질문을 반환합니다."""
         return "완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔" 
