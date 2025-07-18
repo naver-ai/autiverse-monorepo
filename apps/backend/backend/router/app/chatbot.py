@@ -355,7 +355,7 @@ def update_comic_title(
 ):
     """만화 제목 업데이트"""
     try:
-        from ..database.crud.chatbot import get_journal, update_journal_data
+        from backend.database.crud.chatbot import get_journal, update_journal_data
         journal = get_journal(db, request.journal_entry_id)
         
         if journal:

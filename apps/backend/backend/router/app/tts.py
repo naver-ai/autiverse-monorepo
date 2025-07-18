@@ -5,6 +5,7 @@ import requests
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+from backend.utils.environment import get_env_variable, EnvironmentVariables
 
 router = APIRouter()
 
@@ -18,8 +19,8 @@ class TTSRequest(BaseModel):
 async def clova_tts(request: TTSRequest):
     try:
         # CLOVA TTS API 설정
-        client_id = os.getenv("CLOVA_CLIENT_ID")
-        client_secret = os.getenv("CLOVA_CLIENT_SECRET")
+        client_id = get_env_variable(EnvironmentVariables.CLOVA_CLIENT_ID)
+        client_secret = get_env_variable(EnvironmentVariables.CLOVA_CLIENT_SECRET)
         
         if not client_id or not client_secret:
             raise HTTPException(status_code=500, detail="CLOVA API credentials not configured")

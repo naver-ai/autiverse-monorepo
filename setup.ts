@@ -22,7 +22,7 @@ function makeExistingValidator(message: string) {
     }
 }
 
-const CLIENT_BLACKLISTS = ["OPENAI_API_KEY", "AUTH_SECRET", "ADMIN_ID", "ADMIN_HASHED_PW"]
+const CLIENT_BLACKLISTS = ["OPENAI_API_KEY", "AUTH_SECRET", "ADMIN_ID", "ADMIN_HASHED_PW", "CLOVA_CLIENT_ID", "CLOVA_CLIENT_SECRET"]
 
 async function hashPassword(password: string): Promise<string>{
     let hp = await bcrypt.hash(password.trim(), 10)
@@ -34,8 +34,8 @@ async function setup(){
     const env = dotenv.config({path: envPath})?.parsed || {}
 
     const answers: {[key: string]: string} = {
-        "BACKEND_PORT": env["BACKEND_PORT"] || await input({
-            default: '3000',
+        "BACKEND_PORT": await input({
+            default: env["BACKEND_PORT"] || '3000',
             message: 'Insert Backend port number:',
             required: true,
             validate: (input) =>  {
@@ -52,14 +52,14 @@ async function setup(){
                 }
             }
         }),
-        "BACKEND_HOSTNAME": env["BACKEND_HOSTNAME"] || await input({
-            default: '0.0.0.0',
+        "BACKEND_HOSTNAME": await input({
+            default: env["BACKEND_HOSTNAME"] || '0.0.0.0',
             message: 'Insert Backend hostname WITHOUT protocol and port (e.g., 0.0.0.0, naver.com):',
             required: true,
             validate: makeExistingValidator("Please enter a valid hostname.")
         }),
-        "AUTH_SECRET": env["AUTH_SECRET"] || await input({
-            default: 'NaverAILabHCIELMI',
+        "AUTH_SECRET": await input({
+            default: env["AUTH_SECRET"] || 'NaverAILabHCIELMI',
             message: 'Insert any random string to be used as an auth secret:',
             required: true,
             validate: makeExistingValidator("Please enter any text.")
@@ -71,10 +71,25 @@ async function setup(){
 
         "ADMIN_ID": env["ADMIN_ID"] || nanoid(),
 
-        "OPENAI_API_KEY": env["OPENAI_API_KEY"] || await input({
+        "OPENAI_API_KEY": await input({
+            default: env["OPENAI_API_KEY"],
             message: 'Insert OpenAI API Key:',
             required: true,
             validate: makeExistingValidator("Please enter a valid API key.")
+        }),
+
+        "CLOVA_CLIENT_ID": await input({
+            default: env["CLOVA_CLIENT_ID"],
+            message: 'Insert Clova Client ID:',
+            required: true,
+            validate: makeExistingValidator("Please enter a valid Client ID.")
+        }),
+
+        "CLOVA_CLIENT_SECRET": await input({
+            default: env["CLOVA_CLIENT_SECRET"],
+            message: 'Insert Clova Client Secret:',
+            required: true,
+            validate: makeExistingValidator("Please enter a valid Client Secret.")
         })
     }
 
