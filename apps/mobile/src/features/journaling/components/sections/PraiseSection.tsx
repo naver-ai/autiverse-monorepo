@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Dimensions, Animated, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Dimensions, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styleTemplates } from '../../../../styles';
 import { speakText, stopSpeech } from '../../utils/speechUtils';
-import { getImageSource } from '../../utils/imageUtils';
+import { AgentImage } from '../AgentImage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -253,14 +253,8 @@ export default function PraiseSection({ childName = "친구", agentConfig, onCom
         <View className="pt-8 pb-4">
           <View className="bg-white rounded-3xl p-6 shadow-lg w-full">
             <View className="flex-row items-center">
-              <Image 
-                source={
-                  agentConfig?.avatar_image 
-                    ? (agentConfig.avatar_image.startsWith('http') 
-                        ? { uri: agentConfig.avatar_image }
-                        : getImageSource(agentConfig.avatar_image))
-                    : require('../../../../../assets/robot.png')
-                }
+              <AgentImage
+                avatarImage={agentConfig?.avatar_image || ''}
                 style={{
                   width: 50,
                   height: 50,

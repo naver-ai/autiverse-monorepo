@@ -2,8 +2,8 @@
   "expo": {
     "name": "Autiverse",
     "slug": "autiverse-mobile",
-    "version": "1.0.0",
-    "orientation": "default",
+    "version": "0.1.0",
+    "orientation": "landscape",
     "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash.png",

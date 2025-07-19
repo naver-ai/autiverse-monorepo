@@ -77,6 +77,8 @@
     "expo-secure-store": "~14.2.3",
     "expo-splash-screen": "~0.30.9",
     "expo-status-bar": "~2.2.3",
+    "expo-device": "~7.1.4",
+    "expo-application": "~6.1.5",
     "i18next": "^25.2.1",
     "intl-pluralrules": "^2.0.1",
     "jwt-decode": "^4.0.0",

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, Image } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { ChatMessage as ChatMessageType } from '../types';
 import { styleTemplates } from '../../../styles';
 import { speakText, getSpeechManager } from '../utils/speechUtils';
-import { getImageSource } from '../utils/imageUtils';
+import { AgentImage } from './AgentImage';
 
 interface ChatMessageProps {
   messages: ChatMessageType[];
@@ -80,14 +80,8 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     return (
       <View className="items-start">
         <View className="flex-row items-start">
-          <Image 
-            source={
-              agentConfig?.avatar_image 
-                ? (agentConfig.avatar_image.startsWith('http') 
-                    ? { uri: agentConfig.avatar_image }
-                    : getImageSource(agentConfig.avatar_image))
-                : require('../../../../assets/robot.png')
-            }
+          <AgentImage
+            avatarImage={agentConfig?.avatar_image || ''}
             style={{
               width: 40,
               height: 40,
@@ -116,14 +110,8 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     return (
       <View className="items-start">
         <View className="flex-row items-start">
-          <Image 
-            source={
-              agentConfig?.avatar_image 
-                ? (agentConfig.avatar_image.startsWith('http') 
-                    ? { uri: agentConfig.avatar_image }
-                    : getImageSource(agentConfig.avatar_image))
-                : require('../../../../assets/robot.png')
-            }
+          <AgentImage
+            avatarImage={agentConfig?.avatar_image || ''}
             style={{
               width: 40,
               height: 40,

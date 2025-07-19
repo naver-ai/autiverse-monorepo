@@ -1,3 +1,13 @@
+export interface DeviceInfo{
+    app: "autiverse";
+    app_version: string;
+    device_id: string;
+    device_os: string;
+    device_os_version: string;
+    browser_name?: string | undefined;
+    browser_version?: string | undefined;
+  }
+
 export interface DBModel {
     id: string;
     created_at: string;

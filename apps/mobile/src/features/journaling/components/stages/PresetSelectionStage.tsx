@@ -4,11 +4,9 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Image,
   StyleSheet,
   LayoutChangeEvent,
 } from 'react-native';
-import { getImageSource } from '../../utils/imageUtils';
 import { styleTemplates } from '../../../../styles';
 import { speakText, stopSpeech } from '../../utils/speechUtils';
 import { useDyad } from '../../../../api/dyad';
@@ -17,6 +15,7 @@ import { useSpeechAnimation } from '../../hooks/useSpeechAnimation';
 import Reanimated, { Easing, ZoomIn } from 'react-native-reanimated';
 import { twMerge } from 'tailwind-merge';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AgentImage } from '../AgentImage';
 
 const styles = StyleSheet.create({
   avatarImage: {
@@ -25,6 +24,8 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     resizeMode: 'cover',
     marginRight: 12,
+  },
+  scrollViewContentContainerStyleBase: {
   },
 });
 
@@ -54,6 +55,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
   const [messageViewHeight, setMessageViewHeight] = useState(0);
   
   const scrollViewContentContainerStyle = useMemo(() => ({
+    ...styles.scrollViewContentContainerStyleBase,
     padding: 24,
     paddingTop: 24 + messageViewHeight + 48 // 기본 padding + 메시지 뷰 높이 + 추가 여백
   }), [messageViewHeight]);
@@ -131,14 +133,8 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
           <Reanimated.View style={ttsBorderColorStyle} className="bg-white rounded-2xl p-6 w-full border-2">
             <View className="flex-row items-center">
               <Reanimated.View style={ttsScalePulseStyle}>
-                <Image
-                  source={
-                    agentConfig?.avatar_image
-                      ? agentConfig.avatar_image.startsWith('http')
-                        ? { uri: agentConfig.avatar_image }
-                        : getImageSource(agentConfig.avatar_image)
-                      : require('../../../../../assets/robot.png')
-                  }
+                <AgentImage
+                  avatarImage={agentConfig?.avatar_image || ''}
                   style={styles.avatarImage}
                 />
               </Reanimated.View>
@@ -161,7 +157,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               className="flex-1" 
               contentContainerStyle={scrollViewContentContainerStyle}
             >
-            <View className="flex-1 flex flex-row justify-between flex-wrap mb-4">
+            <View className="flex-1 flex flex-row items-center justify-center flex-wrap mb-4">
               {dyad && dyad.places.length > 0 ? (
                 // API 데이터 사용
                 dyad.places.map((place) => (
@@ -173,7 +169,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                       shadowRadius: 3.84,
                       elevation: 5,
                     }}
-                    className={twMerge(`w-[31%] p-6 py-12 border-2 rounded-xl ${
+                    className={twMerge(`w-[31%] m-3 p-6 py-12 border-2 rounded-xl ${
                       isTTSActive || isLoading
                         ? 'border-gray-200 bg-gray-200'
                         : 'border-orange-300 bg-white'

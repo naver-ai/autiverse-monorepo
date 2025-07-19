@@ -27,7 +27,9 @@
     "react-native-reanimated": "*",
     "react-native-safe-area-context": "*",
     "react-native-screens": "*",
-    "react-native-svg": "*"
+    "react-native-svg": "*",
+    "expo-device": "*",
+    "expo-application": "*"
   },
   "devDependencies": {
     "@react-native-community/cli": "^19.1.0"

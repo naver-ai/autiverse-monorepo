@@ -11,6 +11,9 @@ import { styleTemplates } from '../../../styles';
 import { useDyad } from '../../../api/dyad';
 import { speakText, stopSpeech } from '../utils/speechUtils';
 import { getImageSource } from '../utils/imageUtils';
+import { AgentImage } from '../components/AgentImage';
+import { useSpeechAnimation } from '../hooks/useSpeechAnimation';
+import Reanimated from 'react-native-reanimated';
 
 const { width, height } = Dimensions.get('window');
 
@@ -38,9 +41,12 @@ export function AgentIntroScreen() {
   const [autoNavigate, setAutoNavigate] = useState(false);
   const [hasNavigated, setHasNavigated] = useState(false);
   const [hasSpoken, setHasSpoken] = useState(false);
+  const [isTTSActive, setIsTTSActive] = useState(false);
 
   const { dyad, isDyadLoading, dyadError } = useDyad();
 
+  // TTS 애니메이션 훅 사용
+  const { ttsScalePulseStyle, ttsOpacityPulseStyle, ttsBorderColorStyle } = useSpeechAnimation(isTTSActive);
 
   useEffect(() => {
     if (dyad && !hasSpoken) {
@@ -55,12 +61,14 @@ export function AgentIntroScreen() {
       console.log('AgentIntroScreen: isFirstVisit:', isFirstVisit);
 
       // TTS 시작
+      setIsTTSActive(true);
       speakText(greetingText, {
         language: 'ko-KR',
         pitch: 1.0,
         rate: 0.8,
         onDone: () => {
           setHasSpoken(true);
+          setIsTTSActive(false);
           // TTS 완료 후 1초 뒤에 다음 화면으로 이동
           setTimeout(() => {
             setAutoNavigate(true);
@@ -68,6 +76,7 @@ export function AgentIntroScreen() {
         },
         onError: (error) => {
           setHasSpoken(true);
+          setIsTTSActive(false);
           // 에러 발생 시에도 3초 후 이동
           setTimeout(() => {
             setAutoNavigate(true);
@@ -137,13 +146,16 @@ export function AgentIntroScreen() {
         <View className="flex-1 px-6">
           {/* 상단 인사말 영역 */}
           <View className="pt-8 pb-4">
-            <View className="bg-white rounded-3xl p-6 shadow-lg w-full">
-              <Text
+            <Reanimated.View 
+              className="bg-white rounded-3xl p-6 shadow-lg w-full border-2"
+              style={ttsBorderColorStyle}
+            >
+              <Reanimated.Text
                 className="text-2xl text-gray-800 leading-relaxed text-center mb-4"
-                style={styleTemplates.withBoldFont}
+                style={[styleTemplates.withBoldFont, ttsOpacityPulseStyle]}
               >
                 {greetingText}
-              </Text>
+              </Reanimated.Text>
 
               <View className="items-center">
                 <Text
@@ -153,25 +165,21 @@ export function AgentIntroScreen() {
                   {dyad!.agents?.[0]?.agent_name || '친구'}
                 </Text>
               </View>
-            </View>
+            </Reanimated.View>
           </View>
 
           {/* 중앙 에이전트 이미지 영역 */}
           <View className="flex-1 items-center justify-center">
-            <Image
-              source={
-                dyad!.agents?.[0]?.agent_config?.avatar_image
-                  ? dyad!.agents?.[0]?.agent_config?.avatar_image.startsWith('http')
-                    ? { uri: dyad!.agents?.[0]?.agent_config?.avatar_image }
-                    : getImageSource(dyad!.agents?.[0]?.agent_config?.avatar_image)
-                  : require('../../../../assets/robot.png')
-              }
-              style={{
-                width: width * 0.4,
-                height: width * 0.4,
-                resizeMode: 'contain',
-              }}
-            />
+            <Reanimated.View style={ttsScalePulseStyle}>
+              <AgentImage
+                avatarImage={dyad!.agents?.[0]?.agent_config?.avatar_image || ''}
+                style={{
+                  width: width * 0.4,
+                  height: width * 0.4,
+                  resizeMode: 'contain',
+                }}
+              />
+            </Reanimated.View>
           </View>
         </View>
       </SafeAreaView>
