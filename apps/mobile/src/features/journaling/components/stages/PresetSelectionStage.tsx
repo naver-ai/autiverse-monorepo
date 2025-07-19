@@ -69,7 +69,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
       const ttsMessage =
         selectionStep === 'location'
           ? '오늘은 어디서 있었던 일을 그림 일기로 써볼까?'
-          : '거기서 누구랑 있었던 일을 그림 일기로 써볼까? 여러명이면 여러명을 선택해!';
+          : `${selectedLocation}에서 누구랑 있었던 일을 그림 일기로 써볼까? 여러명이면 여러명을 선택해!`;
       speakText(ttsMessage, {
         language: 'ko-KR',
         pitch: 1.0,
@@ -148,7 +148,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               >
                 {selectionStep === 'location'
                   ? '오늘은 어디서 있었던 일을 그림 일기로 써볼까?'
-                  : '거기서 누구랑 있었던 일을 그림 일기로 써볼까? 여러명이면 여러명을 선택해!'}
+                  : `${selectedLocation}에서 누구랑 있었던 일을 그림 일기로 써볼까? 여러명이면 여러명을 선택해!`}
               </Reanimated.Text>
             </View>
           </Reanimated.View>

@@ -962,7 +962,8 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, current
     // revision_2에서 "수정하거나 추가하고 싶은 부분 있어?" 또는 "이제 다 맞을까?" 질문일 때만 버튼 표시
     if (currentStage === 'revision_2') {
       return (lastBotMessage?.includes('수정하거나 추가하고 싶은 부분 있어?') || 
-              lastBotMessage?.includes('이제 다 맞을까?')) && 
+              lastBotMessage?.includes('이제 다 맞을까?') ||
+              lastBotMessage?.includes('일기 제목')) && 
              !isLoading && 
              message.trim() === '';
     }

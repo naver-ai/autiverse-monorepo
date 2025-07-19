@@ -33,7 +33,7 @@ export function useDyad() {
         enabled: !!jwt
       });
 
-    console.log("Dyad: ", JSON.stringify(dyad, null, 2));
+    // console.log("Dyad: ", JSON.stringify(dyad, null, 2));
 
     return {
         dyad,

@@ -95,7 +95,7 @@ export default function HomeScreen() {
       params: {
         journalEntryId: latestEntry.id,
         stage: latestEntry.stage,
-        continueExisting: 'true'
+        continueExistingStr: 'true'
       }
     });
   };

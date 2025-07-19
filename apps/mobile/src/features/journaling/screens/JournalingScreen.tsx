@@ -309,6 +309,8 @@ export const JournalingScreen = () => {
       return;
     }
 
+
+
     // TTS 상태 확인 - TTS가 진행 중이면 메시지 전송 차단
     const speechManager = getSpeechManager();
     if (speechManager.getIsSpeaking()) {
@@ -515,8 +517,22 @@ export const JournalingScreen = () => {
             
             // 음성 녹음 정리
             try {
+              // 녹음 중인지 확인하고 중지
               if (voiceRecorder.isRecording) {
+                console.log('Stopping voice recording...');
                 await voiceRecorder.stopRecording();
+              }
+              
+              // 녹음 객체가 남아있다면 정리 (안전을 위해)
+              if (voiceRecorder.recording) {
+                console.log('Cleaning up voice recording object...');
+                try {
+                  await voiceRecorder.recording.stopAndUnloadAsync();
+                } catch (cleanupError) {
+                  console.log('Voice recording cleanup error:', cleanupError);
+                }
+                voiceRecorder.recording = null;
+                voiceRecorder.isRecording = false;
               }
             } catch (error) {
               console.log('음성 녹음 정리 중 오류:', error);

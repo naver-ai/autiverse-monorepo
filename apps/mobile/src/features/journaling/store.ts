@@ -43,6 +43,7 @@ interface JournalingState {
   setIsInputActive: (active: boolean) => void;
   setIsAfterFarewell: (after: boolean) => void;
   setInputText: (text: string) => void;
+  setShowPresetSelection: (show: boolean) => void;
   
   // Semantic setters - 관련된 상태들을 함께 업데이트
   initializeSession: (sessionData: {
@@ -127,6 +128,7 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
   setCurrentStage: (currentStage) => set({ currentStage }),
   setIsInputActive: (isInputActive) => set({ isInputActive }),
   setIsAfterFarewell: (isAfterFarewell) => set({ isAfterFarewell }),
+  setShowPresetSelection: (showPresetSelection: boolean) => set({ showPresetSelection }),
   
   // Semantic setters
   initializeSession: (sessionData) => set({
@@ -143,7 +145,8 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
     comicData: sessionData.panels !== undefined ? sessionData.panels : state.comicData,
     currentStage: sessionData.stage || state.currentStage,
     comicTitle: sessionData.title || state.comicTitle,
-    focusedPanel: sessionData.focusedPanel !== undefined ? sessionData.focusedPanel : state.focusedPanel
+    focusedPanel: sessionData.focusedPanel !== undefined ? sessionData.focusedPanel : state.focusedPanel,
+    showPresetSelection: false // 이어가기 시에는 항상 false로 설정
   })),
   
   startChatbotSession: (sessionData) => set({
@@ -229,7 +232,7 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
     selectedLocation: null,
     selectedPeople: [],
     selectionStep: 'location',
-    showPresetSelection: true,
+    showPresetSelection: false,
     selectedPlaceId: null,
     selectedPersonIds: [],
     isComicCompleted: false,
@@ -258,7 +261,9 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
     isComicCompleted: false,
     comicTitle: '그림 일기',
     showPraiseSection: false,
+    showFarewellSection: false,
     completionMessage: '',
-    isInputActive: false
+    isInputActive: false,
+    isAfterFarewell: false
   })
 }));
