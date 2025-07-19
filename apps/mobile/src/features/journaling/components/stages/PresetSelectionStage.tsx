@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   ScrollView,
   StyleSheet,
   LayoutChangeEvent,
@@ -16,6 +15,9 @@ import Reanimated, { Easing, ZoomIn } from 'react-native-reanimated';
 import { twMerge } from 'tailwind-merge';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AgentImage } from '../AgentImage';
+import { TailwindButton } from '../../../../components/TailwindButton';
+import colors from 'tailwindcss/colors';
+import { CheckCircleIcon } from '../../../../components/svg-images';
 
 const styles = StyleSheet.create({
   avatarImage: {
@@ -28,6 +30,31 @@ const styles = StyleSheet.create({
   scrollViewContentContainerStyleBase: {
   },
 });
+
+const ContentFrame= ({
+  children,
+  footer,
+  messageViewHeight,
+}: {
+  children?: React.ReactNode
+  footer?: React.ReactNode
+  messageViewHeight: number
+}) => {
+
+  const scrollViewContentContainerStyle = useMemo(() => ({
+    ...styles.scrollViewContentContainerStyleBase,
+    padding: 24,
+    paddingTop: 24 + messageViewHeight + 48 // 기본 padding + 메시지 뷰 높이 + 추가 여백
+  }), [messageViewHeight]);
+
+  return (<>
+    <ScrollView 
+    className="flex-1" 
+    contentContainerStyle={scrollViewContentContainerStyle}
+  >{children}</ScrollView>
+  {footer}
+  </>)
+}
 
 interface PresetSelectionStageProps {
   onSelectionComplete: () => void;
@@ -53,13 +80,6 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
   const [hasSpoken, setHasSpoken] = useState(false);
   const [isTTSActive, setIsTTSActive] = useState(false);
   const [messageViewHeight, setMessageViewHeight] = useState(0);
-  
-  const scrollViewContentContainerStyle = useMemo(() => ({
-    ...styles.scrollViewContentContainerStyleBase,
-    padding: 24,
-    paddingTop: 24 + messageViewHeight + 48 // 기본 padding + 메시지 뷰 높이 + 추가 여백
-  }), [messageViewHeight]);
-
   const { dyad, agentConfig } = useDyad();
 
   // TTS 시작
@@ -150,48 +170,55 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
           </Reanimated.View>
         </Reanimated.View>
 
-        {selectionStep === 'location' ? (
-          <>
-            {/* 장소 선택 그리드 */}
-            <ScrollView 
-              className="flex-1" 
-              contentContainerStyle={scrollViewContentContainerStyle}
-            >
-            <View className="flex-1 flex flex-row items-center justify-center flex-wrap mb-4">
+        {selectionStep === 'location' ? (<ContentFrame messageViewHeight={messageViewHeight} footer={
+          <View className="border-t-2 border-gray-200 pt-6 pb-6 mt-4 px-6 flex flex-row items-center">
+          <TailwindButton
+              containerClassName="flex-1 mr-2"
+              buttonStyleClassName={`p-4 ${
+                isTTSActive || isLoading ? 'bg-gray-200' : 'bg-blue-500'
+              }`}
+              roundedClassName="rounded-xl"
+              disabledButtonStyleClassName="bg-gray-200"
+              disabledTitleClassName="text-gray-400"
+              titleClassName={'text-xl text-white'}
+              title={isLoading ? '시작 중...' : '뭘 쓸지 모르겠네..'}
+              onPress={() => stopTTSAndExecute(onStartChatbotWithSuggestion)}
+              disabled={isTTSActive || isLoading}
+            />
+            <TailwindButton
+              containerClassName="flex-1 ml-2"
+              buttonStyleClassName={`p-4 ${
+                isTTSActive || isLoading ? 'bg-gray-200' : 'bg-blue-500'
+              }`}
+              roundedClassName="rounded-xl"
+              disabledButtonStyleClassName="bg-gray-200"
+              titleClassName={'text-xl text-white'}
+              disabledTitleClassName="text-gray-400"
+              title={isLoading ? '시작 중...' : '오늘은 내가 쓰고 싶은 게 있어!'}
+              onPress={() => stopTTSAndExecute(onFreeStart)}
+              disabled={isTTSActive || isLoading}
+            />
+        </View>
+        }>
+          <View className="flex-1 flex flex-row items-center justify-center flex-wrap mb-4">
               {dyad && dyad.places.length > 0 ? (
                 // API 데이터 사용
                 dyad.places.map((place) => (
-                  <TouchableOpacity
-                    key={place.id}
-                    style={isTTSActive ? undefined : {
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.25,
-                      shadowRadius: 3.84,
-                      elevation: 5,
-                    }}
-                    className={twMerge(`w-[31%] m-3 p-6 py-12 border-2 rounded-xl ${
-                      isTTSActive || isLoading
-                        ? 'border-gray-200 bg-gray-200'
-                        : 'border-orange-300 bg-white'
-                    }`)}
-                    onPress={() =>
-                      stopTTSAndExecute(() =>
-                        handleLocationSelect(place.name, place.id),
-                      )
-                    }
-                    disabled={isTTSActive || isLoading}
-                  >
-                    <Text
-                      className={`text-2xl font-semibold text-center ${
-                        isTTSActive || isLoading
-                          ? 'text-gray-400'
-                          : 'text-gray-800'
-                      }`}
-                      style={styleTemplates.withBoldFont}
-                    >
-                      {place.name}
-                    </Text>
-                  </TouchableOpacity>
+                    <TailwindButton key={place.id}
+                      containerClassName="w-[31%] m-3"
+                      buttonStyleClassName={twMerge('p-6 py-12 border-2 rounded-xl border-orange-300 bg-white')}
+                      disabledButtonStyleClassName="border-gray-200 bg-gray-200"
+                      titleClassName={'text-2xl text-gray-800'}
+                      disabledTitleClassName="text-gray-400"
+                      title={place.name}
+                      rippleColor={colors.orange[300]}
+                      onPress={() =>
+                        stopTTSAndExecute(() =>
+                          handleLocationSelect(place.name, place.id),
+                        )
+                      }
+                      disabled={isTTSActive || isLoading}
+                    />
                 ))
               ) : (
                 // API 데이터가 없을 때 빈 상태 표시
@@ -204,89 +231,61 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                   </Text>
                 </View>
               )}
-            </View></ScrollView>
-
-            {/* 자유롭게 시작하기 버튼들 */}
-            <View className="border-t-2 border-gray-200 pt-6 pb-6 mt-4 px-6 flex flex-row items-center">
-              <TouchableOpacity
-                className={`flex-1 mr-2 rounded-xl p-4 ${
-                  isTTSActive || isLoading ? 'bg-gray-200' : 'bg-blue-500'
-                }`}
-                onPress={() => stopTTSAndExecute(onStartChatbotWithSuggestion)}
-                disabled={isTTSActive || isLoading}
-              >
-                <Text
-                  className={`text-xl font-semibold text-center ${
-                    isTTSActive || isLoading ? 'text-gray-400' : 'text-white'
-                  }`}
-                  style={styleTemplates.withBoldFont}
-                >
-                  {isLoading ? '시작 중...' : '뭘 쓸지 모르겠네..'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className={`flex-1 ml-2 rounded-xl p-4 ${
-                  isTTSActive || isLoading ? 'bg-gray-200' : 'bg-blue-500'
-                }`}
-                onPress={() => stopTTSAndExecute(onFreeStart)}
-                disabled={isTTSActive || isLoading}
-              >
-                <Text
-                  className={`text-xl font-semibold text-center ${
-                    isTTSActive || isLoading ? 'text-gray-400' : 'text-white'
-                  }`}
-                  style={styleTemplates.withBoldFont}
-                >
-                  {isLoading ? '시작 중...' : '오늘은 내가 쓰고 싶은 게 있어!'}
-                </Text>
-              </TouchableOpacity>
             </View>
-          </>
-        ) : (
-          <>
+        </ContentFrame>) : (
+          <ContentFrame messageViewHeight={messageViewHeight} footer={
+            <View className="border-t-2 border-gray-200 pt-6 pb-6 mt-4 px-6 flex">
+
             {/* 뒤로가기 버튼 */}
-            <TouchableOpacity
-              className={`mb-4 p-2 ${isTTSActive ? 'bg-gray-200' : ''}`}
-              onPress={() => stopTTSAndExecute(handleBackToLocation)}
-              disabled={isTTSActive}
-            >
-              <Text
-                className={`text-blue-500 text-xl ${isTTSActive ? 'text-gray-400' : ''}`}
-                style={styleTemplates.withBoldFont}
-              >
-                ← 장소 다시 선택
-              </Text>
-            </TouchableOpacity>
+              <TailwindButton
+                key={`back-to-location-${selectedLocation}`}
+                containerClassName="self-start mb-3"
+                buttonStyleClassName={`p-2 bg-transparent`}
+                shadowClassName="shadow-none"
+                titleClassName={`text-blue-500 text-xl ${isTTSActive ? 'text-gray-400' : ''}`}
+                disabledTitleClassName="text-gray-400"
+                title="← 장소 다시 선택"
+                onPress={() => stopTTSAndExecute(handleBackToLocation)}
+                disabled={isTTSActive}
+              />
 
-            {/* 선택된 장소 표시 */}
-            <View className="mb-6 p-4 bg-blue-50 rounded-lg">
-              <Text
-                className="text-xl text-gray-800"
-                style={styleTemplates.withSemiboldFont}
-              >
-                <Text className="font-bold" style={styleTemplates.withBoldFont}>
-                  선택된 장소:
-                </Text>{' '}
-                {selectedLocation}
-              </Text>
+                <TailwindButton
+              buttonStyleClassName={`rounded-xl p-5 ${
+                isTTSActive || selectedPersonIds.length === 0 || isLoading
+                  ? 'bg-gray-200'
+                  : 'bg-blue-500'
+              }`}
+              disabledButtonStyleClassName="bg-gray-200"
+              titleClassName={`text-white text-2xl text-center ${
+                isTTSActive || selectedPersonIds.length === 0 || isLoading
+                  ? 'text-gray-400'
+                  : 'text-white'
+              }`}
+              disabledTitleClassName="text-gray-400"
+              title={isLoading
+                ? '준비 중...'
+                : `다음 단계로 (${selectedPersonIds.length}명 선택됨)`}
+              onPress={() => stopTTSAndExecute(onSelectionComplete)}
+              disabled={
+                isTTSActive || selectedPersonIds.length === 0 || isLoading
+              }
+            />
             </View>
+          }>
 
             {/* 사람 선택 그리드 */}
-            <View className="grid grid-cols-2 gap-4 mb-6">
+          <View className="flex-1 flex flex-row items-center justify-center flex-wrap mb-4">
               {dyad && dyad.people.length > 0 ? (
                 // API 데이터 사용
-                dyad?.people.map((person) => (
-                  <TouchableOpacity
+                dyad?.people.map((person) => {
+                  const isSelected = selectedPersonIds.includes(person.id);
+                  return (
+                  <TailwindButton
                     key={person.id}
-                    className={`p-4 border-2 rounded-xl ${
-                      selectedPersonIds.includes(person.id)
-                        ? isTTSActive
-                          ? 'border-blue-200 bg-blue-100'
-                          : 'border-blue-500 bg-blue-50'
-                        : isTTSActive
-                          ? 'border-gray-200 bg-gray-200'
-                          : 'border-gray-200 bg-white'
-                    }`}
+                    rippleColor={colors.orange[300]}
+                    containerClassName="w-[31%] m-3"
+                    buttonStyleClassName={twMerge('p-6 py-12 border-2 rounded-xl border-orange-300', isSelected ? 'bg-orange-400' : 'bg-white')}
+                    disabledButtonStyleClassName={twMerge("border-gray-200", isSelected ? 'bg-gray-300' : 'bg-gray-200')}
                     onPress={() =>
                       executeWithConditionalTTSStop(() =>
                         handlePersonToggle(person.name, person.id),
@@ -294,22 +293,11 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                     }
                     disabled={isTTSActive}
                   >
-                    <Text
-                      className={`text-center font-semibold text-xl ${
-                        selectedPersonIds.includes(person.id)
-                          ? isTTSActive
-                            ? 'text-blue-300'
-                            : 'text-blue-600'
-                          : isTTSActive
-                            ? 'text-gray-400'
-                            : 'text-gray-800'
-                      }`}
-                      style={styleTemplates.withBoldFont}
-                    >
-                      {person.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))
+                    <View className="flex-row items-center">
+                      <Text style={styleTemplates.withBoldFont} className={twMerge('text-2xl', isTTSActive ? 'text-gray-400' : (isSelected ? 'text-white' : 'text-gray-800'))}>{person.name}</Text>
+                      {isSelected && <CheckCircleIcon style={{fill: isTTSActive ? 'gray' : 'white', marginLeft: 7, width: 32, height: 32}}/>}
+                    </View></TailwindButton>
+                )})
               ) : (
                 // API 데이터가 없을 때 빈 상태 표시
                 <View className="p-4 border-2 border-gray-200 rounded-xl bg-white">
@@ -322,34 +310,8 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                 </View>
               )}
             </View>
-
-            {/* 시작하기 버튼 */}
-            <TouchableOpacity
-              className={`rounded-xl p-4 ${
-                isTTSActive || selectedPersonIds.length === 0 || isLoading
-                  ? 'bg-gray-200'
-                  : 'bg-blue-500'
-              }`}
-              onPress={() => stopTTSAndExecute(onSelectionComplete)}
-              disabled={
-                isTTSActive || selectedPersonIds.length === 0 || isLoading
-              }
-            >
-              <Text
-                className={`text-white text-xl font-semibold text-center ${
-                  isTTSActive || selectedPersonIds.length === 0 || isLoading
-                    ? 'text-gray-400'
-                    : 'text-white'
-                }`}
-                style={styleTemplates.withBoldFont}
-              >
-                {isLoading
-                  ? '시작 중...'
-                  : `시작하기 (${selectedPersonIds.length}명 선택됨)`}
-              </Text>
-            </TouchableOpacity>
-          </>
-        )}
+          </ContentFrame>)
+          }
     </SafeAreaView>
   );
 };

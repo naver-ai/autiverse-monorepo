@@ -1,7 +1,8 @@
 import { ButtonProps, Pressable, View, Text, PressableProps } from "react-native";
 import { styleTemplates } from "../styles";
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { twMerge } from 'tailwind-merge'
+import Animated, { useSharedValue, withTiming, withSpring, useAnimatedStyle, interpolate, Easing } from "react-native-reanimated";
 
 export const TailwindButton = (props: {
     containerClassName?: string
@@ -15,6 +16,25 @@ export const TailwindButton = (props: {
     title?: string,
     children?: any
 } & Omit<ButtonProps, "title"> & PressableProps) => {
+
+    const pressAnimProgress = useSharedValue(0)
+
+    const containerAnimStyle = useAnimatedStyle(() => {
+        return {
+            transform: [
+                {scale: interpolate(pressAnimProgress.value, [0, 1], [1, 0.95])},
+                {translateY: interpolate(pressAnimProgress.value, [0, 1], [0, 2])}
+            ] as any,
+        }
+    }, [])
+
+    const handlePressIn = useCallback(() => {
+        pressAnimProgress.value = withTiming(1, {duration: 100, easing: Easing.out(Easing.cubic)})
+    }, [pressAnimProgress])
+
+    const handlePressOut = useCallback(() => {
+        pressAnimProgress.value = withSpring(0, {duration: 500})
+    }, [pressAnimProgress])
 
     const rippleConfig = useMemo(()=>{
         return {color: props.rippleColor || "##f9aa3330"}
@@ -32,11 +52,21 @@ export const TailwindButton = (props: {
         return twMerge('text-lg text-center text-slate-600', props.titleClassName, props.disabled === true ? (props.disabledTitleClassName || "") : "")
     }, [props.titleClassName, props.disabled, props.disabledTitleClassName])
 
-    return <View accessible={false} className={containerClassName} removeClippedSubviews={true}>
-        <Pressable accessible={false} aria-selected={false} disabled={props.disabled} android_ripple={rippleConfig} onPress={props.onPress} onLongPress={props.onLongPress}
-        className={buttonClassName}>
+    return <Animated.View accessible={false} className={containerClassName} removeClippedSubviews={true} style={containerAnimStyle}>
+        <Pressable 
+            accessible={false} 
+            aria-selected={false} 
+            disabled={props.disabled} 
+            android_ripple={rippleConfig} 
+            onPress={props.onPress} 
+            onLongPress={props.onLongPress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            className={buttonClassName}
+        >
             {
                 props.children || <Text className={titleClassName} style={styleTemplates.withBoldFont}>{props.title}</Text>
             }
-        </Pressable></View>
+        </Pressable>
+    </Animated.View>
 }
