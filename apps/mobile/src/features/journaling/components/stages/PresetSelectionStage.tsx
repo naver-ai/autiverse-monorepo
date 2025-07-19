@@ -13,7 +13,8 @@ import { styleTemplates } from '../../../../styles';
 import { speakText, stopSpeech } from '../../utils/speechUtils';
 import { useDyad } from '../../../../api/dyad';
 import { useJournalingStore } from '../../store';
-import Reanimated, { Easing, FadeIn, useAnimatedStyle, withTiming, ZoomIn, ZoomInDown, withRepeat, withSequence, useSharedValue, interpolate, interpolateColor } from 'react-native-reanimated';
+import { useSpeechAnimation } from '../../hooks/useSpeechAnimation';
+import Reanimated, { Easing, ZoomIn } from 'react-native-reanimated';
 import { twMerge } from 'tailwind-merge';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -58,10 +59,6 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
   }), [messageViewHeight]);
 
   const { dyad, agentConfig } = useDyad();
-  
-  // 공유 애니메이션 값 (0: 평상시, 1: 애니메이션 최대치)
-  const ttsAnimationValue = useSharedValue(0);
-  const ttsSlowAnimationValue = useSharedValue(0);
 
   // TTS 시작
   useEffect(() => {
@@ -90,32 +87,6 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
     stopAndStartTTS();
   }, [selectionStep]);
 
-  // TTS 애니메이션 관리
-  useEffect(() => {
-    if (isTTSActive) {
-      ttsAnimationValue.value = withRepeat(
-        withSequence(
-          withTiming(0, { duration: 400, easing: Easing.inOut(Easing.ease) }),
-          withTiming(1, { duration: 400, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1,
-        true
-      );
-
-      ttsSlowAnimationValue.value = withRepeat(
-        withSequence(
-          withTiming(0, { duration: 800, easing: Easing.inOut(Easing.ease) }),
-          withTiming(1, { duration: 800, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1,
-        true
-      );
-    } else {
-      ttsAnimationValue.value = withTiming(0, { duration: 150, easing: Easing.inOut(Easing.ease) });
-      ttsSlowAnimationValue.value = withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) });
-    }
-  }, [isTTSActive, ttsAnimationValue]);
-
   // TTS 중단 함수
   const stopTTSAndExecute = (callback: () => void) => {
     stopSpeech();
@@ -141,40 +112,8 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
     };
   }, []);
 
-
-  const ttsScalePulseStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ 
-        scale: interpolate(
-          ttsAnimationValue.value,
-          [0, 1],
-          [1, 1.1]
-        )
-      }],
-    };
-  });
-
-  const ttsOpacityPulseStyle = useAnimatedStyle(() => {
-    return {
-      opacity: interpolate(
-        ttsAnimationValue.value,
-        [0, 1],
-        [1, 0.8]
-      ),
-    };
-  });
-
-  const ttsBorderColorStyle = useAnimatedStyle(() => {
-    return {
-      borderColor: interpolateColor(
-        ttsSlowAnimationValue.value,
-        [0, 1],
-        ['#00000000', '#FFA500']
-      ),
-    };
-  });
-
-  const insets = useSafeAreaInsets();
+  // TTS 애니메이션 훅 사용
+  const { ttsScalePulseStyle, ttsOpacityPulseStyle, ttsBorderColorStyle } = useSpeechAnimation(isTTSActive);
 
   const onMessageViewLayout = useCallback((event: LayoutChangeEvent) => {
     const { height } = event.nativeEvent.layout;
