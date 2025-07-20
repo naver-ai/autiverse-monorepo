@@ -45,7 +45,7 @@ export const ComicPanel: React.FC<ComicPanelProps> = ({
       {/* 스토리 텍스트 (admin-web과 동일한 스타일) */}
       <View className="mb-2 p-2 bg-gray-50 rounded-lg border-l-3 border-blue-500">
         <Text className="text-base text-gray-800 leading-6" style={styleTemplates.withSemiboldFont}>
-          <Text className="font-bold text-blue-500" style={styleTemplates.withBoldFont}>{panelIndex + 1}. </Text>
+          <Text className="text-blue-500" style={styleTemplates.withBoldFont}>{panelIndex + 1}. </Text>
           {!panel.content?.startsWith('null') && panel.content}
         </Text>
       </View>

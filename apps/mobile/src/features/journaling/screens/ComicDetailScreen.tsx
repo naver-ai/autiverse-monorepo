@@ -63,9 +63,9 @@ export default function ComicDetailScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <Text style={[styles.backButtonText, styleTemplates.withBoldFont]}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>
+        <Text style={[styles.title, styleTemplates.withBoldFont]}>
           {displayTitle}
         </Text>
         <View style={{ width: 40 }} />
@@ -85,8 +85,8 @@ export default function ComicDetailScreen() {
               <View key={index} style={styles.panelContainer}>
                 {/* 스토리 텍스트 */}
                 <View style={styles.storyTextContainer}>
-                  <Text style={styles.storyText}>
-                    <Text style={styles.panelNumber}>{index + 1}. </Text>
+                  <Text style={[styles.storyText, styleTemplates.withSemiboldFont]}>
+                    <Text style={[styles.panelNumber, styleTemplates.withBoldFont]}>{index + 1}. </Text>
                     {storyContent && !storyContent.startsWith('null') && storyContent}
                   </Text>
                 </View>
@@ -128,7 +128,7 @@ export default function ComicDetailScreen() {
                               key={`${x}-${y}`}
                               style={[styles.gridTile, { backgroundColor: getTileColor(tile.type) }]}
                             >
-                              <Text style={styles.gridTileText} numberOfLines={2}>
+                              <Text style={[styles.gridTileText, styleTemplates.withSemiboldFont]} numberOfLines={2}>
                                 {tile.content}
                               </Text>
                             </View>

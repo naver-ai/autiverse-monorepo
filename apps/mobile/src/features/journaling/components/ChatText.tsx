@@ -64,7 +64,7 @@ export const ChatText: React.FC<ChatTextProps> = ({
           elevation: 3,
         }}
       >
-        <Text className="text-white font-semibold text-lg" style={styleTemplates.withBoldFont}>전송</Text>
+        <Text className="text-white text-lg" style={styleTemplates.withBoldFont}>전송</Text>
       </TouchableOpacity>
     </View>
   );

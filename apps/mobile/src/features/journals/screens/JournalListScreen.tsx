@@ -5,6 +5,7 @@ import { useAuthStore } from '../../../features/auth/store';
 import { getGalleryAPI } from '../../../api/dyad';
 import { useQuery } from '@tanstack/react-query';
 import { getTileColor } from '../../journaling/utils';
+import { styleTemplates } from '../../../styles';
 
 export default function JournalListScreen() {
   const router = useRouter();
@@ -52,7 +53,7 @@ export default function JournalListScreen() {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.loadingText}>갤러리를 불러오는 중...</Text>
+        <Text style={[styles.loadingText, styleTemplates.withBoldFont]}>갤러리를 불러오는 중...</Text>
       </View>
     );
   }
@@ -60,7 +61,7 @@ export default function JournalListScreen() {
   if (error) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>갤러리를 불러오는데 실패했습니다.</Text>
+        <Text style={[styles.errorText, styleTemplates.withBoldFont]}>갤러리를 불러오는데 실패했습니다.</Text>
       </View>
     );
   }
@@ -74,16 +75,16 @@ export default function JournalListScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Text style={styles.backButtonText}>← 뒤로</Text>
+          <Text style={[styles.backButtonText, styleTemplates.withBoldFont]}>← 뒤로</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>갤러리</Text>
+        <Text style={[styles.title, styleTemplates.withBoldFont]}>갤러리</Text>
         <View style={{ width: 60 }} />
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {comics.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>아직 완성된 만화일기가 없어요</Text>
+            <Text style={[styles.emptyText, styleTemplates.withBoldFont]}>아직 완성된 만화일기가 없어요</Text>
           </View>
         ) : (
           <View style={styles.comicsGrid}>
@@ -133,7 +134,7 @@ export default function JournalListScreen() {
                                       key={`${x}-${y}`}
                                       style={[styles.previewGridTile, { backgroundColor: getTileColor(tile.type) }]}
                                     >
-                                      <Text style={styles.previewGridTileText} numberOfLines={1}>
+                                      <Text style={[styles.previewGridTileText, styleTemplates.withSemiboldFont]} numberOfLines={1}>
                                         {tile.content}
                                       </Text>
                                     </View>
@@ -159,11 +160,11 @@ export default function JournalListScreen() {
                     </View>
                   ) : (
                     <View style={styles.emptyPreview}>
-                      <Text style={styles.emptyPreviewText}>만화 없음</Text>
+                      <Text style={[styles.emptyPreviewText, styleTemplates.withBoldFont]}>만화 없음</Text>
                     </View>
                   )}
                 </View>
-                <Text style={styles.comicDate}>
+                <Text style={[styles.comicDate, styleTemplates.withSemiboldFont]}>
                   {comic.created_at ? new Date(comic.created_at).toLocaleDateString('ko-KR') : '날짜 없음'}
                 </Text>
               </TouchableOpacity>

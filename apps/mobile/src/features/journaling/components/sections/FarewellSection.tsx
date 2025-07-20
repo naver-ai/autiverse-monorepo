@@ -86,7 +86,7 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
             </Text>
             
             <View className="items-center">
-              <Text className="text-8xl text-center mb-6">
+              <Text className="text-8xl text-center mb-6" style={styleTemplates.withBoldFont}>
                 👋
               </Text>
             </View>

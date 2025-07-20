@@ -82,7 +82,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
               elevation: 3,
             }}
           >
-            <Text className="text-white font-bold text-xl text-center" style={styleTemplates.withBoldFont}>{buttonTexts.left}</Text>
+            <Text className="text-white text-xl text-center" style={styleTemplates.withBoldFont}>{buttonTexts.left}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             className={`flex-1 px-6 py-4 rounded-xl justify-center ${
@@ -100,7 +100,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
               elevation: 3,
             }}
           >
-            <Text className="text-white font-bold text-xl text-center" style={styleTemplates.withBoldFont}>{buttonTexts.right}</Text>
+            <Text className="text-white text-xl text-center" style={styleTemplates.withBoldFont}>{buttonTexts.right}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -134,7 +134,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
                       elevation: isSelected ? 4 : 2,
                     }}
                   >
-                    <Text className="text-white font-bold text-lg text-center" style={styleTemplates.withBoldFont}>
+                    <Text className="text-white text-lg text-center" style={styleTemplates.withBoldFont}>
                       {emotion.emoji} {emotion.text}
                     </Text>
                   </TouchableOpacity>
@@ -145,7 +145,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
           
           {selectedEmotions.length > 0 && (
             <View className="mt-3 items-center">
-              <Text className="text-gray-600 font-bold text-lg mb-2" style={styleTemplates.withSemiboldFont}>
+              <Text className="text-gray-600 text-lg mb-2" style={styleTemplates.withSemiboldFont}>
                 선택된 감정: {selectedEmotions.join(', ')}
               </Text>
               <TouchableOpacity
@@ -163,7 +163,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
                   elevation: 4,
                 }}
               >
-                <Text className="text-white font-bold text-lg text-center" style={styleTemplates.withBoldFont}>
+                <Text className="text-white text-lg text-center" style={styleTemplates.withBoldFont}>
                   선택 완료
                 </Text>
               </TouchableOpacity>
@@ -192,7 +192,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
               elevation: 3,
             }}
           >
-            <Text className="text-white font-bold text-2xl text-center" style={styleTemplates.withBoldFont}>다음</Text>
+            <Text className="text-white text-2xl text-center" style={styleTemplates.withBoldFont}>다음</Text>
           </TouchableOpacity>
         </View>
       )}

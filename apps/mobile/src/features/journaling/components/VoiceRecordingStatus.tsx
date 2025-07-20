@@ -116,7 +116,7 @@ export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
         ) : (
           <View className="w-4 h-4 bg-gray-400 rounded-full mr-3" />
         )}
-        <Text className={`text-xl font-semibold ${
+        <Text className={`text-xl ${
           voiceRecording 
             ? 'text-blue-800' 
             : 'text-gray-600'
@@ -147,7 +147,7 @@ export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
             elevation: 3,
           }}
         >
-            <Text className="text-white font-bold text-2xl" style={styleTemplates.withBoldFont}>
+            <Text className="text-white text-2xl" style={styleTemplates.withBoldFont}>
             완료
           </Text>
         </TouchableOpacity>

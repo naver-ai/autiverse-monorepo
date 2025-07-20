@@ -119,7 +119,7 @@ export default function HomeScreen() {
           className="bg-white rounded-full p-4 shadow-lg"
           activeOpacity={0.8}
         >
-          <Text className="text-3xl">🖼️</Text>
+          <Text className="text-3xl" style={styleTemplates.withBoldFont}>🖼️</Text>
         </TouchableOpacity>
       </View>
 
@@ -156,7 +156,7 @@ export default function HomeScreen() {
               activeOpacity={0.9}
             >
               <Text
-                className={`text-3xl text-center font-bold ${isButtonPressed ? 'text-transparent' : 'text-gray-800'}`}
+                className={`text-3xl text-center ${isButtonPressed ? 'text-transparent' : 'text-gray-800'}`}
                 style={styleTemplates.withBoldFont}
               >
                 시작하기
@@ -175,7 +175,7 @@ export default function HomeScreen() {
       >
         <View className="flex-1 justify-center items-center px-6">
           <View className="bg-white rounded-3xl p-10 w-full max-w-xl">
-            <Text className="text-2xl font-bold text-center mb-4" style={styleTemplates.withBoldFont}>
+            <Text className="text-2xl text-center mb-4" style={styleTemplates.withBoldFont}>
               이전에 완성하지 않은 그림일기를 이어서 써볼까?
             </Text>
 
@@ -187,7 +187,7 @@ export default function HomeScreen() {
                 className="bg-blue-500 rounded-2xl py-4"
                 activeOpacity={0.8}
               >
-                <Text className="text-white text-center font-bold text-xl" style={styleTemplates.withBoldFont}>
+                <Text className="text-white text-center text-xl" style={styleTemplates.withBoldFont}>
                   응, 그럴게!
                 </Text>
               </TouchableOpacity>
@@ -199,7 +199,7 @@ export default function HomeScreen() {
                 className="bg-gray-200 rounded-2xl py-4"
                 activeOpacity={0.8}
               >
-                <Text className="text-gray-700 text-center font-bold text-xl" style={styleTemplates.withBoldFont}>
+                <Text className="text-gray-700 text-center text-xl" style={styleTemplates.withBoldFont}>
                   아니, 새로운 거 쓸 거야!
                 </Text>
               </TouchableOpacity>

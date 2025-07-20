@@ -224,7 +224,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                 // API 데이터가 없을 때 빈 상태 표시
                 <View className="p-6 border-2 border-gray-200 rounded-xl bg-white">
                   <Text
-                    className="text-xl font-semibold text-gray-500 text-center"
+                    className="text-xl text-gray-500 text-center"
                     style={styleTemplates.withSemiboldFont}
                   >
                     장소 정보를 불러올 수 없습니다
@@ -302,7 +302,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                 // API 데이터가 없을 때 빈 상태 표시
                 <View className="p-4 border-2 border-gray-200 rounded-xl bg-white">
                   <Text
-                    className="text-center font-semibold text-gray-500 text-lg"
+                    className="text-center text-gray-500 text-lg"
                     style={styleTemplates.withSemiboldFont}
                   >
                     사람 정보를 불러올 수 없습니다
