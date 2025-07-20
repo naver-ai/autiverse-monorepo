@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
-import { ChatMessage as ChatMessageType } from '../types';
+import { ChatMessage as ChatMessageType } from '@autiverse-monorepo/ts-core';
 import { styleTemplates } from '../../../styles';
 import { speakText, getSpeechManager } from '../utils/speechUtils';
 import { AgentImage } from './AgentImage';

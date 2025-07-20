@@ -13,7 +13,7 @@ import { useChatbot } from '../hooks/useChatbot';
 import PraiseSection from '../components/sections/PraiseSection';
 import FarewellSection from '../components/sections/FarewellSection';
 import { PresetSelectionStage, ChatStage } from '../components/stages';
-import { ChatMessage, Preset } from '../types';
+import { ChatMessage, Preset } from '@autiverse-monorepo/ts-core';
 import { stopSpeech, getSpeechManager } from '../utils/speechUtils';
 import { voiceRecorder } from '../utils/voiceUtils';
 import { useDyad } from '../../../api/dyad';

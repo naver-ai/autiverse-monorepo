@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { ChatMessage } from '../types';
+import { ChatMessage } from '@autiverse-monorepo/ts-core';
 import { getSpeechManager } from '../utils/speechUtils';
 import { voiceRecorder } from '../utils/voiceUtils';
 import { ChatText } from './ChatText';

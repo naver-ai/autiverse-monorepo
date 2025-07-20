@@ -91,3 +91,30 @@ export interface Place extends ContextEntity {
 
     people: Person[];
 }
+
+// Mobile app specific types
+export interface ChatMessage {
+  id: string;
+  text: string;
+  isUser: boolean;
+  timestamp: Date;
+}
+
+export interface Preset {
+  location: string;
+  people: string[];
+  label: string;
+  dayInfo?: string[];
+}
+
+export interface ComicPanel {
+  content: string;
+  grid: any[];
+}
+
+export interface ComicData {
+  panel1?: ComicPanel | string;
+  panel2?: ComicPanel | string;
+  panel3?: ComicPanel | string;
+  panel4?: ComicPanel | string;
+}
