@@ -7,6 +7,7 @@ import {
   Animated,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useComicGeneration } from '../hooks/useComicGenerationQuery';
 import { useChatbot } from '../hooks/useChatbot';
 import PraiseSection from '../components/sections/PraiseSection';
@@ -20,6 +21,7 @@ import { useJournalingStore } from '../store';
 
 export const JournalingScreen = () => {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const {journalEntryId, stage, continueExistingStr}: {journalEntryId?: string, stage?: string, continueExistingStr?: string} = useLocalSearchParams();
 
@@ -37,7 +39,6 @@ export const JournalingScreen = () => {
     currentStage,
     setCurrentStage,
     sessionId,
-    comicData,
     selectedLocation,
     selectedPeople,
     selectedPersonIds,
@@ -111,8 +112,8 @@ export const JournalingScreen = () => {
       
       // 만화 생성이 완료되면 고정 메시지들을 제거
       const filteredMessages = messages.filter(msg => 
-        msg.text !== '다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~' &&
-        msg.text !== '내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~'
+        msg.text !== t('Journaling.Messages.Revision1Confirmation') &&
+        msg.text !== t('Journaling.Messages.Revision2Confirmation')
       );
       addMessages(filteredMessages);
       
@@ -241,11 +242,11 @@ export const JournalingScreen = () => {
         
         console.log('Chatbot started successfully');
       } else {
-        Alert.alert('오류', '챗봇을 시작할 수 없습니다.');
+        Alert.alert('오류', t('Journaling.Errors.ChatbotStartError'));
       }
     } catch (error) {
       console.error('Failed to start chatbot:', error);
-      Alert.alert('오류', '챗봇을 시작할 수 없습니다.');
+      Alert.alert('오류', t('Journaling.Errors.ChatbotStartError'));
     } finally {
       setIsLoading(false);
     }
@@ -277,11 +278,11 @@ export const JournalingScreen = () => {
         
         console.log('Chatbot started with suggestion successfully');
       } else {
-        Alert.alert('오류', '챗봇을 시작할 수 없습니다.');
+        Alert.alert('오류', t('Journaling.Errors.ChatbotStartError'));
       }
     } catch (error) {
       console.error('Failed to start chatbot with suggestion:', error);
-      Alert.alert('오류', '챗봇을 시작할 수 없습니다.');
+      Alert.alert('오류', t('Journaling.Errors.ChatbotStartError'));
     } finally {
       setIsLoading(false);
     }
@@ -291,7 +292,7 @@ export const JournalingScreen = () => {
     if (!sessionId || !messageText.trim()) return;
 
     // "다음" 버튼 클릭 시 백엔드에 메시지 전송 후 칭찬 섹션으로 넘어가기
-    if (messageText === '다음' && completionMessage.includes('다음 버튼을 눌러줘')) {
+    if (messageText === t('Journaling.Messages.NextButton') && completionMessage.includes(t('Journaling.Messages.NextButtonPrompt'))) {
       console.log('Next button clicked, sending message to backend and showing praise section...');
       
       // 백엔드에 '다음' 메시지 전송
@@ -330,13 +331,13 @@ export const JournalingScreen = () => {
 
     // Revision_1에서 다음 단계로 넘어가는 기준이 달성될 때 고정 메시지를 먼저 추가
     if (currentStage === 'revision_1' && 
-        ((messageText === '아니' || messageText === '아니요') || 
-         (messageText === '응' || messageText === '네'))) {
+        ((messageText === t('Journaling.UserResponses.No')[0] || messageText === t('Journaling.UserResponses.No')[1]) || 
+         (messageText === t('Journaling.UserResponses.Yes')[0] || messageText === t('Journaling.UserResponses.Yes')[1]))) {
       
       // 고정 메시지를 즉시 추가
       const fixedMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        text: '다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~',
+        text: t('Journaling.Messages.Revision1Confirmation'),
         isUser: false,
         timestamp: new Date(),
       };
@@ -362,7 +363,7 @@ export const JournalingScreen = () => {
         });
 
         // 완료 메시지 감지 (다음 버튼을 눌러야 넘어감)
-        if (data.response.includes('다음 버튼을 눌러줘')) {
+        if (data.response.includes(t('Journaling.Messages.NextButtonPrompt'))) {
           addMessage(botMessage);
         }
         // comic_context 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 다행이다~ 메시지가 제거됨)
@@ -375,7 +376,7 @@ export const JournalingScreen = () => {
           
           const fixedMessage: ChatMessage = {
             id: (Date.now() + 1).toString(),
-            text: '내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~',
+            text: t('Journaling.Messages.Revision2Confirmation'),
             isUser: false,
             timestamp: new Date(),
           };
@@ -452,15 +453,10 @@ export const JournalingScreen = () => {
             }
           }, 500);
         }
-        
-        // 만화 데이터 상태 확인
-        setTimeout(() => {
-          console.log('Current comic data state after message:', comicData);
-        }, 100);
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-      Alert.alert('오류', '메시지를 보낼 수 없습니다.');
+      Alert.alert('오류', t('Journaling.Errors.MessageSendError'));
     } finally {
       setIsLoading(false);
     }
@@ -501,15 +497,15 @@ export const JournalingScreen = () => {
   // 세션 종료 핸들러
   const handleEndSession = () => {
     Alert.alert(
-      '세션 종료',
-      '정말로 세션을 종료하시겠습니까?',
+      t('Journaling.SessionEnd.Title'),
+      t('Journaling.SessionEnd.Message'),
       [
         {
-          text: '취소',
+          text: t('Journaling.SessionEnd.Cancel'),
           style: 'cancel',
         },
         {
-          text: '종료',
+          text: t('Journaling.SessionEnd.End'),
           style: 'destructive',
           onPress: async () => {
             // TTS 정지
@@ -535,7 +531,7 @@ export const JournalingScreen = () => {
                 voiceRecorder.isRecording = false;
               }
             } catch (error) {
-              console.log('음성 녹음 정리 중 오류:', error);
+              console.log(t('Journaling.VoiceRecording.CleanupError'), error);
             }
             
             // 모든 상태 초기화

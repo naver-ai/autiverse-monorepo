@@ -23,7 +23,6 @@ interface JournalingState {
   
   // 만화 생성 관련 상태
   isComicCompleted: boolean;
-  comicTitle: string;
   
   // 섹션 관련 상태
   showPraiseSection: boolean;
@@ -106,8 +105,6 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
   selectedPersonIds: [],
   
   isComicCompleted: false,
-  comicTitle: '그림 일기',
-  
   showPraiseSection: false,
   showFarewellSection: false,
   completionMessage: '',
@@ -135,7 +132,6 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
     sessionId: sessionData.journalEntryId,
     currentStage: sessionData.stage,
     comicData: sessionData.panels || null,
-    comicTitle: sessionData.title || '그림 일기',
     focusedPanel: sessionData.focusedPanel || null,
     messages: sessionData.messages || [],
     showPresetSelection: sessionData.showPresetSelection !== undefined ? sessionData.showPresetSelection : false
@@ -144,7 +140,6 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
   updateSessionInfo: (sessionData) => set((state) => ({
     comicData: sessionData.panels !== undefined ? sessionData.panels : state.comicData,
     currentStage: sessionData.stage || state.currentStage,
-    comicTitle: sessionData.title || state.comicTitle,
     focusedPanel: sessionData.focusedPanel !== undefined ? sessionData.focusedPanel : state.focusedPanel,
     showPresetSelection: false // 이어가기 시에는 항상 false로 설정
   })),
@@ -176,7 +171,7 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
       isLoading: false
     };
     
-    // 완료 메시지 감지
+    // 완료 메시지 감지 - This will be handled by the component with i18n
     if (responseData.response.includes('다음 버튼을 눌러줘')) {
       updates.completionMessage = responseData.response;
       updates.isInputActive = true;
@@ -236,7 +231,6 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
     selectedPlaceId: null,
     selectedPersonIds: [],
     isComicCompleted: false,
-    comicTitle: '그림 일기',
     showPraiseSection: false,
     showFarewellSection: false,
     completionMessage: '',
@@ -259,7 +253,6 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
     selectedPlaceId: null,
     selectedPersonIds: [],
     isComicCompleted: false,
-    comicTitle: '그림 일기',
     showPraiseSection: false,
     showFarewellSection: false,
     completionMessage: '',

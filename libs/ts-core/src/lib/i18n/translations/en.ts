@@ -34,6 +34,31 @@ export default {
             // Loading and error messages
             Loading: "Loading...",
             DataLoadError: "Unable to load data.",
-        }
+        },
+        // JournalingScreen related texts
+        Errors: {
+            ChatbotStartError: "Unable to start chatbot.",
+            MessageSendError: "Unable to send message.",
+        },
+        SessionEnd: {
+            Title: "End Session",
+            Message: "Are you sure you want to end the session?",
+            Cancel: "Cancel",
+            End: "End",
+        },
+        Messages: {
+            NextButton: "Next",
+            NextButtonPrompt: "Please press the next button",
+            Revision1Confirmation: "Great!:) Then I'll draw what you confirmed for me! Please wait a moment~",
+            Revision2Confirmation: "Thank you for answering my questions well. Thanks to you, I think I can fill in the missing parts! Please wait a moment~",
+        },
+        UserResponses: {
+            No: ["No", "No"],
+            Yes: ["Yes", "Yes"],
+        },
+        VoiceRecording: {
+            CleanupError: "Error during voice recording cleanup:",
+        },
+        DefaultTitle: "Comic Diary",
     }
 }

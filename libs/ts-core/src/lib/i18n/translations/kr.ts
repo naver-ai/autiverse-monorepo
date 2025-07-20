@@ -56,6 +56,31 @@ export default {
             // 로딩 및 에러 메시지들
             Loading: "로딩 중...",
             DataLoadError: "데이터를 불러올 수 없습니다.",
-        }
+        },
+        // JournalingScreen 관련 텍스트들
+        Errors: {
+            ChatbotStartError: "챗봇을 시작할 수 없습니다.",
+            MessageSendError: "메시지를 보낼 수 없습니다.",
+        },
+        SessionEnd: {
+            Title: "세션 종료",
+            Message: "정말로 세션을 종료하시겠습니까?",
+            Cancel: "취소",
+            End: "종료",
+        },
+        Messages: {
+            NextButton: "다음",
+            NextButtonPrompt: "다음 버튼을 눌러줘",
+            Revision1Confirmation: "다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~",
+            Revision2Confirmation: "내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~",
+        },
+        UserResponses: {
+            No: ["아니", "아니요"],
+            Yes: ["응", "네"],
+        },
+        VoiceRecording: {
+            CleanupError: "음성 녹음 정리 중 오류:",
+        },
+        DefaultTitle: "그림 일기",
     }
 }
