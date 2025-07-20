@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, Text, Animated, TouchableOpacity } from 'react-native';
-import { ComicPanel, ChatMessageComponent, ChatInput } from '..';
 import { convertComicDataToPanels } from '../../utils';
 import { styleTemplates } from '../../../../styles';
 import { LogoImage } from '../../../../components/svg-images';
 import { useJournalingStore } from '../../store';
+import { ComicPanel } from '../ComicPanel';
+import { ChatMessageComponent } from '../ChatMessage';
+import { ChatInput } from '../ChatInput';
 
 interface ChatStageProps {
   comicGenerationStatus: any;

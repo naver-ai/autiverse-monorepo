@@ -3,7 +3,9 @@ import { View, Alert } from 'react-native';
 import { ChatMessage } from '../types';
 import { getSpeechManager } from '../utils/speechUtils';
 import { voiceRecorder } from '../utils/voiceUtils';
-import { ChatText, ChatButtons, VoiceRecordingStatus } from './index';
+import { ChatText } from './ChatText';
+import { ChatButtons } from './ChatButtons';
+import { VoiceRecordingStatus } from './VoiceRecordingStatus';
 import { useDyad } from '../../../api/dyad';
 import { uploadAudioFile } from '../api';
 

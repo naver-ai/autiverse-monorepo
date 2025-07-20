@@ -5,6 +5,9 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
+// @ts-ignore
+import format from 'string-format';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styleTemplates } from '../../../styles';
@@ -37,6 +40,7 @@ const getKoreanJosa = (name: string): string => {
 };
 
 export function AgentIntroScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [autoNavigate, setAutoNavigate] = useState(false);
   const [hasNavigated, setHasNavigated] = useState(false);
@@ -55,8 +59,16 @@ export function AgentIntroScreen() {
       const agentJosa = getKoreanJosa(dyad.agents?.[0]?.agent_name || '친구');
 
       const greetingText = isFirstVisit
-        ? `안녕, ${dyad.child_name}${childJosa}. 나는 2주간 너와 함께 그림 일기를 쓸 ${dyad.agents?.[0]?.agent_name || '친구'}${agentJosa}. 만나서 반가워!`
-        : `안녕, ${dyad.child_name}${childJosa}. 또 만나니 너무 좋다.`;
+        ? format(t('Journaling.AgentIntro.FirstVisitGreetingTemplate'), { 
+            child_name: dyad.child_name, 
+            child_josa: childJosa, 
+            agent_name: dyad.agents?.[0]?.agent_name || '친구', 
+            agent_josa: agentJosa 
+          })
+        : format(t('Journaling.AgentIntro.ReturnVisitGreetingTemplate'), { 
+            child_name: dyad.child_name, 
+            child_josa: childJosa 
+          });
 
       console.log('AgentIntroScreen: isFirstVisit:', isFirstVisit);
 
@@ -110,7 +122,7 @@ export function AgentIntroScreen() {
             className="text-lg text-slate-500"
             style={styleTemplates.withBoldFont}
           >
-            로딩 중...
+            {t('Journaling.AgentIntro.Loading')}
           </Text>
         </View>
       </SafeAreaView>
@@ -125,7 +137,7 @@ export function AgentIntroScreen() {
             className="text-lg text-red-500"
             style={styleTemplates.withBoldFont}
           >
-            데이터를 불러올 수 없습니다.
+            {t('Journaling.AgentIntro.DataLoadError')}
           </Text>
         </View>
       </SafeAreaView>
@@ -138,8 +150,16 @@ export function AgentIntroScreen() {
     const agentJosa = getKoreanJosa(dyad!.agents?.[0]?.agent_name || '친구');
 
     const greetingText = isFirstVisit
-      ? `안녕, ${dyad!.child_name}${childJosa}. 나는 2주간 너와 함께 그림 일기를 쓸 ${dyad!.agents?.[0]?.agent_name || '친구'}${agentJosa}. 만나서 반가워!`
-      : `안녕, ${dyad!.child_name}${childJosa}. 또 만나니 너무 좋다.`;
+      ? format(t('Journaling.AgentIntro.FirstVisitGreetingTemplate'), { 
+          child_name: dyad!.child_name, 
+          child_josa: childJosa, 
+          agent_name: dyad!.agents?.[0]?.agent_name || '친구', 
+          agent_josa: agentJosa 
+        })
+      : format(t('Journaling.AgentIntro.ReturnVisitGreetingTemplate'), { 
+          child_name: dyad!.child_name, 
+          child_josa: childJosa 
+        });
 
     return (
       <SafeAreaView className="flex-1 bg-slate-50">

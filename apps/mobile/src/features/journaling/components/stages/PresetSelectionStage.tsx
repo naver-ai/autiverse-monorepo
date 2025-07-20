@@ -6,6 +6,9 @@ import {
   StyleSheet,
   LayoutChangeEvent,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
+// @ts-ignore
+import format from 'string-format';
 import { styleTemplates } from '../../../../styles';
 import { speakText, stopSpeech } from '../../utils/speechUtils';
 import { useDyad } from '../../../../api/dyad';
@@ -67,6 +70,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
   onStartChatbotWithSuggestion,
   onFreeStart,
 }) => {
+  const { t } = useTranslation();
   const {
     selectionStep,
     selectedLocation,
@@ -77,7 +81,6 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
     handleBackToLocation,
   } = useJournalingStore();
 
-  const [hasSpoken, setHasSpoken] = useState(false);
   const [isTTSActive, setIsTTSActive] = useState(false);
   const [messageViewHeight, setMessageViewHeight] = useState(0);
   const { dyad, agentConfig } = useDyad();
@@ -90,18 +93,16 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
       await new Promise((resolve) => setTimeout(resolve, 100));
       const ttsMessage =
         selectionStep === 'location'
-          ? '오늘은 어디서 있었던 일을 그림 일기로 써볼까?'
-          : `${selectedLocation}에서 누구랑 있었던 일을 그림 일기로 써볼까? 여러명이면 여러명을 선택해!`;
+          ? t('Journaling.PresetSelection.LocationSelectionMessage')
+          : format(t('Journaling.PresetSelection.PeopleSelectionMessageTemplate'), { location: selectedLocation });
       speakText(ttsMessage, {
         language: 'ko-KR',
         pitch: 1.0,
         rate: 0.8,
         onDone: () => {
-          setHasSpoken(true);
           setIsTTSActive(false);
         },
         onError: (error) => {
-          setHasSpoken(true);
           setIsTTSActive(false);
         },
       });
@@ -112,7 +113,6 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
   // TTS 중단 함수
   const stopTTSAndExecute = (callback: () => void) => {
     stopSpeech();
-    setHasSpoken(true);
     callback();
   };
 
@@ -163,8 +163,8 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                 style={[styleTemplates.withBoldFont, ttsOpacityPulseStyle]}
               >
                 {selectionStep === 'location'
-                  ? '오늘은 어디서 있었던 일을 그림 일기로 써볼까?'
-                  : `${selectedLocation}에서 누구랑 있었던 일을 그림 일기로 써볼까? 여러명이면 여러명을 선택해!`}
+                  ? t('Journaling.PresetSelection.LocationSelectionMessage')
+                  : format(t('Journaling.PresetSelection.PeopleSelectionMessageTemplate'), { location: selectedLocation })}
               </Reanimated.Text>
             </View>
           </Reanimated.View>
@@ -181,20 +181,18 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               disabledButtonStyleClassName="bg-gray-200"
               disabledTitleClassName="text-gray-400"
               titleClassName={'text-xl text-white'}
-              title={isLoading ? '시작 중...' : '뭘 쓸지 모르겠네..'}
+              title={isLoading ? t('Journaling.PresetSelection.Preparing') : t('Journaling.PresetSelection.DontKnowWhatToWrite')}
               onPress={() => stopTTSAndExecute(onStartChatbotWithSuggestion)}
               disabled={isTTSActive || isLoading}
             />
             <TailwindButton
               containerClassName="flex-1 ml-2"
-              buttonStyleClassName={`p-4 ${
-                isTTSActive || isLoading ? 'bg-gray-200' : 'bg-blue-500'
-              }`}
+              buttonStyleClassName={'p-4 bg-blue-500'}
               roundedClassName="rounded-xl"
               disabledButtonStyleClassName="bg-gray-200"
               titleClassName={'text-xl text-white'}
               disabledTitleClassName="text-gray-400"
-              title={isLoading ? '시작 중...' : '오늘은 내가 쓰고 싶은 게 있어!'}
+              title={isLoading ? t('Journaling.PresetSelection.Preparing') : t('Journaling.PresetSelection.IWantToWriteSomething')}
               onPress={() => stopTTSAndExecute(onFreeStart)}
               disabled={isTTSActive || isLoading}
             />
@@ -206,7 +204,8 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                 dyad.places.map((place) => (
                     <TailwindButton key={place.id}
                       containerClassName="w-[31%] m-3"
-                      buttonStyleClassName={twMerge('p-6 py-12 border-2 rounded-xl border-orange-300 bg-white')}
+                      roundedClassName="rounded-xl"
+                      buttonStyleClassName={twMerge('p-6 py-12 border-2 border-orange-300 bg-white')}
                       disabledButtonStyleClassName="border-gray-200 bg-gray-200"
                       titleClassName={'text-2xl text-gray-800'}
                       disabledTitleClassName="text-gray-400"
@@ -217,6 +216,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                           handleLocationSelect(place.name, place.id),
                         )
                       }
+                      delayPress={500} // 빠른 터치 방지
                       disabled={isTTSActive || isLoading}
                     />
                 ))
@@ -227,7 +227,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                     className="text-xl text-gray-500 text-center"
                     style={styleTemplates.withSemiboldFont}
                   >
-                    장소 정보를 불러올 수 없습니다
+                    {t('Journaling.PresetSelection.LocationDataError')}
                   </Text>
                 </View>
               )}
@@ -244,7 +244,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                 shadowClassName="shadow-none"
                 titleClassName={`text-blue-500 text-xl ${isTTSActive ? 'text-gray-400' : ''}`}
                 disabledTitleClassName="text-gray-400"
-                title="← 장소 다시 선택"
+                title={t('Journaling.PresetSelection.BackToLocation')}
                 onPress={() => stopTTSAndExecute(handleBackToLocation)}
                 disabled={isTTSActive}
               />
@@ -263,8 +263,8 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               }`}
               disabledTitleClassName="text-gray-400"
               title={isLoading
-                ? '준비 중...'
-                : `다음 단계로 (${selectedPersonIds.length}명 선택됨)`}
+                ? t('Journaling.PresetSelection.Preparing')
+                : format(t('Journaling.PresetSelection.NextStepTemplate'), { count: selectedPersonIds.length })}
               onPress={() => stopTTSAndExecute(onSelectionComplete)}
               disabled={
                 isTTSActive || selectedPersonIds.length === 0 || isLoading
@@ -284,7 +284,8 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                     key={person.id}
                     rippleColor={colors.orange[300]}
                     containerClassName="w-[31%] m-3"
-                    buttonStyleClassName={twMerge('p-6 py-12 border-2 rounded-xl border-orange-300', isSelected ? 'bg-orange-400' : 'bg-white')}
+                    buttonStyleClassName={twMerge('p-6 py-12 border-2 border-orange-300', isSelected ? 'bg-orange-400' : 'bg-white')}
+                    roundedClassName="rounded-xl"
                     disabledButtonStyleClassName={twMerge("border-gray-200", isSelected ? 'bg-gray-300' : 'bg-gray-200')}
                     onPress={() =>
                       executeWithConditionalTTSStop(() =>
@@ -305,7 +306,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                     className="text-center text-gray-500 text-lg"
                     style={styleTemplates.withSemiboldFont}
                   >
-                    사람 정보를 불러올 수 없습니다
+                    {t('Journaling.PresetSelection.PeopleDataError')}
                   </Text>
                 </View>
               )}

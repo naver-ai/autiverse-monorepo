@@ -1,6 +1,6 @@
-import { ButtonProps, Pressable, View, Text, PressableProps } from "react-native";
+import { ButtonProps, Pressable, View, Text, PressableProps, GestureResponderEvent } from "react-native";
 import { styleTemplates } from "../styles";
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useRef } from "react";
 import { twMerge } from 'tailwind-merge'
 import Animated, { useSharedValue, withTiming, withSpring, useAnimatedStyle, interpolate, Easing } from "react-native-reanimated";
 
@@ -14,7 +14,8 @@ export const TailwindButton = (props: {
     rippleColor?: string,
     shadowClassName?: string,
     title?: string,
-    children?: any
+    children?: any,
+    delayPress?: number
 } & Omit<ButtonProps, "title"> & PressableProps) => {
 
     const pressAnimProgress = useSharedValue(0)
@@ -52,13 +53,34 @@ export const TailwindButton = (props: {
         return twMerge('text-lg text-center text-slate-600', props.titleClassName, props.disabled === true ? (props.disabledTitleClassName || "") : "")
     }, [props.titleClassName, props.disabled, props.disabledTitleClassName])
 
+
+    const pressTimeout = useRef<NodeJS.Timeout | null>(null)
+
+    const handlePress = useCallback((e: GestureResponderEvent)=>{
+        if(props.disabled){
+            return
+        }
+
+        if(props.delayPress == null){
+            props.onPress?.(e)
+        }else{
+            if(pressTimeout.current != null){
+                clearTimeout(pressTimeout.current)
+            }
+            pressTimeout.current = setTimeout(()=>{
+                props.onPress?.(e)
+                e.stopPropagation()
+            }, props.delayPress)
+        }
+    }, [props.disabled, props.onPress, props.delayPress])
+
     return <Animated.View accessible={false} className={containerClassName} removeClippedSubviews={true} style={containerAnimStyle}>
         <Pressable 
             accessible={false} 
             aria-selected={false} 
             disabled={props.disabled} 
             android_ripple={rippleConfig} 
-            onPress={props.onPress} 
+            onPress={handlePress} 
             onLongPress={props.onLongPress}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -61,21 +61,7 @@ export default function HomeScreen() {
     }
   }, [dyad]);
 
-  const handleStart = () => {
-    setIsButtonPressed(true);
-    // 버튼 클릭 애니메이션
-    Animated.sequence([
-      Animated.timing(buttonScaleAnim, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(buttonScaleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
+    const handleStart = useCallback(() => {
       // 직전 Entry가 있고 completed가 아니면 팝업 표시
       if (latestEntry && latestEntry.stage !== 'complete') {
         setShowContinueModal(true);
@@ -83,8 +69,7 @@ export default function HomeScreen() {
         // 새로운 작업 시작
         router.push('/(app)/agent-intro');
       }
-    });
-  };
+  }, [latestEntry?.stage, router]);
 
   const handleContinue = () => {
     setShowContinueModal(false);

@@ -30,5 +30,32 @@ export default {
             TEACHER: "선생님",
         },
         ChildAndCaregiverTemplate: "{child_name}와 {caregiver_type}",
+    },
+    Journaling: {
+        PresetSelection: {
+            // TTS 메시지들
+            LocationSelectionMessage: "오늘은 어디서 있었던 일을 그림 일기로 써볼까?",
+            PeopleSelectionMessageTemplate: "{location}에서 누구랑 있었던 일을 그림 일기로 써볼까? 여러 사람을 골라도 괜찮아!",
+            
+            // 버튼 텍스트들
+            DontKnowWhatToWrite: "뭘 쓸지 모르겠네..",
+            IWantToWriteSomething: "오늘은 내가 쓰고 싶은 게 있어!",
+            NextStepTemplate: "다음 단계로 ({count}명 선택됨)",
+            BackToLocation: "← 장소 다시 선택",
+            Preparing: "준비 중...",
+            
+            // 에러 메시지들
+            LocationDataError: "장소 정보를 불러올 수 없습니다",
+            PeopleDataError: "사람 정보를 불러올 수 없습니다",
+        },
+        AgentIntro: {
+            // 인사말 텍스트들
+            FirstVisitGreetingTemplate: "안녕, {child_name}{child_josa}. 나는 2주간 너와 함께 그림 일기를 쓸 {agent_name}{agent_josa}. 만나서 반가워!",
+            ReturnVisitGreetingTemplate: "안녕, {child_name}{child_josa}. 또 만나니 너무 좋다.",
+            
+            // 로딩 및 에러 메시지들
+            Loading: "로딩 중...",
+            DataLoadError: "데이터를 불러올 수 없습니다.",
+        }
     }
 }
