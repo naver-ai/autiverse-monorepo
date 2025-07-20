@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Dimensions, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
+// @ts-ignore
+import format from 'string-format';
 import { styleTemplates } from '../../../../styles';
 import { speakText, stopSpeech } from '../../utils/speechUtils';
 import { AgentImage } from '../AgentImage';
@@ -13,7 +16,8 @@ interface PraiseSectionProps {
   onComplete?: () => void;
 }
 
-export default function PraiseSection({ childName = "친구", agentConfig, onComplete }: PraiseSectionProps) {
+export default function PraiseSection({ childName, agentConfig, onComplete }: PraiseSectionProps) {
+  const { t } = useTranslation();
   const [showStamp, setShowStamp] = useState(false);
   const [stampScale] = useState(new Animated.Value(0));
   const [hasCompleted, setHasCompleted] = useState(false);
@@ -70,9 +74,13 @@ export default function PraiseSection({ childName = "친구", agentConfig, onCom
   };
   
   // 단계별 메시지들
-  const firstMessage = `우리 ${childName}${getVocativeParticle(childName)} 오늘 그림 일기 쓰는 모습 만점!!`;
-  const secondMessage = `오늘 있었던 일 잘 떠올리고, 질문에 답변 잘해주고, 내가 그림 그리는 거 기다려줘서 고마워~`;
-  const stampMessage = `우리 아래 스탬프 팡팡팡 터트리면서 마무리해보자~`;
+  const actualChildName = childName || t('Journaling.Common.DefaultChildName');
+  const firstMessage = format(t('Journaling.PraiseSection.FirstMessageTemplate'), { 
+    child_name: actualChildName, 
+    child_josa: getVocativeParticle(actualChildName) 
+  });
+  const secondMessage = t('Journaling.PraiseSection.SecondMessage');
+  const stampMessage = t('Journaling.PraiseSection.StampMessage');
   
   // 지속적인 bounce 애니메이션 시작
   const startBounceAnimation = (index: number) => {

@@ -67,9 +67,10 @@ export const TailwindButton = (props: {
             if(pressTimeout.current != null){
                 clearTimeout(pressTimeout.current)
             }
+
+            e.persist()
             pressTimeout.current = setTimeout(()=>{
                 props.onPress?.(e)
-                e.stopPropagation()
             }, props.delayPress)
         }
     }, [props.disabled, props.onPress, props.delayPress])

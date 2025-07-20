@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ChatMessage } from '../types';
 import { getSpeechManager } from '../utils/speechUtils';
 import { voiceRecorder } from '../utils/voiceUtils';
@@ -38,6 +39,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   loadSessionInfo,
   isAfterFarewell = false
 }) => {
+  const { t } = useTranslation();
   const { dyad } = useDyad();
   const [isTTSActive, setIsTTSActive] = useState<boolean>(false);
   const [isVoiceRecording, setIsVoiceRecording] = useState<boolean>(false);
@@ -173,34 +175,34 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     if (currentStage === 'revision_1') {
       if (lastBotMessage?.text?.includes('다 맞게 들었을까?')) {
         // 첫 번째 질문
-        return { left: '틀린 게 있어', right: '다 맞아' };
+        return { left: t('ChatInput.ButtonLabels.Wrong'), right: t('ChatInput.ButtonLabels.AllCorrect') };
       } else if (lastBotMessage?.text?.includes('아직도 틀린 부분 있어?') || lastBotMessage?.text?.includes('이제 다 맞을까?')) {
         // 수정 후 질문
-        return { left: '아직 있어', right: '이제 충분해' };
+        return { left: t('ChatInput.ButtonLabels.StillWrong'), right: t('ChatInput.ButtonLabels.Enough') };
       }
     } else if (currentStage === 'revision_2') {
       if (lastBotMessage?.text?.includes('일기 제목')) {
-        return { left: '그러자!', right: '좋아!' };
+        return { left: t('ChatInput.ButtonLabels.LetsDoIt'), right: t('ChatInput.ButtonLabels.Good') };
       }
-      return { left: '있어', right: '없어' };
+      return { left: t('ChatInput.ButtonLabels.Have'), right: t('ChatInput.ButtonLabels.DontHave') };
     } else if (currentStage === 'comic_context') {
-      return { left: '좋아!', right: '알겠어!' };
+      return { left: t('ChatInput.ButtonLabels.Good2'), right: t('ChatInput.ButtonLabels.GotIt') };
     } else if (currentStage === 'title') {
       if (lastBotMessage?.text?.includes('어때?')) {
         // 첫 번째 제목 제안
-        return { left: '별로야', right: '좋아' };
+        return { left: t('ChatInput.ButtonLabels.NotGood'), right: t('ChatInput.ButtonLabels.Good3') };
       } else if (lastBotMessage?.text?.includes('이걸로 할까?')) {
         // 커스텀 제목 확인
-        return { left: '아니, 다른 걸로', right: '응, 좋아!' };
+        return { left: t('ChatInput.ButtonLabels.NoOther'), right: t('ChatInput.ButtonLabels.YesGood') };
       }
     }
     
     // completion message 뒤에 나오는 "그럼 이제 일기 제목을 정하러 가볼까?" 메시지일 때
     if (lastBotMessage?.text?.includes('그럼 이제 일기 제목을 정하러 가볼까?')) {
-      return { left: '그러자!', right: '좋아!' };
+      return { left: t('ChatInput.ButtonLabels.LetsDoIt'), right: t('ChatInput.ButtonLabels.Good') };
     }
     
-    return { left: '응', right: '아니' };
+    return { left: t('ChatInput.ButtonLabels.Yes'), right: t('ChatInput.ButtonLabels.No') };
   };
 
   const buttonTexts = getButtonTexts();
@@ -214,7 +216,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       await voiceRecorder.startRecording();
     } catch (error) {
       console.error('음성 녹음 시작 실패:', error);
-      Alert.alert('오류', '음성 녹음을 시작할 수 없습니다.');
+      Alert.alert('오류', t('ChatInput.VoiceRecording.StartError'));
       setIsVoiceRecording(false);
       setIsVoiceMode(false);
     }
@@ -285,11 +287,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         } else {
           // 빈 문자열이 반환된 경우 (음성이 감지되지 않음)
           Alert.alert(
-            '음성 감지 실패', 
-            '나한테 잘 안 들렸어! 다시 한 번 말해줘~',
+            t('ChatInput.VoiceRecording.DetectionFailedTitle'), 
+            t('ChatInput.VoiceRecording.DetectionFailed'),
             [
               {
-                text: '확인',
+                text: t('ChatInput.VoiceRecording.Confirm'),
                 onPress: () => {
                   // 다시 음성 녹음 시작
                   startVoiceRecording();
@@ -303,7 +305,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       console.error('음성 녹음 완료 실패:', error);
       
       // 일반적인 오류 처리
-      Alert.alert('오류', '음성 변환 중 오류가 발생했습니다.');
+      Alert.alert('오류', t('ChatInput.VoiceRecording.CompleteError'));
       
       setIsVoiceRecording(false);
       setIsVoiceMode(false);

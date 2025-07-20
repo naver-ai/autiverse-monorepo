@@ -60,5 +60,58 @@ export default {
             CleanupError: "Error during voice recording cleanup:",
         },
         DefaultTitle: "Comic Diary",
+        FarewellSection: {
+            MessageTemplate: "{child_name}, let's meet again next time and write a fun comic diary together. Goodbye~",
+        },
+        PraiseSection: {
+            FirstMessageTemplate: "Our {child_name}, you did a perfect job writing a comic diary today!!",
+            SecondMessage: "Thank you for remembering today's events well, answering questions well, and waiting for me to draw pictures~",
+            StampMessage: "Let's finish by popping the stamps below~",
+        },
+        Common: {
+            DefaultChildName: "Friend",
+            DefaultAgentName: "Friend",
+        }
+    },
+    Loading: {
+        DefaultMessage: "Loading...",
+        WaitMessage: "Please wait a moment...",
+    },
+    Chat: {
+        VoiceModePlaceholder: "Click here to switch to chat mode",
+        SendButton: "Send",
+    },
+    ChatStage: {
+        DefaultComicMessage: "I'll draw a 4-panel comic here with what you told me~",
+        EndSession: "End",
+        ProgressCompleteTemplate: "{progress}% complete",
+        ChatHeaderTemplate: "💬 Chat with {agent_name}",
+    },
+    ChatInput: {
+        ButtonLabels: {
+            Yes: "Yes",
+            No: "No",
+            Wrong: "There's something wrong",
+            AllCorrect: "All correct",
+            StillWrong: "Still wrong",
+            Enough: "That's enough now",
+            LetsDoIt: "Let's do it!",
+            Good: "Good!",
+            Have: "Have",
+            DontHave: "Don't have",
+            Good2: "Good!",
+            GotIt: "Got it!",
+            NotGood: "Not good",
+            Good3: "Good",
+            NoOther: "No, something else",
+            YesGood: "Yes, good!",
+        },
+        VoiceRecording: {
+            StartError: "Unable to start voice recording.",
+            CompleteError: "An error occurred during voice conversion.",
+            DetectionFailed: "I couldn't hear you well! Please say it again~",
+            DetectionFailedTitle: "Voice Detection Failed",
+            Confirm: "Confirm",
+        },
     }
 }

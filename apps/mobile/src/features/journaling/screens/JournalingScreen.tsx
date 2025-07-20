@@ -551,7 +551,7 @@ export const JournalingScreen = () => {
   if (showFarewellSection) {
     return (
       <FarewellSection 
-        childName={childName || "친구"} 
+        childName={childName || t('Journaling.Common.DefaultChildName')} 
         onComplete={handleFarewellComplete}
       />
     );
@@ -561,7 +561,7 @@ export const JournalingScreen = () => {
   if (showPraiseSection) {
     return (
       <PraiseSection 
-        childName={childName || "친구"}
+        childName={childName || t('Journaling.Common.DefaultChildName')}
         agentConfig={agentConfig}
         onComplete={handlePraiseComplete}
       />
@@ -585,7 +585,7 @@ export const JournalingScreen = () => {
             comicGenerationStatus={comicGenerationStatus}
             progressAnimation={progressAnimation}
             sendMessage={sendMessage}
-            agentName={agentName || "친구"}
+            agentName={agentName || t('Journaling.Common.DefaultAgentName')}
             agentConfig={agentConfig}
             sessionId={sessionId || undefined}
             loadSessionInfo={loadSessionInfoFromHook}

@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
+// @ts-ignore
+import format from 'string-format';
 import { styleTemplates } from '../../../../styles';
 import { speakText, stopSpeech } from '../../utils/speechUtils';
 
@@ -31,11 +34,15 @@ const getKoreanJosa = (name: string): string => {
 };
 
 export default function FarewellSection({ childName, onComplete }: FarewellSectionProps) {
+  const { t } = useTranslation();
   const [hasCompleted, setHasCompleted] = useState(false);
   const [hasSpoken, setHasSpoken] = useState(false);
 
   const childJosa = getKoreanJosa(childName);
-  const farewellMessage = `${childName}${childJosa}, 우리 다음에 또 만나서 재미있게 그림 일기 써보자. 안녕~`;
+  const farewellMessage = format(t('Journaling.FarewellSection.MessageTemplate'), { 
+    child_name: childName, 
+    child_josa: childJosa 
+  });
 
   // TTS 시작
   useEffect(() => {
@@ -82,7 +89,7 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
         <View className="flex-1 items-center justify-center">
           <View className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-3xl p-10 w-full max-w-lg border border-pink-100">
             <Text className="text-3xl text-gray-800 leading-relaxed text-center mb-8" style={styleTemplates.withBoldFont}>
-            {childName}{childJosa}, 우리 다음에 또 만나서 재미있게 그림 일기 써보자. 안녕~
+            {farewellMessage}
             </Text>
             
             <View className="items-center">

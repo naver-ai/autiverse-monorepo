@@ -82,5 +82,58 @@ export default {
             CleanupError: "음성 녹음 정리 중 오류:",
         },
         DefaultTitle: "그림 일기",
+        FarewellSection: {
+            MessageTemplate: "{child_name}{child_josa}, 우리 다음에 또 만나서 재미있게 그림 일기 써보자. 안녕~",
+        },
+        PraiseSection: {
+            FirstMessageTemplate: "우리 {child_name}{child_josa} 오늘 그림 일기 쓰는 모습 만점!!",
+            SecondMessage: "오늘 있었던 일 잘 떠올리고, 질문에 답변 잘해주고, 내가 그림 그리는 거 기다려줘서 고마워~",
+            StampMessage: "우리 아래 스탬프 팡팡팡 터트리면서 마무리해보자~",
+        },
+        Common: {
+            DefaultChildName: "친구",
+            DefaultAgentName: "친구",
+        }
+    },
+    Loading: {
+        DefaultMessage: "로딩중...",
+        WaitMessage: "잠시만 기다려주세요...",
+    },
+    Chat: {
+        VoiceModePlaceholder: "채팅으로 하려면 여기를 클릭하세요",
+        SendButton: "전송",
+    },
+    ChatStage: {
+        DefaultComicMessage: "네가 말해준 내용으로 내가 여기에 조금 이따 4컷 만화를 그릴거야~",
+        EndSession: "종료",
+        ProgressCompleteTemplate: "{progress}% 완료",
+        ChatHeaderTemplate: "💬 {agent_name}와 대화하기",
+    },
+    ChatInput: {
+        ButtonLabels: {
+            Yes: "응",
+            No: "아니",
+            Wrong: "틀린 게 있어",
+            AllCorrect: "다 맞아",
+            StillWrong: "아직 있어",
+            Enough: "이제 충분해",
+            LetsDoIt: "그러자!",
+            Good: "좋아!",
+            Have: "있어",
+            DontHave: "없어",
+            Good2: "좋아!",
+            GotIt: "알겠어!",
+            NotGood: "별로야",
+            Good3: "좋아",
+            NoOther: "아니, 다른 걸로",
+            YesGood: "응, 좋아!",
+        },
+        VoiceRecording: {
+            StartError: "음성 녹음을 시작할 수 없습니다.",
+            CompleteError: "음성 변환 중 오류가 발생했습니다.",
+            DetectionFailed: "나한테 잘 안 들렸어! 다시 한 번 말해줘~",
+            DetectionFailedTitle: "음성 감지 실패",
+            Confirm: "확인",
+        },
     }
 }

@@ -1,5 +1,8 @@
 import React from 'react';
 import { View, Text, Animated, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
+// @ts-ignore
+import format from 'string-format';
 import { convertComicDataToPanels } from '../../utils';
 import { styleTemplates } from '../../../../styles';
 import { LogoImage } from '../../../../components/svg-images';
@@ -31,6 +34,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
   loadSessionInfo,
   onEndSession
 }) => {
+  const { t } = useTranslation();
   const {
     currentStage,
     comicData,
@@ -52,7 +56,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
       return (
         <View className="flex-1 items-center justify-center">
           <Text className="text-lg text-gray-600 text-center" style={styleTemplates.withSemiboldFont}>
-            네가 말해준 내용으로 내가 여기에 조금 이따 4컷 만화를 그릴거야~
+            {t('ChatStage.DefaultComicMessage')}
           </Text>
         </View>
       );
@@ -105,7 +109,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
                 activeOpacity={0.8}
               >
                 <Text className="text-white text-sm" style={styleTemplates.withBoldFont}>
-                  종료
+                  {t('ChatStage.EndSession')}
               </Text>
               </TouchableOpacity>
           </View>
@@ -119,7 +123,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
               ) : (
                 <View className="flex-1 items-center justify-center">
                   <Text className="text-lg text-gray-600 text-center" style={styleTemplates.withSemiboldFont}>
-                  네가 말해준 내용으로 내가 여기에 조금 이따 4컷 만화를 그릴거야~
+                  {t('ChatStage.DefaultComicMessage')}
                   </Text>
                 </View>
               )}
@@ -165,7 +169,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
 
                   {/* 프로그레스 퍼센트 */}
                   <Text className="text-center text-sm text-gray-600" style={styleTemplates.withSemiboldFont}>
-                    {Math.round(comicGenerationStatus.progress)}% 완료
+                    {format(t('ChatStage.ProgressCompleteTemplate'), { progress: Math.round(comicGenerationStatus.progress) })}
                   </Text>
                 </View>
               </View>
@@ -177,7 +181,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
         <View className="flex-1 bg-white">
                   {/* 채팅 헤더 */}
         <View className="bg-blue-500 p-4">
-          <Text className="text-2xl text-white" style={styleTemplates.withBoldFont}>💬 {agentName}와 대화하기</Text>
+          <Text className="text-2xl text-white" style={styleTemplates.withBoldFont}>{format(t('ChatStage.ChatHeaderTemplate'), { agent_name: agentName })}</Text>
         </View>
 
           {/* 현재 Agent 메시지 */}

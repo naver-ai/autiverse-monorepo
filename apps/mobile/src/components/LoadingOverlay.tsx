@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, Modal } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { styleTemplates } from '../styles';
 
 interface LoadingOverlayProps {
@@ -9,8 +10,11 @@ interface LoadingOverlayProps {
 
 export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ 
   visible, 
-  message = "로딩중..." 
+  message 
 }) => {
+  const { t } = useTranslation();
+  const defaultMessage = message || t('Loading.DefaultMessage');
+
   return (
     <Modal
       transparent
@@ -21,10 +25,10 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
         <View className="bg-white p-6 rounded-xl shadow-lg max-w-sm w-4/5">
           <ActivityIndicator size="large" color="#3B82F6" />
           <Text className="text-center mt-4 text-lg font-semibold text-gray-800" style={styleTemplates.withBoldFont}>
-            {message}
+            {defaultMessage}
           </Text>
           <Text className="text-center mt-2 text-sm text-gray-600" style={styleTemplates.withSemiboldFont}>
-            잠시만 기다려주세요...
+            {t('Loading.WaitMessage')}
           </Text>
         </View>
       </View>

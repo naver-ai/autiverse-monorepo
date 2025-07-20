@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, TextInput, TouchableOpacity, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { styleTemplates } from '../../../styles';
 
 interface ChatTextProps {
@@ -21,13 +22,15 @@ export const ChatText: React.FC<ChatTextProps> = ({
   onFocus,
   showButtons = false
 }) => {
+  const { t } = useTranslation();
+
   return (
     <View className="flex-row items-center">
       <TextInput
         className={`flex-1 border-2 rounded-xl px-4 py-3 mr-3 text-lg ${
           (isDisabled && !isVoiceMode) || showButtons ? 'border-gray-300 bg-gray-100' : 'border-gray-200'
         }`}
-        placeholder={isVoiceMode ? "채팅으로 하려면 여기를 클릭하세요" : ""}
+        placeholder={isVoiceMode ? t('Chat.VoiceModePlaceholder') : ""}
         value={inputText}
         onChangeText={setInputText}
         onSubmitEditing={() => {
@@ -64,7 +67,7 @@ export const ChatText: React.FC<ChatTextProps> = ({
           elevation: 3,
         }}
       >
-        <Text className="text-white text-lg" style={styleTemplates.withBoldFont}>전송</Text>
+        <Text className="text-white text-lg" style={styleTemplates.withBoldFont}>{t('Chat.SendButton')}</Text>
       </TouchableOpacity>
     </View>
   );
