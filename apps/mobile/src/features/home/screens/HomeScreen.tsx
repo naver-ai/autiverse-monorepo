@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   Dimensions,
   Animated,
   Alert,
@@ -10,15 +9,18 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { styleTemplates } from '../../../styles';
 import { LogoImage } from '../../../components/svg-images';
-import { stopSpeech } from '../utils/speechUtils';
 import { useDyad } from '../../../api/dyad';
+import { TailwindButton } from '../../../components/TailwindButton';
+import { DyadProfileView } from '../components/DyadProfileView';
 
 const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { dyad } = useDyad();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
@@ -28,9 +30,6 @@ export default function HomeScreen() {
   const [isButtonPressed, setIsButtonPressed] = useState(false);
 
   useEffect(() => {
-    // intro 화면 로드 시 TTS 정리
-    console.log('IntroScreen: Stopping any ongoing speech');
-    stopSpeech();
     
     // 로고와 텍스트 페이드인 애니메이션
     Animated.parallel([
@@ -112,16 +111,19 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gradient-to-b from-blue-50 to-indigo-100">
+
+      <DyadProfileView containerClassName="absolute top-12 left-8 z-10"/>
+
       {/* 갤러리 아이콘 */}
-      <View className="absolute top-12 right-4 z-10">
-        <TouchableOpacity
+     <TailwindButton
           onPress={handleGallery}
-          className="bg-white rounded-full p-4 shadow-lg"
-          activeOpacity={0.8}
-        >
-          <Text className="text-3xl" style={styleTemplates.withBoldFont}>🖼️</Text>
-        </TouchableOpacity>
-      </View>
+          containerClassName="absolute top-12 right-8 z-10"
+          buttonStyleClassName="bg-white p-4 px-6"
+          shadowClassName="shadow-lg"
+          roundedClassName="rounded-full"
+          title={t('Home.ViewPastDiaries')}
+          titleClassName="text-2xl"
+        />
 
       <View className="flex-1 items-center justify-center px-6 style={{ opacity: isButtonPressed ? 0.3 : 1 }}">
         {/* 로고 영역 */}
@@ -150,18 +152,15 @@ export default function HomeScreen() {
               transform: [{ scale: buttonScaleAnim }],
             }}
           >
-            <TouchableOpacity
+            <TailwindButton
               onPress={handleStart}
-              className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-3xl py-5 px-12"
-              activeOpacity={0.9}
-            >
-              <Text
-                className={`text-3xl text-center ${isButtonPressed ? 'text-transparent' : 'text-gray-800'}`}
-                style={styleTemplates.withBoldFont}
-              >
-                시작하기
-              </Text>
-            </TouchableOpacity>
+              containerClassName=""
+              buttonStyleClassName="bg-transparent px-8 py-6"
+              shadowClassName="shadow-none"
+              roundedClassName="rounded-full"
+              title={t('Home.WriteDiary')}
+              titleClassName={`text-3xl text-center`}
+            />
           </Animated.View>
         </View>
       </View>
@@ -174,35 +173,29 @@ export default function HomeScreen() {
         onRequestClose={() => setShowContinueModal(false)}
       >
         <View className="flex-1 justify-center items-center px-6">
-          <View className="bg-white rounded-3xl p-10 w-full max-w-xl">
+          <View className="bg-white rounded-3xl p-10 w-full max-w-xl shadow-lg">
             <Text className="text-2xl text-center mb-4" style={styleTemplates.withBoldFont}>
-              이전에 완성하지 않은 그림일기를 이어서 써볼까?
+              {t('Home.ContinueModal.Message')}
             </Text>
 
             <View style={{ height: 15 }} />
 
             <View className="space-y-6">
-              <TouchableOpacity
+              <TailwindButton
                 onPress={handleContinue}
-                className="bg-blue-500 rounded-2xl py-4"
-                activeOpacity={0.8}
-              >
-                <Text className="text-white text-center text-xl" style={styleTemplates.withBoldFont}>
-                  응, 그럴게!
-                </Text>
-              </TouchableOpacity>
+                buttonStyleClassName="bg-blue-500 rounded-2xl py-4"
+                title={t('Home.ContinueModal.Continue')}
+                titleClassName="text-white text-center text-2xl"
+              />
 
               <View style={{ height: 10 }} />
               
-              <TouchableOpacity
+              <TailwindButton
                 onPress={handleStartNew}
-                className="bg-gray-200 rounded-2xl py-4"
-                activeOpacity={0.8}
-              >
-                <Text className="text-gray-700 text-center text-xl" style={styleTemplates.withBoldFont}>
-                  아니, 새로운 거 쓸 거야!
-                </Text>
-              </TouchableOpacity>
+                buttonStyleClassName="bg-gray-200 rounded-2xl py-4"
+                title={t('Home.ContinueModal.StartNew')}
+                titleClassName="text-gray-700 text-center text-2xl"
+              />
             </View>
           </View>
         </View>

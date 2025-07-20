@@ -1,9 +1,13 @@
 import 'intl-pluralrules';
 import i18next from "i18next";
 import merge from 'merge';
+import { ko, enUS, Locale } from "date-fns/locale"
+import krTranslations from "./translations/kr";
+import enTranslations from "./translations/en";
+import { UserLocale } from "../types";
 
-export function initializeI18n(defaultLanguage: string = "kr", 
-    fallbackLanguage: string = "kr",
+export async function initializeI18n(defaultLanguage: UserLocale = UserLocale.Korean, 
+    fallbackLanguage: UserLocale = UserLocale.Korean,
     options: {
         middlewares?: Array<any>,
         resources?: {[locale: string]: any}
@@ -16,26 +20,37 @@ export function initializeI18n(defaultLanguage: string = "kr",
         }
     }
 
-    i18nInstance.init({
+    await i18nInstance.init({
         fallbackLng: fallbackLanguage,
         lng: defaultLanguage,
         resources: merge.recursive(false, {
-            kr: {
-                translation: require("./translations/kr")
+            [UserLocale.Korean]: {
+                translation: krTranslations
             },
-            en: {
-                translation: require("./translations/en")
+            [UserLocale.English]: {
+                translation: enTranslations
             }
         }, options?.resources),
         react: {
-            useSuspense: true
+            useSuspense: false
         },
-        debug: false
+        debug: false,
+        initImmediate: false
     }, (err, t) => {
         if (err) {
             console.log("Error on initializing i18n - ", err)
         } else {
-            console.log("Successfully initialized i18n module.")
         }
     })
 }
+
+export const getLocale = (language: UserLocale | string): Locale => {
+        switch (language) {
+            case UserLocale.Korean:
+                return ko
+            case UserLocale.English:
+                return enUS
+            default:
+                return enUS
+        }
+    }

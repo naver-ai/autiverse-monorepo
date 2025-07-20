@@ -1,3 +1,3 @@
-import HomeScreen from "../../features/journaling/screens/HomeScreen";
+import HomeScreen from "../../features/home/screens/HomeScreen";
 
 export default HomeScreen

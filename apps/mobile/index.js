@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { NetworkHelper } from '@autiverse-monorepo/ts-core';
 import * as Localization from 'expo-localization';
 import { isAndroidEmulator } from './src/core/device';
+import { UserLocale } from '@autiverse-monorepo/ts-core';
 
 console.log("Starting mobile app in debug mode:", __DEV__);
 
@@ -17,7 +18,7 @@ NetworkHelper.init(
     () => Localization.getCalendars()[0]?.timeZone || undefined
 )
 
-initializeI18n("kr", "kr", {
+initializeI18n(UserLocale.Korean, UserLocale.Korean, {
     middlewares: [initReactI18next]
 });
 
