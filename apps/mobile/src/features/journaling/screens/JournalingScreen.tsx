@@ -15,7 +15,7 @@ import FarewellSection from '../components/sections/FarewellSection';
 import { PresetSelectionStage, ChatStage } from '../components/stages';
 import { ChatMessage, Preset } from '@autiverse-monorepo/ts-core';
 import { stopSpeech, getSpeechManager } from '../utils/speechUtils';
-import { voiceRecorder } from '../utils/voiceUtils';
+import { useVoiceRecorder } from '../utils/voiceUtils';
 import { useDyad } from '../../../api/dyad';
 import { useJournalingStore } from '../store';
 
@@ -28,6 +28,8 @@ export const JournalingScreen = () => {
   const continueExisting = continueExistingStr === 'true';
 
   const {dyad, agentName, agentConfig, childName} = useDyad();
+
+  const {isRecording, canRecord, startRecording, stopRecording} = useVoiceRecorder()
 
   // Store 사용
   const {
@@ -510,30 +512,11 @@ export const JournalingScreen = () => {
           onPress: async () => {
             // TTS 정지
             stopSpeech();
-            
-            // 음성 녹음 정리
-            try {
-              // 녹음 중인지 확인하고 중지
-              if (voiceRecorder.isRecording) {
-                console.log('Stopping voice recording...');
-                await voiceRecorder.stopRecording();
-              }
-              
-              // 녹음 객체가 남아있다면 정리 (안전을 위해)
-              if (voiceRecorder.recording) {
-                console.log('Cleaning up voice recording object...');
-                try {
-                  await voiceRecorder.recording.stopAndUnloadAsync();
-                } catch (cleanupError) {
-                  console.log('Voice recording cleanup error:', cleanupError);
-                }
-                voiceRecorder.recording = null;
-                voiceRecorder.isRecording = false;
-              }
-            } catch (error) {
-              console.log(t('Journaling.VoiceRecording.CleanupError'), error);
+
+            if(isRecording){
+              await stopRecording()
             }
-            
+                      
             // 모든 상태 초기화
             resetAll();
             

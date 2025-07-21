@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
 import { styleTemplates } from '../../../styles';
-import { voiceRecorder } from '../utils/voiceUtils';
 
 // 한국어 조사 선택 함수
 const getKoreanParticle = (name: string): string => {
