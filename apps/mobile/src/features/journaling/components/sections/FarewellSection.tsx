@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 // @ts-ignore
 import format from 'string-format';
 import { styleTemplates } from '../../../../styles';
-import { speakText, stopSpeech } from '../../utils/speechUtils';
+import { speakText, stopSpeech, getTTSOptionsFromAgentConfig } from '../../utils/speechUtils';
+import { useDyad } from '../../../../api/dyad';
 
 const { width, height } = Dimensions.get('window');
 
@@ -37,6 +38,7 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
   const { t } = useTranslation();
   const [hasCompleted, setHasCompleted] = useState(false);
   const [hasSpoken, setHasSpoken] = useState(false);
+  const { agentConfig } = useDyad();
 
   const childJosa = getKoreanJosa(childName);
   const farewellMessage = format(t('Journaling.FarewellSection.MessageTemplate'), { 
@@ -48,9 +50,7 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
   useEffect(() => {
     if (!hasSpoken) {
       speakText(farewellMessage, {
-        language: 'ko-KR',
-        pitch: 1.0,
-        rate: 0.8,
+        ...getTTSOptionsFromAgentConfig(agentConfig),
         onDone: () => {
           setHasSpoken(true);
           // TTS 완료 후 0.5초 뒤에 완료 콜백 호출

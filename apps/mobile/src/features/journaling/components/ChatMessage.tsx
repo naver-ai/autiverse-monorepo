@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { ChatMessage as ChatMessageType } from '@autiverse-monorepo/ts-core';
 import { styleTemplates } from '../../../styles';
-import { speakText, getSpeechManager } from '../utils/speechUtils';
+import { speakText, getSpeechManager, getTTSOptionsFromAgentConfig } from '../utils/speechUtils';
 import { AgentImage } from './AgentImage';
 
 interface ChatMessageProps {
@@ -45,9 +45,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       const cleanText = removeEmojis(lastBotMessage.text);
       if (cleanText.trim()) { // 빈 텍스트가 아닌 경우에만 재생
         speakText(cleanText, {
-          language: 'ko-KR',
-          pitch: 0.9,
-          rate: 0.6,
+          ...getTTSOptionsFromAgentConfig(agentConfig),
           onDone: () => {
             // TTS 완료 후 ChatInput 활성화
             if (onTTSComplete) {

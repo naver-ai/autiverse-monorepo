@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 // @ts-ignore
 import format from 'string-format';
 import { styleTemplates } from '../../../../styles';
-import { speakText, stopSpeech } from '../../utils/speechUtils';
+import { speakText, stopSpeech, getTTSOptionsFromAgentConfig } from '../../utils/speechUtils';
 import { AgentImage } from '../AgentImage';
 
 const { width, height } = Dimensions.get('window');
@@ -160,11 +160,9 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowFirstMessage(true);
-      speakText(firstMessage, {
-        language: 'ko-KR',
-        pitch: 1.0,
-        rate: 0.8,
-        onDone: () => {
+              speakText(firstMessage, {
+          ...getTTSOptionsFromAgentConfig(agentConfig),
+          onDone: () => {
           // 첫 번째 메시지 TTS 완료 후 1초 뒤에 사라지고 두 번째 메시지 시작
           setTimeout(() => {
             setShowFirstMessage(false);
@@ -186,9 +184,7 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
             
             // 두 번째 메시지 TTS 시작
             speakText(secondMessage, {
-              language: 'ko-KR',
-              pitch: 1.0,
-              rate: 0.8,
+              ...getTTSOptionsFromAgentConfig(agentConfig),
               onDone: () => {
                 // 두 번째 메시지 TTS 완료 후 1초 뒤에 사라지고 스탬프 메시지 시작
                 setTimeout(() => {
@@ -197,9 +193,7 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
                   
                   // 스탬프 메시지 TTS 시작
                   speakText(stampMessage, {
-                    language: 'ko-KR',
-                    pitch: 1.0,
-                    rate: 0.8,
+                    ...getTTSOptionsFromAgentConfig(agentConfig),
                     onDone: () => {
                       // 스탬프 메시지 TTS 완료 후 스탬프 활성화
                       setTimeout(() => {
