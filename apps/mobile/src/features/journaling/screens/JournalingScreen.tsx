@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Alert,
@@ -77,7 +77,7 @@ export const JournalingScreen = () => {
   };
 
   // 인사말 섹션 완료 콜백 (intro 화면으로 돌아가기)
-  const handleFarewellComplete = () => {
+  const handleFarewellComplete = useCallback(() => {
     console.log('Farewell section completed, navigating to intro');
     
     // Farewell 이후 플래그 설정
@@ -95,7 +95,7 @@ export const JournalingScreen = () => {
     } else {
       console.log('Router is null or undefined');
     }
-  };
+  }, [setIsAfterFarewell, resetForNewSession, router]);
 
   // 만화 생성 훅 (React Query 기반) - 통합
   const { 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -41,14 +41,18 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
   const { agentConfig } = useDyad();
 
   const childJosa = getKoreanJosa(childName);
-  const farewellMessage = format(t('Journaling.FarewellSection.MessageTemplate'), { 
-    child_name: childName, 
-    child_josa: childJosa 
-  });
+  const farewellMessage = useMemo(() => {
+    return format(t('Journaling.FarewellSection.MessageTemplate'), { 
+      child_name: childName, 
+      child_josa: childJosa 
+    });
+  }, [t, childName, childJosa]);
+
+  const memoizedOnComplete = useMemo(() => onComplete, [onComplete]);
 
   // TTS 시작
   useEffect(() => {
-    if (!hasSpoken) {
+    if (!hasSpoken && agentConfig) {
       speakText(farewellMessage, {
         ...getTTSOptionsFromAgentConfig(agentConfig),
         onDone: () => {
@@ -57,7 +61,7 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
           setTimeout(() => {
             if (!hasCompleted) {
               setHasCompleted(true);
-              onComplete?.();
+              memoizedOnComplete?.();
             }
           }, 500);
         },
@@ -67,17 +71,22 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
           setTimeout(() => {
             if (!hasCompleted) {
               setHasCompleted(true);
-              onComplete?.();
+              memoizedOnComplete?.();
             }
           }, 5000);
         }
       });
+    } else if (!hasSpoken && !agentConfig) {
+      console.log('FarewellSection: Waiting for agentConfig to be available');
+    } else {
+      console.log('FarewellSection: TTS already spoken, skipping');
     }
-  }, [hasSpoken, farewellMessage, hasCompleted, onComplete]);
+  }, [hasSpoken, hasCompleted, memoizedOnComplete, farewellMessage, agentConfig]);
 
   // 컴포넌트 언마운트 시 TTS 정지
   useEffect(() => {
     return () => {
+      console.log('FarewellSection: Component unmounting, stopping TTS');
       stopSpeech();
     };
   }, []);
