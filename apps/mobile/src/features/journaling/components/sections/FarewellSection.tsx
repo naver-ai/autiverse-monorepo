@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -40,25 +40,27 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
   const {startSpeech, stopSpeech} = useSpeech()
 
   const childJosa = getKoreanJosa(childName);
-  const farewellMessage = format(t('Journaling.FarewellSection.MessageTemplate'), { 
-    child_name: childName, 
-    child_josa: childJosa 
-  });
+  const farewellMessage = useMemo(() => {
+    return format(t('Journaling.FarewellSection.MessageTemplate'), { 
+      child_name: childName, 
+      child_josa: childJosa 
+    });
+  }, [t, childName, childJosa]);
+
+  const memoizedOnComplete = useMemo(() => onComplete, [onComplete]);
 
   // TTS 시작
   useEffect(() => {
     if (!hasSpoken) {
       startSpeech(farewellMessage, {
-        language: 'ko-KR',
-        pitch: 1.0,
-        rate: 0.8,
+        ...getTTSOptionsFromAgentConfig(agentConfig),
         onDone: () => {
           setHasSpoken(true);
           // TTS 완료 후 0.5초 뒤에 완료 콜백 호출
           setTimeout(() => {
             if (!hasCompleted) {
               setHasCompleted(true);
-              onComplete?.();
+              memoizedOnComplete?.();
             }
           }, 500);
         },
@@ -68,13 +70,17 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
           setTimeout(() => {
             if (!hasCompleted) {
               setHasCompleted(true);
-              onComplete?.();
+              memoizedOnComplete?.();
             }
           }, 5000);
         }
       });
+    } else if (!hasSpoken && !agentConfig) {
+      console.log('FarewellSection: Waiting for agentConfig to be available');
+    } else {
+      console.log('FarewellSection: TTS already spoken, skipping');
     }
-  }, [hasSpoken, farewellMessage, hasCompleted, onComplete]);
+  }, [hasSpoken, hasCompleted, memoizedOnComplete, farewellMessage, agentConfig]);
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
