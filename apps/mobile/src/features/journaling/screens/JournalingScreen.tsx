@@ -29,8 +29,6 @@ export const JournalingScreen = () => {
 
   const {dyad, agentName, agentConfig, childName} = useDyad();
 
-  const {isRecording, stopRecording} = useVoiceRecorder()
-
   const {stopSpeech, isSpeaking} = useSpeech()
 
   // Store 사용
@@ -513,10 +511,6 @@ export const JournalingScreen = () => {
           onPress: async () => {
             // TTS 정지
             stopSpeech();
-
-            if(isRecording){
-              await stopRecording()
-            }
                       
             // 모든 상태 초기화
             resetAll();

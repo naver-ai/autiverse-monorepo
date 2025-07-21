@@ -75,11 +75,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   // TTS 상태 구독
   useEffect(() => {
+
+    console.log("isSpeaking", isSpeaking)
+    console.log("isLoading", isLoading)
       
       // TTS가 완료되면 바로 음성 녹음 모드로 전환
       if (!isSpeaking && !isLoading) {
+        console.log("TTS completed, continueExisting:", continueExisting, "isInitialLoad:", isInitialLoad)
         // 이어쓰기 모드에서 초기 로드인 경우, 음성 녹음 시작하지 않음
         if (continueExisting && isInitialLoad) {
+          console.log("Continue existing and initial load, return")
           return;
         }
         
@@ -347,8 +352,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       <VoiceRecordingStatus
         agentName={agentName}
         isVoiceMode={isVoiceMode}
-        isVoiceRecording={isVoiceRecording}
-        isTTSActive={isSpeaking}
         onComplete={completeVoiceRecording}
       />
       

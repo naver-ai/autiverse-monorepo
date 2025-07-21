@@ -18,7 +18,7 @@ interface SpeechStore {
   reset: () => void;
 }
 
-const useSpeechStore = create<SpeechStore>((set) => ({
+export const useSpeechState = create<SpeechStore>((set) => ({
   isSpeaking: false,
   currentText: '',
   setIsSpeaking: (speaking) => set({ isSpeaking: speaking }),
@@ -37,7 +37,7 @@ export interface SpeechOptions {
 }
 
 export const useSpeech = () => {
-  const { isSpeaking, currentText, setIsSpeaking, setCurrentText, reset } = useSpeechStore();
+  const { isSpeaking, currentText, setIsSpeaking, setCurrentText, reset } = useSpeechState();
   const {jwt} = useAuth();
 
   // Cleanup function for global sound instance

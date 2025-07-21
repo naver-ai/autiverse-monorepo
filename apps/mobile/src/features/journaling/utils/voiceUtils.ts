@@ -18,7 +18,7 @@ interface VoiceRecorderStore {
   reset: () => void;
 }
 
-const useVoiceRecorderStore = create<VoiceRecorderStore>((set) => ({
+export const useVoiceRecorderState = create<VoiceRecorderStore>((set) => ({
   isRecording: false,
   canRecord: false,
   setIsRecording: (recording) => set({ isRecording: recording }),
@@ -27,7 +27,7 @@ const useVoiceRecorderStore = create<VoiceRecorderStore>((set) => ({
 }));
 
 export function useVoiceRecorder() {
-  const { isRecording, canRecord, setIsRecording, setCanRecord, reset } = useVoiceRecorderStore();
+  const { isRecording, canRecord, setIsRecording, setCanRecord, reset } = useVoiceRecorderState();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -57,10 +57,7 @@ export function useVoiceRecorder() {
   }, [setCanRecord]);
 
   const startRecording = useCallback(async () => {
-    if (isRecording) {
-      console.log("First, stop recording.");
-      await stopRecording();
-    }
+    await stopRecording();
     
     try {
       console.log("Start recording.");
@@ -87,7 +84,10 @@ export function useVoiceRecorder() {
       return uri;
     } catch (err) {
       console.error('Failed to stop recording', err);
+      globalRecordingInstance = null;
       return null;
+    }finally{
+      setIsRecording(false);
     }
   }, [isRecording, setIsRecording]);
 

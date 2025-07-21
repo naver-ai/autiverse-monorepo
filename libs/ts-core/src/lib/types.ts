@@ -50,11 +50,32 @@ export interface Dyad extends DBModel {
     people: Person[];
     places: Place[];
 
-    journal_entries: []; //TODO define journal entry type
+    journal_entries: Array<JournalEntry>;
 }
 
 export type DyadInfo = Omit<Dyad, keyof DBModel | "agents" | "people" | "places" | "passcode">;
 
+export enum JournalEntryStatus {
+  Initial="initial",
+  InProgress="in_progress",
+  Completed="completed",
+}
+
+export enum JournalEntryStage {
+  Prelim="prelim",
+  Intro="intro",
+  Revision1="revision_1",
+  ComicContext="comic_context",
+  Revision2="revision_2",
+  Title="title",
+  Complete="complete"
+}
+
+export interface JournalEntry extends DBModel {
+    status: JournalEntryStatus;
+    stage: JournalEntryStage;
+    dyad_id: string;
+}
 
 export interface AgentData {
     id: string;
