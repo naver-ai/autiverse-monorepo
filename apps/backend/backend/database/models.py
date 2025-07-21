@@ -271,5 +271,6 @@ class Comic(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
     second_panel2: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
     second_panel3: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
     second_panel4: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    status: Optional[str] = Field(nullable=True, default=None)
     journal_entry_id: str = Field(foreign_key="journalentry.id")
     journal_id: str = Field(foreign_key="journal.id")

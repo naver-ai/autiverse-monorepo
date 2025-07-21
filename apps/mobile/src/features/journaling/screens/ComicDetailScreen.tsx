@@ -52,9 +52,12 @@ export default function ComicDetailScreen() {
   const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][comicDate.getDay()];
   
   // 제목 결정: title이 있으면 사용, 없으면 기본 형식 사용
-  const displayTitle = titleStr && titleStr.trim() !== '' 
+  const baseTitle = titleStr && titleStr.trim() !== '' 
     ? titleStr 
-    : `${month}월 ${day}일 ${dayOfWeek}요일에 ${childNameStr}${getKoreanParticle(childNameStr)} ${agentNameStr}${getKoreanSubjectParticle(agentNameStr)} 함께 쓴 그림일기`;
+    : `${childNameStr}${getKoreanParticle(childNameStr)} ${agentNameStr}${getKoreanSubjectParticle(agentNameStr)} 함께 쓴 그림일기`;
+  
+  // 헤더에 표시할 제목: 날짜 + 제목
+  const displayTitle = `[${month}/${day} (${dayOfWeek})] ${baseTitle}`;
 
   return (
     <View style={styles.container}>
@@ -189,7 +192,8 @@ const styles = StyleSheet.create({
     color: '#212529',
     flex: 1,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 24,
+    paddingVertical: 4,
   },
   scrollView: {
     flex: 1,

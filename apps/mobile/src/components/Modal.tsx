@@ -16,9 +16,9 @@ export const Modal = (props: {
 
     useEffect(() => {
         if(props.visible){
-            appearAnimProgress.value = withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) });
+            appearAnimProgress.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) });
         }else{
-            appearAnimProgress.value = withTiming(0, { duration: 300, easing: Easing.out(Easing.cubic) });
+            appearAnimProgress.value = withTiming(0, { duration: 200, easing: Easing.out(Easing.cubic) });
         }
     }, [props.visible]);
 

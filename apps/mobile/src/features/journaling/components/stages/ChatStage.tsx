@@ -119,7 +119,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
           {/* 만화 콘텐츠 */}
           <View className="flex-1 relative">
             {/* 기존 만화 또는 기본 메시지 */}
-            <View className={`flex-1 ${comicGenerationStatus.status === 'generating' ? 'opacity-30' : ''}`}>
+            <View className={`flex-1 ${comicGenerationStatus.status === 'generating' || comicGenerationStatus.status?.startsWith('generating') ? 'opacity-30' : ''}`}>
               {comicData && (currentStage === 'revision_1' || currentStage === 'comic_context' || currentStage === 'revision_2' || currentStage === 'title' || currentStage === 'complete') ? (
                 renderComicPanels()
               ) : (
@@ -132,7 +132,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
             </View>
             
             {/* 만화 생성 중일 때 반투명 오버레이와 프로그레스 바 */}
-            {comicGenerationStatus.status === 'generating' && (
+            {(comicGenerationStatus.status === 'generating' || comicGenerationStatus.status?.startsWith('generating')) && (
               <View className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center">
                 <View className="bg-white p-6 rounded-xl shadow-lg max-w-sm w-4/5">
                   {/* 로딩 애니메이션 */}

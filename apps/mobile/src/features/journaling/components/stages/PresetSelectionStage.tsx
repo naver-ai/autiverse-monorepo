@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import format from 'string-format';
 import { styleTemplates } from '../../../../styles';
 import { useSpeech } from '../../utils';
+import { getTTSOptionsFromAgentConfig } from '../../utils/speechUtils';
 import { useDyad } from '../../../../api/dyad';
 import { useJournalingStore } from '../../store';
 import { useSpeechAnimation } from '../../hooks/useSpeechAnimation';
@@ -98,9 +99,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
           ? t('Journaling.PresetSelection.LocationSelectionMessage')
           : format(t('Journaling.PresetSelection.PeopleSelectionMessageTemplate'), { location: selectedLocation });
       startSpeech(ttsMessage, {
-        language: 'ko-KR',
-        pitch: 1.0,
-        rate: 0.8,
+        ...getTTSOptionsFromAgentConfig(agentConfig),
         onDone: () => {
           setIsTTSActive(false);
         },

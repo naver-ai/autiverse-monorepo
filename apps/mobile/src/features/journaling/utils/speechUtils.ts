@@ -26,6 +26,28 @@ export const useSpeechState = create<SpeechStore>((set) => ({
   reset: () => set({ isSpeaking: false, currentText: '' }),
 }));
 
+// 기본 TTS 설정 (fallback)
+export const FALLBACK_TTS_OPTIONS = {
+  voice: 'nsabina',
+  speed: 0.8,
+  pitch: 1.2,
+  volume: 1.0,
+} as const;
+
+// agent_config에서 TTS 설정을 가져오는 함수
+export const getTTSOptionsFromAgentConfig = (agentConfig?: Record<string, any>) => {
+  if (!agentConfig) {
+    return FALLBACK_TTS_OPTIONS;
+  }
+
+  return {
+    voice: agentConfig.voice || FALLBACK_TTS_OPTIONS.voice,
+    speed: agentConfig.speed || FALLBACK_TTS_OPTIONS.speed,
+    pitch: agentConfig.pitch || FALLBACK_TTS_OPTIONS.pitch,
+    volume: agentConfig.volume || FALLBACK_TTS_OPTIONS.volume,
+  };
+};
+
 export interface SpeechOptions {
   language?: string;
   pitch?: number;
@@ -76,9 +98,9 @@ export const useSpeech = () => {
         NetworkHelper.ENDPOINTS.APP.SPEECH.CLOVA,
         {
           text: text,
-          voice: options.voice || 'nara',
-          speed: options.rate || 2,
-          pitch: options.pitch || 1.2,
+          voice: options.voice || FALLBACK_TTS_OPTIONS.voice,
+          speed: options.rate || FALLBACK_TTS_OPTIONS.speed,
+          pitch: options.pitch || FALLBACK_TTS_OPTIONS.pitch,
         },
         {
           headers: {
@@ -98,8 +120,8 @@ export const useSpeech = () => {
       const { sound } = await Audio.Sound.createAsync({ uri: audioPath });
       globalSoundInstance = sound;
 
-      // 볼륨 설정 (기본값: 1.0)
-      const volume = options.volume !== undefined ? options.volume : 1.0;
+      // 볼륨 설정 (기본값 사용)
+      const volume = options.volume !== undefined ? options.volume : FALLBACK_TTS_OPTIONS.volume;
       await sound.setVolumeAsync(volume);
 
       sound.setOnPlaybackStatusUpdate((status) => {

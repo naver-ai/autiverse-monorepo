@@ -113,7 +113,8 @@ def create_comic(db: Session, journal_entry_id: str, journal_id: str, dyad_id: s
         second_panel1=None,
         second_panel2=None,
         second_panel3=None,
-        second_panel4=None
+        second_panel4=None,
+        status=None
     )
     db.add(comic)
     db.commit()
@@ -123,6 +124,20 @@ def create_comic(db: Session, journal_entry_id: str, journal_id: str, dyad_id: s
 def get_comic(db: Session, journal_entry_id: str) -> Optional[Comic]:
     """comic 조회"""
     return db.query(Comic).filter(Comic.journal_entry_id == journal_entry_id).first()
+
+def update_comic_status(db: Session, journal_entry_id: str, status: str) -> Optional[Comic]:
+    """comic 생성 상태 업데이트 (통합)"""
+    comic = get_comic(db, journal_entry_id)
+    if comic:
+        comic.status = status
+        db.commit()
+        db.refresh(comic)
+    return comic
+
+def get_comic_status(db: Session, journal_entry_id: str) -> Optional[str]:
+    """comic 생성 상태 조회 (통합)"""
+    comic = get_comic(db, journal_entry_id)
+    return comic.status if comic else None
 
 def update_comic_panels(db: Session, journal_entry_id: str, is_first_generation: bool = True, **panel_data) -> Optional[Comic]:
     """comic 패널 업데이트"""

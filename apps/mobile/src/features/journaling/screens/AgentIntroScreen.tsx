@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { styleTemplates } from '../../../styles';
 import { useDyad } from '../../../api/dyad';
 import { useSpeech } from '../utils';
+import { getTTSOptionsFromAgentConfig } from '../utils/speechUtils';
 import { getImageSource } from '../utils/imageUtils';
 import { AgentImage } from '../components/AgentImage';
 import { useSpeechAnimation } from '../hooks/useSpeechAnimation';
@@ -47,9 +48,8 @@ export function AgentIntroScreen() {
   const [hasSpoken, setHasSpoken] = useState(false);
   const [isTTSActive, setIsTTSActive] = useState(false);
 
-  const { dyad, isDyadLoading, dyadError } = useDyad();
-
   const {startSpeech, stopSpeech} = useSpeech()
+  const { dyad, agentConfig, isDyadLoading, dyadError } = useDyad();
 
   // TTS 애니메이션 훅 사용
   const { ttsScalePulseStyle, ttsOpacityPulseStyle, ttsBorderColorStyle } = useSpeechAnimation(isTTSActive);
@@ -77,9 +77,7 @@ export function AgentIntroScreen() {
       // TTS 시작
       setIsTTSActive(true);
       startSpeech(greetingText, {
-        language: 'ko-KR',
-        pitch: 1.0,
-        rate: 0.8,
+        ...getTTSOptionsFromAgentConfig(agentConfig),
         onDone: () => {
           setHasSpoken(true);
           setIsTTSActive(false);
