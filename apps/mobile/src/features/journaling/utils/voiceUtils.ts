@@ -1,148 +1,155 @@
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
+import { useCallback, useEffect } from 'react';
+import { create } from 'zustand';
+import { Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { NetworkHelper } from '@autiverse-monorepo/ts-core';
 
-// 프롬프트 생성 함수
-export const generateWhisperPrompt = (peopleNames: string[] = [], placeNames: string[] = []): string => {
-  const peopleList = peopleNames.length > 0 ? peopleNames.join(', ') : 'none';
-  const placesList = placeNames.length > 0 ? placeNames.join(', ') : 'none';
-  
-  return `CRITICAL: This is a Korean conversation by an autistic teenager. ONLY transcribe what you actually hear - do not make up or guess any words.
+// Global singleton for recording instance
+let globalRecordingInstance: Audio.Recording | null = null;
 
-ANTI-HALLUCINATION RULES (MOST IMPORTANT):
-- If you only hear background noise, ambient sounds, or silence, return an empty string ""
-- If you cannot clearly identify any Korean speech, return an empty string ""
-- If the audio is unclear, muffled, or contains only noise, return empty string ""
-- When in doubt, return an empty string ""
-- NEVER generate text that you did not actually hear
-- Only transcribe what you are 100% certain was spoken in Korean
-- Do NOT return placeholder text like "음성 인식 실패" or "들리지 않음"
-- Do NOT complete sentences or add words that were not spoken
-
-Key Guidelines:
-- Convert unclear pronunciation of autistic teenagers to standard Korean accurately
-- Ignore meaningless sounds or noise and only transcribe actual spoken content
-- Convert to natural Korean grammar
-- Only recognize the user's actual speech content
-
-Context Information (for pronunciation help only):
-- People: ${peopleList}
-- Places: ${placesList}
-
-Important Notes:
-- The context information above is ONLY for helping with pronunciation conversion
-- Do NOT include these names in your response unless they are actually spoken
-- Consider the pronunciation characteristics of autistic teenagers and convert to standard Korean
-- This is Korean speech, so output in Korean text
-- REMEMBER: No speech detected = return empty string ""`;
-};
-
-export interface VoiceRecorder {
-  recording: Audio.Recording | null;
+// Zustand store for voice recording state
+interface VoiceRecorderStore {
   isRecording: boolean;
-  startRecording: () => Promise<void>;
-  stopRecording: () => Promise<string | null>;
-  transcribeAudio: (audioUri: string, peopleNames?: string[], placeNames?: string[]) => Promise<string>;
+  canRecord: boolean;
+  setIsRecording: (recording: boolean) => void;
+  setCanRecord: (canRecord: boolean) => void;
+  reset: () => void;
 }
 
-class VoiceRecorderImpl implements VoiceRecorder {
-  recording: Audio.Recording | null = null;
-  isRecording: boolean = false;
+export const useVoiceRecorderState = create<VoiceRecorderStore>((set) => ({
+  isRecording: false,
+  canRecord: false,
+  setIsRecording: (recording) => set({ isRecording: recording }),
+  setCanRecord: (canRecord) => set({ canRecord: canRecord }),
+  reset: () => set({ isRecording: false }),
+}));
 
-  async startRecording(): Promise<void> {
-    try {
-      // 오디오 권한 요청
-      const permission = await Audio.requestPermissionsAsync();
-      if (permission.status !== 'granted') {
-        throw new Error('오디오 권한이 필요합니다.');
+export function useVoiceRecorder() {
+  const { isRecording, canRecord, setIsRecording, setCanRecord, reset } = useVoiceRecorderState();
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    (async () => {
+      console.log("Requesting audio permissions.");
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status === 'granted') {
+        setCanRecord(true);
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+        });
+      } else {
+        Alert.alert('Permission required', 'Audio recording permission is required.');
       }
+    })();
 
-      // 오디오 모드 설정
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        staysActiveInBackground: false,
-        playThroughEarpieceAndroid: false,
-      });
+    // Cleanup function to release recording when component unmounts
+    return () => {
+      if (globalRecordingInstance) {
+        globalRecordingInstance.stopAndUnloadAsync().catch(err => {
+          console.error('Error stopping recording during cleanup:', err);
+        });
+        globalRecordingInstance = null;
+      }
+    };
+  }, [setCanRecord]);
 
-      // 녹음 시작
+  const startRecording = useCallback(async () => {
+    await stopRecording();
+    
+    try {
+      console.log("Start recording.");
       const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
-
-      this.recording = recording;
-      this.isRecording = true;
-      console.log('음성 녹음 시작');
-    } catch (error) {
-      console.error('음성 녹음 시작 실패:', error);
-      throw error;
+      globalRecordingInstance = recording;
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Failed to start recording', err);
     }
-  }
+  }, [isRecording, setIsRecording]);
 
-  async stopRecording(): Promise<string | null> {
-    if (!this.recording) {
+  const stopRecording = useCallback(async () => {
+    if (!isRecording || !globalRecordingInstance) {
       return null;
     }
-
+    
     try {
-      await this.recording.stopAndUnloadAsync();
-      const uri = this.recording.getURI();
-      this.recording = null;
-      this.isRecording = false;
+      await globalRecordingInstance.stopAndUnloadAsync();
+      const uri = globalRecordingInstance.getURI();
+      globalRecordingInstance = null;
+      setIsRecording(false);
       return uri;
-    } catch (error) {
-      this.recording = null;
-      this.isRecording = false;
-      throw error;
+    } catch (err) {
+      console.error('Failed to stop recording', err);
+      globalRecordingInstance = null;
+      return null;
+    }finally{
+      setIsRecording(false);
     }
-  }
+  }, [isRecording, setIsRecording]);
 
-  async transcribeAudio(audioUri: string, peopleNames: string[] = [], placeNames: string[] = []): Promise<string> {
-    try {
-      // 오디오 파일을 base64로 인코딩
-      const base64Audio = await FileSystem.readAsStringAsync(audioUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
-      // Whisper API 호출
-      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_OPENAI_API_KEY}`,
-          'Content-Type': 'multipart/form-data',
-        },
-        body: (() => {
-          const formData = new FormData();
-          formData.append('file', {
-            uri: audioUri,
-            type: 'audio/m4a',
-            name: 'recording.m4a',
-          } as any);
-          formData.append('model', 'gpt-4o-transcribe');
-          formData.append('language', 'ko');
-          formData.append('temperature', '0');
-          formData.append('prompt', generateWhisperPrompt(peopleNames, placeNames));
-          return formData;
-        })(),
-      });
-
-      if (!response.ok) {
-        throw new Error(`STT API 오류: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('음성 변환 결과:', result);
-      
-      // gpt-4o-transcribe는 JSON 형식으로 응답
-      const transcribedText = result.text || result.transcript || '';
-      console.log('추출된 텍스트:', transcribedText);
-      
-      return transcribedText;
-    } catch (error) {
-      console.error('음성 변환 실패:', error);
-      throw error;
+  const cleanupRecording = useCallback(async () => {
+    if (globalRecordingInstance) {
+      await globalRecordingInstance.stopAndUnloadAsync();
+      globalRecordingInstance = null;
+      reset();
     }
-  }
+  }, [reset]);
+
+  return {
+    isRecording,
+    canRecord,
+    startRecording,
+    stopRecording,
+    clearRecording: cleanupRecording,
+  };
 }
 
-export const voiceRecorder = new VoiceRecorderImpl(); 
+export async function transcribeAudio(
+  token: string,
+  audioUri: string, 
+  peopleNames: string[] = [], 
+  placeNames: string[] = []
+): Promise<string> {
+  try {
+    // Validate audio file exists
+    const fileInfo = await FileSystem.getInfoAsync(audioUri);
+    if (!fileInfo.exists) {
+      throw new Error('오디오 파일을 찾을 수 없습니다.');
+    }
+
+    // Create form data for backend API
+    const formData = new FormData();
+    formData.append('audio_file', {
+      uri: audioUri,
+      type: 'audio/m4a',
+      name: 'recording.m4a',
+    } as any);
+    formData.append('people_names', JSON.stringify(peopleNames));
+    formData.append('place_names', JSON.stringify(placeNames));
+
+    // Get the speech recognition endpoint from NetworkHelper
+    const endpoint = NetworkHelper.ENDPOINTS.APP.SPEECH.RECOGNIZE;
+    
+    // Call backend speech recognition API using NetworkHelper
+    const response = await NetworkHelper.axiosClient.post(endpoint, formData, {
+      headers: {
+        ...(await NetworkHelper.getHeaders(token)),
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    console.log('음성 변환 결과:', response.data);
+    
+    const transcribedText = response.data.text || '';
+    console.log('추출된 텍스트:', transcribedText);
+    
+    return transcribedText;
+  } catch (error) {
+    console.error('음성 변환 실패:', error);
+    throw error;
+  }
+}

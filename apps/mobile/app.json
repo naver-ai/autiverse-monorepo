@@ -18,10 +18,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.naver.ai.autiverse",
-      "infoPlist": {
-        "NSMicrophoneUsageDescription": "음성 인식을 위해 마이크 권한이 필요합니다."
-      }
+      "bundleIdentifier": "com.naver.ai.autiverse"
     },
     "android": {
       "adaptiveIcon": {
@@ -53,7 +50,15 @@
           ]
         }
       ],
-      "expo-audio"
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "음성인식을 위해 마이크 권한이 필요합니다."
+        }
+      ],
+      ["react-native-permissions", {
+        "iosPermissions": ["Microphone"]
+      }]
     ],
     "userInterfaceStyle": "light",
     "scheme": "autiverse-mobile",

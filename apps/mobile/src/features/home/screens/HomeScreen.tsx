@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   Dimensions,
   Animated,
   Alert,
-  Modal,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,7 +15,9 @@ import { LogoImage } from '../../../components/svg-images';
 import { useDyad } from '../../../api/dyad';
 import { TailwindButton } from '../../../components/TailwindButton';
 import { DyadProfileView } from '../components/DyadProfileView';
-
+import { check, PERMISSIONS, RESULTS, request } from 'react-native-permissions';
+import { JournalEntryStage } from '@autiverse-monorepo/ts-core';
+import { Modal } from '../../../components/Modal';
 const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen() {
@@ -26,7 +28,6 @@ export default function HomeScreen() {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const buttonScaleAnim = useRef(new Animated.Value(1)).current;
   const [showContinueModal, setShowContinueModal] = useState(false);
-  const [latestEntry, setLatestEntry] = useState<any>(null);
   const [isButtonPressed, setIsButtonPressed] = useState(false);
 
   useEffect(() => {
@@ -47,23 +48,22 @@ export default function HomeScreen() {
     ]).start();
   }, []);
 
-  // 직전 Entry 확인
-  useEffect(() => {
-    if (dyad && dyad.journal_entries && dyad.journal_entries.length > 0) {
-      // 가장 최근 entry 가져오기
+  const latestEntry = useMemo(() => {
+    if(dyad && dyad.journal_entries && dyad.journal_entries.length > 0){
       const sorted = [...dyad.journal_entries].sort(
         (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       const latest = sorted.length > 0 ? sorted[0] : null;
-      setLatestEntry(latest);
-    } else {
-      setLatestEntry(null);
-    }
-  }, [dyad]);
+      return latest;
+    }else return null;
+  }, [dyad?.id, dyad?.journal_entries]);
 
     const handleStart = useCallback(() => {
+
+      console.log("handle start")
+
       // 직전 Entry가 있고 completed가 아니면 팝업 표시
-      if (latestEntry && latestEntry.stage !== 'complete') {
+      if (latestEntry && latestEntry.stage !== JournalEntryStage.Complete) {
         setShowContinueModal(true);
       } else {
         // 새로운 작업 시작
@@ -71,13 +71,17 @@ export default function HomeScreen() {
       }
   }, [latestEntry?.stage, router]);
 
+ 
+
+  console.log("latestEntry", latestEntry)
+
   const handleContinue = async () => {
     setShowContinueModal(false);
     
     try {
       // 이어쓰기 시작 시점을 백엔드에 기록
       const { continueSessionAPI } = await import('../../journaling/api');
-      await continueSessionAPI(latestEntry.id, latestEntry.stage);
+      await continueSessionAPI(latestEntry!.id, latestEntry!.stage);
     } catch (error) {
       console.error('Failed to record continue session:', error);
       // 에러가 발생해도 이어쓰기는 계속 진행
@@ -87,8 +91,8 @@ export default function HomeScreen() {
     router.push({
       pathname: '/(app)/create-comic',
       params: {
-        journalEntryId: latestEntry.id,
-        stage: latestEntry.stage,
+        journalEntryId: latestEntry!.id,
+        stage: latestEntry!.stage,
         continueExistingStr: 'true'
       }
     });
@@ -103,6 +107,19 @@ export default function HomeScreen() {
   const handleGallery = () => {
     router.push('/(app)/gallery');
   };
+
+  useEffect(() => {
+    if(Platform.OS === 'android'){
+      check(PERMISSIONS.ANDROID.RECORD_AUDIO).then((status) => {
+        console.log("Microphone permission status:", status)
+        if(status === RESULTS.DENIED){
+          request(PERMISSIONS.ANDROID.RECORD_AUDIO).then((status) => {
+            console.log("Microphone permission status:", status)
+          })
+        }
+      })
+    }
+  }, []);
 
   return (
     <SafeAreaView className="flex-1 bg-gradient-to-b from-blue-50 to-indigo-100">
@@ -163,27 +180,21 @@ export default function HomeScreen() {
       {/* 이어가기 팝업 */}
       <Modal
         visible={showContinueModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowContinueModal(false)}
+        panelClassName='bg-white rounded-3xl p-10 px-10'
+        dismissOnPressOutside={true}
+        onPop={() => setShowContinueModal(false)}
       >
-        <View className="flex-1 justify-center items-center px-6">
-          <View className="bg-white rounded-3xl p-10 w-full max-w-xl shadow-lg">
-            <Text className="text-2xl text-center mb-4" style={styleTemplates.withBoldFont}>
+        <Text className="text-2xl text-center mb-8 leading-10" style={styleTemplates.withBoldFont}>
               {t('Home.ContinueModal.Message')}
             </Text>
 
-            <View style={{ height: 15 }} />
-
-            <View className="space-y-6">
+            <View className="flex flex-row gap-4 justify-center">
               <TailwindButton
                 onPress={handleContinue}
                 buttonStyleClassName="bg-blue-500 rounded-2xl py-4"
                 title={t('Home.ContinueModal.Continue')}
                 titleClassName="text-white text-center text-2xl"
               />
-
-              <View style={{ height: 10 }} />
               
               <TailwindButton
                 onPress={handleStartNew}
@@ -192,8 +203,6 @@ export default function HomeScreen() {
                 titleClassName="text-gray-700 text-center text-2xl"
               />
             </View>
-          </View>
-        </View>
       </Modal>
     </SafeAreaView>
   );

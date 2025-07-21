@@ -5,8 +5,7 @@ import { useTranslation } from 'react-i18next';
 // @ts-ignore
 import format from 'string-format';
 import { styleTemplates } from '../../../../styles';
-import { speakText, stopSpeech, getTTSOptionsFromAgentConfig } from '../../utils/speechUtils';
-import { useDyad } from '../../../../api/dyad';
+import { useSpeech } from '../../utils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -38,7 +37,7 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
   const { t } = useTranslation();
   const [hasCompleted, setHasCompleted] = useState(false);
   const [hasSpoken, setHasSpoken] = useState(false);
-  const { agentConfig } = useDyad();
+  const {startSpeech, stopSpeech} = useSpeech()
 
   const childJosa = getKoreanJosa(childName);
   const farewellMessage = useMemo(() => {
@@ -52,8 +51,8 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
 
   // TTS 시작
   useEffect(() => {
-    if (!hasSpoken && agentConfig) {
-      speakText(farewellMessage, {
+    if (!hasSpoken) {
+      startSpeech(farewellMessage, {
         ...getTTSOptionsFromAgentConfig(agentConfig),
         onDone: () => {
           setHasSpoken(true);
@@ -82,14 +81,6 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
       console.log('FarewellSection: TTS already spoken, skipping');
     }
   }, [hasSpoken, hasCompleted, memoizedOnComplete, farewellMessage, agentConfig]);
-
-  // 컴포넌트 언마운트 시 TTS 정지
-  useEffect(() => {
-    return () => {
-      console.log('FarewellSection: Component unmounting, stopping TTS');
-      stopSpeech();
-    };
-  }, []);
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">

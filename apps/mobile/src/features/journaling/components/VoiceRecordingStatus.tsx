@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo } from 'react';
 import { View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
 import { styleTemplates } from '../../../styles';
-import { voiceRecorder } from '../utils/voiceUtils';
+import { useVoiceRecorderState } from '../utils/voiceUtils';
+import { useSpeechState } from '../utils/speechUtils';
 
 // 한국어 조사 선택 함수
 const getKoreanParticle = (name: string): string => {
@@ -24,30 +25,27 @@ const getKoreanParticle = (name: string): string => {
   return finalConsonant > 0 ? '이가' : '가';
 };
 
-interface VoiceRecordingStatusProps {
-  agentName: string;
-  isVoiceMode?: boolean;
-  isVoiceRecording?: boolean;
-  isTTSActive?: boolean;
-  onComplete: () => void;
-}
-
-export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
+export const VoiceRecordingStatus = memo(({
   agentName,
   isVoiceMode,
-  isVoiceRecording,
-  isTTSActive,
   onComplete
+}: {
+  agentName: string;
+  isVoiceMode?: boolean;
+  onComplete: () => void;
 }) => {
   const voiceMode = isVoiceMode ?? false;
-  const voiceRecording = isVoiceRecording ?? false;
-  const ttsActive = isTTSActive ?? false;
+  const {isRecording} = useVoiceRecorderState()
+  const {isSpeaking} = useSpeechState()
+
   const pulseAnimation = useRef(new Animated.Value(1)).current;
+
   const bounceAnimation = useRef(new Animated.Value(1)).current;
+  console.log('voiceRecording', isRecording, isSpeaking)
 
   // 음성 녹음 애니메이션
   useEffect(() => {
-    if (voiceRecording) {
+    if (isRecording) {
       const pulse = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnimation, {
@@ -86,21 +84,21 @@ export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
         bounce.stop();
       };
     }
-  }, [voiceRecording]);
+  }, [isRecording]);
 
   // TTS나 음성 녹음이 활성화되지 않았으면 아무것도 표시하지 않음
-  if (!ttsActive && !voiceRecording) {
+  if (!isSpeaking && !isRecording) {
     return null;
   }
 
   return (
     <View className={`flex-row items-center justify-between p-4 rounded-xl mb-4 ${
-      voiceMode && voiceRecording 
+      voiceMode && isRecording 
         ? 'bg-blue-50 border-2 border-blue-200' 
         : 'bg-white border-2 border-gray-200'
     }`} style={{ minHeight: 110 }}>
       <View className="flex-row items-center flex-1">
-        {voiceRecording ? (
+        {isRecording ? (
           <View className="flex-row items-center mr-3">
             <Animated.View
               style={{
@@ -117,18 +115,18 @@ export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
           <View className="w-4 h-4 bg-gray-400 rounded-full mr-3" />
         )}
         <Text className={`text-xl ${
-          voiceRecording 
+          isRecording 
             ? 'text-blue-800' 
             : 'text-gray-600'
         }`} style={styleTemplates.withBoldFont}>
           {`${agentName}${getKoreanParticle(agentName)} ${
-            voiceRecording ? '듣는 중...' : '말하는 중...'
+            isRecording ? '듣는 중...' : '말하는 중...'
           }`}
         </Text>
       </View>
       
       {/* 완료 버튼은 음성 녹음 중일 때만 표시 */}
-      {voiceRecording && (
+      {isRecording && (
         <Animated.View
           style={{
             transform: [{ scale: bounceAnimation }],
@@ -155,7 +153,7 @@ export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
       )}
       
       {/* 말하는 중일 때는 빈 공간으로 높이 맞춤 */}
-      {!voiceRecording && <View style={{ width: 90, height: 90 }} />}
+      {!isRecording && <View style={{ width: 90, height: 90 }} />}
     </View>
   );
-}; 
+})

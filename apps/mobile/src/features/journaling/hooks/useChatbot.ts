@@ -51,7 +51,7 @@ export const useChatbot = () => {
       );
       if (response.status === 200) {
         const data = response.data;
-        console.log('Session info received:', data);
+        console.log('Session info received:');
         return data;
       } else {
         console.error('Failed to load session info, status:', response.status);

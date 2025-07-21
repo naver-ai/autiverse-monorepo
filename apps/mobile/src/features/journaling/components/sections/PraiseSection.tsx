@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 // @ts-ignore
 import format from 'string-format';
 import { styleTemplates } from '../../../../styles';
-import { speakText, stopSpeech, getTTSOptionsFromAgentConfig } from '../../utils/speechUtils';
+import { useSpeech } from '../../utils';
+import { getTTSOptionsFromAgentConfig } from '../../utils/speechUtils';
 import { AgentImage } from '../AgentImage';
 
 const { width, height } = Dimensions.get('window');
@@ -23,7 +24,7 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
   const [hasCompleted, setHasCompleted] = useState(false);
   const [hasSpoken, setHasSpoken] = useState(false);
   const [poppedStamps, setPoppedStamps] = useState<boolean[]>([false, false, false]);
-  
+  const {startSpeech, stopSpeech} = useSpeech()
   // 단계별 메시지 상태
   const [currentStage, setCurrentStage] = useState(0); // 0: 첫번째 메시지, 1: 두번째 메시지, 2: 스탬프 메시지
   const [showFirstMessage, setShowFirstMessage] = useState(false);
@@ -160,7 +161,7 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowFirstMessage(true);
-              speakText(firstMessage, {
+      startSpeech(firstMessage, {
           ...getTTSOptionsFromAgentConfig(agentConfig),
           onDone: () => {
           // 첫 번째 메시지 TTS 완료 후 1초 뒤에 사라지고 두 번째 메시지 시작
@@ -183,7 +184,7 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
             });
             
             // 두 번째 메시지 TTS 시작
-            speakText(secondMessage, {
+            startSpeech(secondMessage, {
               ...getTTSOptionsFromAgentConfig(agentConfig),
               onDone: () => {
                 // 두 번째 메시지 TTS 완료 후 1초 뒤에 사라지고 스탬프 메시지 시작
@@ -192,7 +193,7 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
                   setShowStampMessage(true);
                   
                   // 스탬프 메시지 TTS 시작
-                  speakText(stampMessage, {
+                  startSpeech(stampMessage, {
                     ...getTTSOptionsFromAgentConfig(agentConfig),
                     onDone: () => {
                       // 스탬프 메시지 TTS 완료 후 스탬프 활성화

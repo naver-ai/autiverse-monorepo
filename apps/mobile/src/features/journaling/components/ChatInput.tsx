@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { View, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ChatMessage } from '@autiverse-monorepo/ts-core';
-import { getSpeechManager } from '../utils/speechUtils';
-import { voiceRecorder } from '../utils/voiceUtils';
+import { useSpeech } from '../utils/speechUtils';
+import { transcribeAudio, useVoiceRecorder } from '../utils/voiceUtils';
 import { ChatText } from './ChatText';
 import { ChatButtons } from './ChatButtons';
 import { VoiceRecordingStatus } from './VoiceRecordingStatus';
 import { useDyad } from '../../../api/dyad';
 import { uploadAudioFile } from '../api';
+import { useAuth } from '../../auth/hooks';
 
 interface ChatInputProps {
   inputText: string;
@@ -41,15 +42,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   isAfterFarewell = false,
   continueExisting = false
 }) => {
+
+  const {jwt} = useAuth()
+
   const { t } = useTranslation();
   const { dyad } = useDyad();
-  const [isTTSActive, setIsTTSActive] = useState<boolean>(false);
-  const [isVoiceRecording, setIsVoiceRecording] = useState<boolean>(false);
   const [isVoiceMode, setIsVoiceMode] = useState<boolean>(false);
   const [hasButtons, setHasButtons] = useState<boolean>(false);
   const [isVoiceCompleted, setIsVoiceCompleted] = useState<boolean>(false);
   const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
   const [previousMessageCount, setPreviousMessageCount] = useState<number>(0);
+
+  const {isRecording: isVoiceRecording, canRecord, startRecording, stopRecording} = useVoiceRecorder()
+
+  const {isSpeaking} = useSpeech()
   
   const lastBotMessage = messages
     .filter(m => !m.isUser)
@@ -69,14 +75,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   // TTS 상태 구독
   useEffect(() => {
-    const speechManager = getSpeechManager();
-    const unsubscribe = speechManager.subscribeToStateChange((isSpeaking) => {
-      setIsTTSActive(isSpeaking);
+
+    console.log("isSpeaking", isSpeaking)
+    console.log("isLoading", isLoading)
       
       // TTS가 완료되면 바로 음성 녹음 모드로 전환
       if (!isSpeaking && !isLoading) {
+        console.log("TTS completed, continueExisting:", continueExisting, "isInitialLoad:", isInitialLoad)
         // 이어쓰기 모드에서 초기 로드인 경우, 음성 녹음 시작하지 않음
         if (continueExisting && isInitialLoad) {
+          console.log("Continue existing and initial load, return")
           return;
         }
         
@@ -113,18 +121,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                                         lastMessage?.text?.includes('채울 수 있을 것 같아');
         // 완료 메시지가 아니고 버튼이 표시되지 않으며, 만화 생성 완료 메시지도 아니고, farewell 이후도 아니고, 채팅 입력 메시지도 아니고, 제목 단계 전환 메시지도 아니고, sessionId가 존재할 때만 음성 녹음 시작
         const isTitleTransitionMessage = lastMessage?.text?.includes('그럼 이제 일기 제목을 정하러 가볼까?');
-        if (!isCompletionMessage && !shouldShowButtons && !isComicCompletionMessage && !isAfterFarewell && !isChatInputMessage && !isTitleTransitionMessage && sessionId) {
+        if (canRecord && !isCompletionMessage && !shouldShowButtons && !isComicCompletionMessage && !isAfterFarewell && !isChatInputMessage && !isTitleTransitionMessage && sessionId) {
           setIsVoiceCompleted(false); // 다음 음성 녹음 시작 전에 완료 상태 초기화
           startVoiceRecording();
         }
       }
-    });
-    
-    return unsubscribe;
-  }, [isLoading, messages, currentStage, continueExisting, isInitialLoad]);
+  }, [isSpeaking, canRecord, isLoading, messages, currentStage, continueExisting, isInitialLoad]);
   
   // TTS 또는 로딩 중일 때 비활성화, 또는 ChatInput이 비활성화 상태일 때
-  const isDisabled = isLoading || isTTSActive || comicGenerationStatus.status === 'generating' || !isInputActive || isVoiceRecording;
+  const isDisabled = isLoading || isSpeaking || comicGenerationStatus.status === 'generating' || !isInputActive || isVoiceRecording;
   
       // admin-web과 동일한 조건으로 버튼 표시 여부 결정
     const showYesNoButtons = (() => {
@@ -230,25 +235,26 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   // 음성 녹음 시작
   const startVoiceRecording = async () => {
+    console.log("Try voice recording...")
     try {
       setIsVoiceMode(true);
-      setIsVoiceRecording(true);
       setIsVoiceCompleted(false); // 음성 녹음 시작 시 완료 상태 초기화
-      await voiceRecorder.startRecording();
+      await startRecording();
+      console.log("Voice recording started")
     } catch (error) {
       console.error('음성 녹음 시작 실패:', error);
       Alert.alert('오류', t('ChatInput.VoiceRecording.StartError'));
-      setIsVoiceRecording(false);
       setIsVoiceMode(false);
     }
   };
 
   // 음성 녹음 완료 및 텍스트 변환
   const completeVoiceRecording = async () => {
+    console.log("Try voice recording complete...")
     try {
-      const audioUri = await voiceRecorder.stopRecording();
+      const audioUri = await stopRecording();
+      console.log("Voice recording complete")
       if (audioUri) {
-        setIsVoiceRecording(false);
         setIsVoiceMode(false);
         setIsVoiceCompleted(true); // 음성 녹음 완료 상태 업데이트
         
@@ -277,7 +283,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         }
         
         // Whisper API로 텍스트 변환 (현재 session context 정보 포함)
-        const transcribedText = await voiceRecorder.transcribeAudio(audioUri, peopleNames, placeNames);
+        const transcribedText = await transcribeAudio(jwt!, audioUri, peopleNames, placeNames);
         
         console.log('Transcribed text check:', {
           transcribedText,
@@ -327,18 +333,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       
       // 일반적인 오류 처리
       Alert.alert('오류', t('ChatInput.VoiceRecording.CompleteError'));
-      
-      setIsVoiceRecording(false);
       setIsVoiceMode(false);
     }
   };
 
-  const handleInputFocus = () => {
+  const handleInputFocus = async () => {
     if (isVoiceMode) {
       setIsVoiceMode(false);
       if (isVoiceRecording) {
-        voiceRecorder.stopRecording();
-        setIsVoiceRecording(false);
+        await stopRecording();
       }
     }
   };
@@ -349,8 +352,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       <VoiceRecordingStatus
         agentName={agentName}
         isVoiceMode={isVoiceMode}
-        isVoiceRecording={isVoiceRecording}
-        isTTSActive={isTTSActive}
         onComplete={completeVoiceRecording}
       />
       

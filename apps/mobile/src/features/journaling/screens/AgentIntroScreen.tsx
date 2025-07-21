@@ -12,7 +12,8 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styleTemplates } from '../../../styles';
 import { useDyad } from '../../../api/dyad';
-import { speakText, stopSpeech, getTTSOptionsFromAgentConfig } from '../utils/speechUtils';
+import { useSpeech } from '../utils';
+import { getTTSOptionsFromAgentConfig } from '../utils/speechUtils';
 import { getImageSource } from '../utils/imageUtils';
 import { AgentImage } from '../components/AgentImage';
 import { useSpeechAnimation } from '../hooks/useSpeechAnimation';
@@ -47,6 +48,7 @@ export function AgentIntroScreen() {
   const [hasSpoken, setHasSpoken] = useState(false);
   const [isTTSActive, setIsTTSActive] = useState(false);
 
+  const {startSpeech, stopSpeech} = useSpeech()
   const { dyad, agentConfig, isDyadLoading, dyadError } = useDyad();
 
   // TTS 애니메이션 훅 사용
@@ -74,7 +76,7 @@ export function AgentIntroScreen() {
 
       // TTS 시작
       setIsTTSActive(true);
-      speakText(greetingText, {
+      startSpeech(greetingText, {
         ...getTTSOptionsFromAgentConfig(agentConfig),
         onDone: () => {
           setHasSpoken(true);
