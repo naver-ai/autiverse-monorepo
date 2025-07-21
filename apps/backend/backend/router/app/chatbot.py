@@ -42,6 +42,10 @@ class UpdateTitleRequest(BaseModel):
     journal_entry_id: str
     title: str
 
+class ContinueSessionRequest(BaseModel):
+    journal_entry_id: str
+    stage: str
+
 @router.post("/start", response_model=ChatbotResponse)
 def start_chatbot(
     request: StartChatbotRequest,
@@ -369,5 +373,51 @@ def update_comic_title(
             return {"success": True, "title": request.title}
         else:
             raise HTTPException(status_code=404, detail="Journal not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.post("/continue-session", response_model=Dict[str, Any])
+def continue_session(
+    request: ContinueSessionRequest,
+    db: Session = Depends(get_session)
+):
+    """이어쓰기 세션 시작 - 메시지 metadata에 이어쓰기 시작 시점 기록"""
+    try:
+        from backend.database.crud.chatbot import get_latest_interaction_turn, get_messages_by_interaction_turn
+        
+        # 가장 최근 interaction turn 가져오기
+        latest_turn = get_latest_interaction_turn(db, request.journal_entry_id)
+        if not latest_turn:
+            raise HTTPException(status_code=404, detail="No interaction turn found")
+        
+        # 해당 interaction turn의 가장 최근 메시지 가져오기
+        messages = get_messages_by_interaction_turn(db, latest_turn.id)
+        if not messages:
+            raise HTTPException(status_code=404, detail="No messages found")
+        
+        latest_message = messages[-1]  # 가장 최근 메시지
+        
+        # 이어쓰기 시작 시점을 metadata에 기록
+        continue_metadata = {
+            "type": "continue_session",
+            "timestamp": datetime.now().isoformat(),
+            "stage": request.stage,
+            "action": "user_continued_session"
+        }
+        
+        # 기존 metadata가 있으면 병합, 없으면 새로 생성
+        existing_metadata = latest_message.metadata_json or {}
+        updated_metadata = {**existing_metadata, **continue_metadata}
+        
+        # 메시지의 metadata 업데이트
+        latest_message.metadata_json = updated_metadata
+        db.commit()
+        db.refresh(latest_message)
+        
+        return {
+            "success": True,
+            "message_id": latest_message.id,
+            "metadata": updated_metadata
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 

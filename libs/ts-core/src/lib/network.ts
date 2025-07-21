@@ -53,6 +53,7 @@ export class NetworkHelper {
         SEND: '/api/v1/app/chatbot/send',
         UPLOAD_AUDIO: '/api/v1/app/chatbot/upload-audio',
         UPDATE_TITLE: '/api/v1/app/chatbot/update-title',
+        CONTINUE_SESSION: '/api/v1/app/chatbot/continue-session',
         getDyadPlacesEndpoint: (dyadId: string) => {
           const url = `/api/v1/app/chatbot/dyad/${dyadId}/places`;
           console.log('NetworkHelper: getDyadPlacesEndpoint called with dyadId:', dyadId, 'returning URL:', url);

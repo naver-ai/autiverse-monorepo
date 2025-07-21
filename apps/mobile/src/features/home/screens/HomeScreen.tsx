@@ -71,8 +71,18 @@ export default function HomeScreen() {
       }
   }, [latestEntry?.stage, router]);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     setShowContinueModal(false);
+    
+    try {
+      // 이어쓰기 시작 시점을 백엔드에 기록
+      const { continueSessionAPI } = await import('../../journaling/api');
+      await continueSessionAPI(latestEntry.id, latestEntry.stage);
+    } catch (error) {
+      console.error('Failed to record continue session:', error);
+      // 에러가 발생해도 이어쓰기는 계속 진행
+    }
+    
     // 기존 작업 이어가기 - 해당 stage로 직접 이동
     router.push({
       pathname: '/(app)/create-comic',

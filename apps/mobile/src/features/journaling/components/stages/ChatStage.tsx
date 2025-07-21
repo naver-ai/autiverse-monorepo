@@ -21,6 +21,7 @@ interface ChatStageProps {
   sessionId?: string;
   loadSessionInfo?: (sessionId: string) => Promise<any>;
   onEndSession?: () => void;
+  continueExisting?: boolean;
 }
 
 export const ChatStage: React.FC<ChatStageProps> = ({
@@ -32,7 +33,8 @@ export const ChatStage: React.FC<ChatStageProps> = ({
   onTTSComplete,
   sessionId,
   loadSessionInfo,
-  onEndSession
+  onEndSession,
+  continueExisting = false
 }) => {
   const { t } = useTranslation();
   const {
@@ -209,6 +211,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
             sessionId={sessionId}
             loadSessionInfo={loadSessionInfo}
             isAfterFarewell={isAfterFarewell}
+            continueExisting={continueExisting}
           />
         </View>
       </View>

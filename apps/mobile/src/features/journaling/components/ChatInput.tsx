@@ -23,6 +23,7 @@ interface ChatInputProps {
   sessionId?: string;
   loadSessionInfo?: (sessionId: string) => Promise<any>;
   isAfterFarewell?: boolean;
+  continueExisting?: boolean;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -37,7 +38,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   agentName,
   sessionId,
   loadSessionInfo,
-  isAfterFarewell = false
+  isAfterFarewell = false,
+  continueExisting = false
 }) => {
   const { t } = useTranslation();
   const { dyad } = useDyad();
@@ -46,61 +48,80 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [isVoiceMode, setIsVoiceMode] = useState<boolean>(false);
   const [hasButtons, setHasButtons] = useState<boolean>(false);
   const [isVoiceCompleted, setIsVoiceCompleted] = useState<boolean>(false);
+  const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
+  const [previousMessageCount, setPreviousMessageCount] = useState<number>(0);
   
   const lastBotMessage = messages
     .filter(m => !m.isUser)
     .pop();
   
+  // 메시지 개수 변화 감지 (이어쓰기 모드에서 초기 로드 방지용)
+  useEffect(() => {
+    if (continueExisting && messages.length > previousMessageCount && previousMessageCount === 0) {
+      // 이어쓰기 모드에서 처음 메시지가 로드된 경우
+      setPreviousMessageCount(messages.length);
+      setIsInitialLoad(false);
+    } else if (!continueExisting) {
+      // 새로운 작업인 경우 초기 로드 상태 해제
+      setIsInitialLoad(false);
+    }
+  }, [messages.length, continueExisting, previousMessageCount]);
+
   // TTS 상태 구독
   useEffect(() => {
     const speechManager = getSpeechManager();
     const unsubscribe = speechManager.subscribeToStateChange((isSpeaking) => {
       setIsTTSActive(isSpeaking);
       
-              // TTS가 완료되면 바로 음성 녹음 모드로 전환
-        if (!isSpeaking && !isLoading) {
-          const lastMessage = messages.filter(m => !m.isUser).pop();
-          const isCompletionMessage = lastMessage?.text?.includes('다음 버튼을 눌러줘!');
-          
-          // 채팅으로 입력하라는 메시지인지 확인 (title stage에서 2번 이상 거부했을 때)
-          const isChatInputMessage = lastMessage?.text?.includes('채팅으로 쳐서 정확하게 알려줘!');
-          
-          // 버튼이 표시될 조건인지 확인
-          const shouldShowButtons = (() => {
-            if (currentStage === 'revision_1') {
-              return (lastMessage?.text?.includes('다 맞게 들었을까?') || 
-                      lastMessage?.text?.includes('아직도 틀린 부분 있어?') ||
-                      lastMessage?.text?.includes('이제 다 맞을까?'));
-            }
-            if (currentStage === 'revision_2') {
-              return (lastMessage?.text?.includes('수정하거나 추가하고 싶은 부분 있어?') || 
-                      lastMessage?.text?.includes('더 추가하거나 바꿀 곳 있어?'));
-            }
-            if (currentStage === 'comic_context') {
-              return lastMessage?.text?.includes('기분이 어땠어?') || lastMessage?.text?.includes('기분이었어?') || lastMessage?.text?.includes('몇가지 확인해줄래??');
-            }
-            if (currentStage === 'title') {
-              return (lastMessage?.text?.includes('어때?') ||
-                      lastMessage?.text?.includes('이걸로 할까?'));
-            }
-
-            return false;
-          })();
-          
-          // 만화 생성 완료 메시지인지 확인 (별도 조건)
-          const isComicCompletionMessage = lastMessage?.text?.includes('다행이다') || 
-                                          lastMessage?.text?.includes('채울 수 있을 것 같아');
-          // 완료 메시지가 아니고 버튼이 표시되지 않으며, 만화 생성 완료 메시지도 아니고, farewell 이후도 아니고, 채팅 입력 메시지도 아니고, 제목 단계 전환 메시지도 아닐 때만 음성 녹음 시작
-          const isTitleTransitionMessage = lastMessage?.text?.includes('그럼 이제 일기 제목을 정하러 가볼까?');
-          if (!isCompletionMessage && !shouldShowButtons && !isComicCompletionMessage && !isAfterFarewell && !isChatInputMessage && !isTitleTransitionMessage) {
-            setIsVoiceCompleted(false); // 다음 음성 녹음 시작 전에 완료 상태 초기화
-            startVoiceRecording();
-          }
+      // TTS가 완료되면 바로 음성 녹음 모드로 전환
+      if (!isSpeaking && !isLoading) {
+        // 이어쓰기 모드에서 초기 로드인 경우, 음성 녹음 시작하지 않음
+        if (continueExisting && isInitialLoad) {
+          return;
         }
+        
+        const lastMessage = messages.filter(m => !m.isUser).pop();
+        const isCompletionMessage = lastMessage?.text?.includes('다음 버튼을 눌러줘!');
+        
+        // 채팅으로 입력하라는 메시지인지 확인 (title stage에서 2번 이상 거부했을 때)
+        const isChatInputMessage = lastMessage?.text?.includes('채팅으로 쳐서 정확하게 알려줘!');
+        
+        // 버튼이 표시될 조건인지 확인
+        const shouldShowButtons = (() => {
+          if (currentStage === 'revision_1') {
+            return (lastMessage?.text?.includes('다 맞게 들었을까?') || 
+                    lastMessage?.text?.includes('아직도 틀린 부분 있어?') ||
+                    lastMessage?.text?.includes('이제 다 맞을까?'));
+          }
+          if (currentStage === 'revision_2') {
+            return (lastMessage?.text?.includes('수정하거나 추가하고 싶은 부분 있어?') || 
+                    lastMessage?.text?.includes('더 추가하거나 바꿀 곳 있어?'));
+          }
+          if (currentStage === 'comic_context') {
+            return lastMessage?.text?.includes('기분이 어땠어?') || lastMessage?.text?.includes('기분이었어?') || lastMessage?.text?.includes('몇가지 확인해줄래??');
+          }
+          if (currentStage === 'title') {
+            return (lastMessage?.text?.includes('어때?') ||
+                    lastMessage?.text?.includes('이걸로 할까?'));
+          }
+
+          return false;
+        })();
+        
+        // 만화 생성 완료 메시지인지 확인 (별도 조건)
+        const isComicCompletionMessage = lastMessage?.text?.includes('다행이다') || 
+                                        lastMessage?.text?.includes('채울 수 있을 것 같아');
+        // 완료 메시지가 아니고 버튼이 표시되지 않으며, 만화 생성 완료 메시지도 아니고, farewell 이후도 아니고, 채팅 입력 메시지도 아니고, 제목 단계 전환 메시지도 아니고, sessionId가 존재할 때만 음성 녹음 시작
+        const isTitleTransitionMessage = lastMessage?.text?.includes('그럼 이제 일기 제목을 정하러 가볼까?');
+        if (!isCompletionMessage && !shouldShowButtons && !isComicCompletionMessage && !isAfterFarewell && !isChatInputMessage && !isTitleTransitionMessage && sessionId) {
+          setIsVoiceCompleted(false); // 다음 음성 녹음 시작 전에 완료 상태 초기화
+          startVoiceRecording();
+        }
+      }
     });
     
     return unsubscribe;
-  }, [isLoading, messages, currentStage]);
+  }, [isLoading, messages, currentStage, continueExisting, isInitialLoad]);
   
   // TTS 또는 로딩 중일 때 비활성화, 또는 ChatInput이 비활성화 상태일 때
   const isDisabled = isLoading || isTTSActive || comicGenerationStatus.status === 'generating' || !isInputActive || isVoiceRecording;

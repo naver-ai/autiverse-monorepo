@@ -98,4 +98,24 @@ export const updateComicTitleAPI = async (journalEntryId: string, title: string)
     console.error('Error updating comic title:', error);
     throw error;
   }
+};
+
+export const continueSessionAPI = async (journalEntryId: string, stage: string): Promise<any> => {
+  try {
+    const response = await NetworkHelper.axiosClient.post(
+      NetworkHelper.ENDPOINTS.APP.CHATBOT.CONTINUE_SESSION,
+      {
+        journal_entry_id: journalEntryId,
+        stage: stage
+      },
+      {
+        headers: await NetworkHelper.getHeaders(),
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error('Error continuing session:', error);
+    throw error;
+  }
 }; 

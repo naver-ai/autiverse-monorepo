@@ -70,7 +70,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     return (
       <View className="items-center justify-center py-8">
         <Text className="text-lg text-gray-600 text-center" style={styleTemplates.withSemiboldFont}>
-          왼쪽에서 시작하기를 눌러주세요!
+          로딩중...
         </Text>
       </View>
     );

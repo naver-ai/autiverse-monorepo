@@ -596,6 +596,7 @@ export const JournalingScreen = () => {
               }
             }}
             onEndSession={handleEndSession}
+            continueExisting={continueExisting}
           />
         )}
       </View>

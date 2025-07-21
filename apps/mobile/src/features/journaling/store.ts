@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ChatMessage, Preset } from './types';
+import { ChatMessage, Preset } from '@autiverse-monorepo/ts-core';
 
 interface JournalingState {
   // 기본 상태
