@@ -2,9 +2,9 @@ import 'intl-pluralrules';
 import i18next from "i18next";
 import merge from 'merge';
 import { ko, enUS, Locale } from "date-fns/locale"
-import krTranslations from "./translations/kr";
-import enTranslations from "./translations/en";
-import { UserLocale } from "../types";
+import krTranslations from "../../../../data/i18n/kr.json";
+import enTranslations from "../../../../data/i18n/en.json";
+import { UserLocale } from "./types";
 
 export async function initializeI18n(defaultLanguage: UserLocale = UserLocale.Korean, 
     fallbackLanguage: UserLocale = UserLocale.Korean,

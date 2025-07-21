@@ -54,6 +54,9 @@ class FilePaths:
 
     prompt_dir_path: str = path.join(getcwd(), "../../data/prompts")
 
+    # i18n 폴더 경로 추가
+    i18n_dir_path: str = path.join(getcwd(), "../../data/i18n")
+
     users_database_dir_path: str = path.join(__database_dir_path, "users")
 
     # 오디오 파일 저장 디렉토리
@@ -80,6 +83,11 @@ class FilePaths:
     def get_prompt_file_path(cls, prompt_filename: str) -> str:
         p = path.join(cls.prompt_dir_path, prompt_filename)
         return p
+
+    @classmethod
+    def get_i18n_dir_path(cls) -> str:
+        """i18n 폴더 경로 반환"""
+        return cls.i18n_dir_path
 
     @classmethod
     def get_audio_dir_path(cls) -> str:

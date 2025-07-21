@@ -1,0 +1,130 @@
+{
+    "Auth": {
+        "SignIn": {
+            "EnterPasscode": "사용자 번호를 입력해주세요.",
+            "SignIn": "로그인",
+            "Authenticating": "로그인 중입니다...",
+            "Errors": {
+                "ServerNotResponding": "서버가 응답하지 않습니다. 잠시 후에 다시 시도해 주세요.",
+                "WrongCredential": "사용자 번호가 올바른지 확인해 주세요.",
+                "UnknownError": "로그인이 실패하였습니다. 담당자에게 문의해 주세요."
+            },
+            "ConfirmSignOut": "로그아웃 하시겠습니까?",
+            "SignOut": "로그아웃",
+            "Cancel": "취소"
+        }
+    },
+    "Home": {
+        "ViewPastDiaries": "지난 일기 보기",
+        "WriteDiary": "일기 쓰기",
+        "ContinueModal": {
+            "Message": "이전에 완성하지 않은 그림일기를 이어서 써볼까?",
+            "Continue": "응, 그럴게!",
+            "StartNew": "아니, 새로운 거 쓸 거야!"
+        }
+    },
+    "Label": {
+        "CaregiverType": {
+            "FATHER": "아빠",
+            "MOTHER": "엄마",
+            "TEACHER": "선생님"
+        },
+        "ChildAndCaregiverTemplate": "{child_name}와 {caregiver_type}"
+    },
+    "Journaling": {
+        "PresetSelection": {
+            "LocationSelectionMessage": "오늘은 어디서 있었던 일을 그림 일기로 써볼까?",
+            "PeopleSelectionMessageTemplate": "{location}에서 누구랑 있었던 일을 그림 일기로 써볼까? 여러 사람을 골라도 괜찮아!",
+            "DontKnowWhatToWrite": "뭘 쓸지 모르겠네..",
+            "IWantToWriteSomething": "오늘은 내가 쓰고 싶은 게 있어!",
+            "NextStepTemplate": "다음 단계로 ({count}명 선택됨)",
+            "BackToLocation": "← 장소 다시 선택",
+            "Preparing": "준비 중...",
+            "LocationDataError": "장소 정보를 불러올 수 없습니다",
+            "PeopleDataError": "사람 정보를 불러올 수 없습니다"
+        },
+        "AgentIntro": {
+            "FirstVisitGreetingTemplate": "안녕, {child_name}{child_josa}. 나는 2주간 너와 함께 그림 일기를 쓸 {agent_name}{agent_josa}. 만나서 반가워!",
+            "ReturnVisitGreetingTemplate": "안녕, {child_name}{child_josa}. 또 만나니 너무 좋다.",
+            "Loading": "로딩 중...",
+            "DataLoadError": "데이터를 불러올 수 없습니다."
+        },
+        "Errors": {
+            "ChatbotStartError": "챗봇을 시작할 수 없습니다.",
+            "MessageSendError": "메시지를 보낼 수 없습니다."
+        },
+        "SessionEnd": {
+            "Title": "세션 종료",
+            "Message": "정말로 세션을 종료하시겠습니까?",
+            "Cancel": "취소",
+            "End": "종료"
+        },
+        "Messages": {
+            "NextButton": "다음",
+            "NextButtonPrompt": "다음 버튼을 눌러줘",
+            "Revision1Confirmation": "다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~",
+            "Revision2Confirmation": "내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~"
+        },
+        "UserResponses": {
+            "No": ["아니", "아니요"],
+            "Yes": ["응", "네"]
+        },
+        "VoiceRecording": {
+            "CleanupError": "음성 녹음 정리 중 오류:"
+        },
+        "DefaultTitle": "그림 일기",
+        "FarewellSection": {
+            "MessageTemplate": "{child_name}{child_josa}, 우리 다음에 또 만나서 재미있게 그림 일기 써보자. 안녕~"
+        },
+        "PraiseSection": {
+            "FirstMessageTemplate": "우리 {child_name}{child_josa} 오늘 그림 일기 쓰는 모습 만점!!",
+            "SecondMessage": "오늘 있었던 일 잘 떠올리고, 질문에 답변 잘해주고, 내가 그림 그리는 거 기다려줘서 고마워~",
+            "StampMessage": "우리 아래 스탬프 팡팡팡 터트리면서 마무리해보자~"
+        },
+        "Common": {
+            "DefaultChildName": "친구",
+            "DefaultAgentName": "친구"
+        }
+    },
+    "Loading": {
+        "DefaultMessage": "로딩중...",
+        "WaitMessage": "잠시만 기다려주세요..."
+    },
+    "Chat": {
+        "VoiceModePlaceholder": "채팅으로 하려면 여기를 클릭하세요",
+        "SendButton": "전송"
+    },
+    "ChatStage": {
+        "DefaultComicMessage": "네가 말해준 내용으로 내가 여기에 조금 이따 4컷 만화를 그릴거야~",
+        "EndSession": "종료",
+        "ProgressCompleteTemplate": "{progress}% 완료",
+        "ChatHeaderTemplate": "💬 {agent_name}와 대화하기"
+    },
+    "ChatInput": {
+        "ButtonLabels": {
+            "Yes": "응",
+            "No": "아니",
+            "Wrong": "틀린 게 있어",
+            "AllCorrect": "다 맞아",
+            "StillWrong": "아직 있어",
+            "Enough": "이제 충분해",
+            "LetsDoIt": "그러자!",
+            "Good": "좋아!",
+            "Have": "있어",
+            "DontHave": "없어",
+            "Good2": "좋아!",
+            "GotIt": "알겠어!",
+            "NotGood": "별로야",
+            "Good3": "좋아",
+            "NoOther": "아니, 다른 걸로",
+            "YesGood": "응, 좋아!"
+        },
+        "VoiceRecording": {
+            "StartError": "음성 녹음을 시작할 수 없습니다.",
+            "CompleteError": "음성 변환 중 오류가 발생했습니다.",
+            "DetectionFailed": "나한테 잘 안 들렸어! 다시 한 번 말해줘~",
+            "DetectionFailedTitle": "음성 감지 실패",
+            "Confirm": "확인"
+        }
+    }
+} 

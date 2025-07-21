@@ -836,6 +836,21 @@ socks = ["socksio (==1.*)"]
 zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
+name = "i18next"
+version = "0.0.3"
+description = "i18next - library facilitating internationalization and localization (i18n)"
+optional = false
+python-versions = ">=3.8,<4"
+files = [
+    {file = "i18next-0.0.3-py3-none-any.whl", hash = "sha256:d47b3baeda79db92ba68c9da265716d68335e1bcb0442a669be8b8e77f684a66"},
+    {file = "i18next-0.0.3.tar.gz", hash = "sha256:69387928e3b0ec0ae655dd2761dd486567876cec5e869d3f38791b89e89f2bd7"},
+]
+
+[package.extras]
+dev = ["black", "flake8", "pre-commit"]
+test = ["pytest", "pytest-cov"]
+
+[[package]]
 name = "idna"
 version = "3.10"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -2895,4 +2910,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.12,<3.13"
-content-hash = "9ab94b4a6178cab679502d44b8e6b5d6c32dd20d62cf219d88447ef86e18e661"
+content-hash = "e86247f4884d05484a4dfa0054fe8cf1234608df37f3ed734041311f26d4582d"
