@@ -1093,11 +1093,10 @@ Please generate a question that addresses the FIRST missing information gap."""
                 endpoints = NetworkHelper.get_comic_generation_endpoints()
                 start_url = endpoints['START']
                 
-                # 만화 생성 시작 (두 번째 만화 생성)
+                # 만화 생성 시작
                 response = NetworkHelper.make_internal_request('POST', start_url, {
                     'journal_entry_id': self.journal_entry_id,
-                    'panel_contents': panel_contents,
-                    'is_first_generation': False
+                    'panel_contents': panel_contents
                 })
                 
                 if response.status_code == 200:

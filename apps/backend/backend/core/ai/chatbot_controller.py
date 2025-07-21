@@ -384,6 +384,31 @@ class ChatbotController:
         """세션 삭제"""
         return delete_journal_entry(self.db, journal_entry_id)
     
+    def _wait_for_comic_generation(self, journal_entry_id: str, stage_name: str) -> None:
+        """만화 생성이 완료될 때까지 대기"""
+        import time
+        from backend.database.crud.chatbot import get_comic_status
+        
+        max_wait_time = 60  # 최대 60초 대기
+        wait_interval = 0.5  # 0.5초마다 확인
+        
+        for _ in range(int(max_wait_time / wait_interval)):
+            try:
+                # DB에서 직접 만화 생성 상태 확인
+                status = get_comic_status(self.db, journal_entry_id)
+                
+                if status == 'completed':
+                    print(f"[DEBUG] {stage_name}: Comic generation completed for {journal_entry_id}")
+                    break
+                elif status == 'error':
+                    print(f"[DEBUG] {stage_name}: Comic generation failed for {journal_entry_id}")
+                    break
+                
+                time.sleep(wait_interval)
+            except Exception as e:
+                print(f"[DEBUG] {stage_name}: Error checking comic generation status: {e}")
+                time.sleep(wait_interval)
+
     def start_auto_comic_generation(self, journal_entry_id: str) -> Dict[str, Any]:
         """자동 만화 생성 시작"""
         journal_entry = get_journal_entry(self.db, journal_entry_id)
@@ -393,33 +418,8 @@ class ChatbotController:
         current_stage = journal_entry.stage
         
         if current_stage == JournalEntryStage.Revision1:
-            # 만화 생성이 완료될 때까지 기다림 (더 빠른 확인)
-            import time
-            import requests
-            
-            max_wait_time = 60  # 최대 60초 대기
-            wait_interval = 0.5  # 0.5초마다 확인 (더 빠른 응답)
-            
-            for _ in range(int(max_wait_time / wait_interval)):
-                try:
-                    # 만화 생성 상태 확인
-                    status_response = requests.get(
-                        f'http://localhost:3000/api/v1/app/comic-generation/status/{journal_entry_id}'
-                    )
-                    
-                    if status_response.status_code == 200:
-                        status_data = status_response.json()
-                        if status_data.get('status') == 'completed':
-                            print(f"[DEBUG] revision_1: Comic generation completed for {journal_entry_id}")
-                            break
-                        elif status_data.get('status') == 'failed':
-                            print(f"[DEBUG] revision_1: Comic generation failed for {journal_entry_id}")
-                            break
-                    
-                    time.sleep(wait_interval)
-                except Exception as e:
-                    print(f"[DEBUG] revision_1: Error checking comic generation status: {e}")
-                    time.sleep(wait_interval)
+            # 만화 생성 완료 대기
+            self._wait_for_comic_generation(journal_entry_id, "revision_1")
             
             # comic_context로 전환
             context_stage = ComicContextStage(self.db, journal_entry_id)
@@ -430,33 +430,8 @@ class ChatbotController:
                 "stage": "comic_context"
             }
         elif current_stage == JournalEntryStage.ComicContext:
-            # 만화 생성이 완료될 때까지 기다림 (더 빠른 확인)
-            import time
-            import requests
-            
-            max_wait_time = 60  # 최대 60초 대기
-            wait_interval = 0.5  # 0.5초마다 확인 (더 빠른 응답)
-            
-            for _ in range(int(max_wait_time / wait_interval)):
-                try:
-                    # 만화 생성 상태 확인
-                    status_response = requests.get(
-                        f'http://localhost:3000/api/v1/app/comic-generation/status/{journal_entry_id}'
-                    )
-                    
-                    if status_response.status_code == 200:
-                        status_data = status_response.json()
-                        if status_data.get('status') == 'completed':
-                            print(f"[DEBUG] comic_context: Comic generation completed for {journal_entry_id}")
-                            break
-                        elif status_data.get('status') == 'failed':
-                            print(f"[DEBUG] comic_context: Comic generation failed for {journal_entry_id}")
-                            break
-                    
-                    time.sleep(wait_interval)
-                except Exception as e:
-                    print(f"[DEBUG] comic_context: Error checking comic generation status: {e}")
-                    time.sleep(wait_interval)
+            # 만화 생성 완료 대기
+            self._wait_for_comic_generation(journal_entry_id, "comic_context")
             
             # revision_2로 전환
             revision2_stage = Revision2Stage(self.db, journal_entry_id)
@@ -470,8 +445,8 @@ class ChatbotController:
             return {
                 "response": "만화 생성을 시작할 수 없습니다.",
                 "stage": "error"
-            } 
-
+            }
+    
     def _get_focused_panel(self, journal_entry_id: str, stage) -> str:
         """현재 질문하고 있는 패널을 찾아서 focusedPanel로 설정"""
         if stage != JournalEntryStage.ComicContext:

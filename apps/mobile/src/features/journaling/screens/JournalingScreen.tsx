@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Alert,
@@ -97,14 +97,14 @@ export const JournalingScreen = () => {
     }
   };
 
-  // 만화 생성 훅 (React Query 기반)
+  // 만화 생성 훅 (React Query 기반) - 통합
   const { 
     status: comicGenerationStatus, 
     startGeneration, 
     isLoading: isComicGenerating,
     startError: comicGenerationError 
   } = useComicGeneration(sessionId || null);
-
+  
   // 만화 생성 완료 처리
   useEffect(() => {
     if (comicGenerationStatus.status === 'completed' && comicGenerationStatus.comic_data) {
@@ -167,7 +167,7 @@ export const JournalingScreen = () => {
 
   // 프로그레스바 애니메이션 업데이트
   useEffect(() => {
-    if (comicGenerationStatus.status === 'generating') {
+    if (comicGenerationStatus.status === 'generating' || comicGenerationStatus.status?.startsWith('generating')) {
       console.log('Progress animation update:', comicGenerationStatus.progress);
       // requestAnimationFrame을 사용하여 렌더링 후 애니메이션 실행
       requestAnimationFrame(() => {

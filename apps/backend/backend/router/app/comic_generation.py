@@ -1,18 +1,17 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
-from backend.database.crud.chatbot import update_comic_data
+from backend.database.crud.chatbot import update_comic_data, update_comic_status, get_comic_status, get_comic
 from backend.core.ai import ComicGridGenerator
+from backend.database.engine import get_session
+from backend.database.models import Comic
+from sqlalchemy.orm import Session
 
 router = APIRouter()
-
-# 전역 변수로 생성 상태 추적
-comic_generation_status = {}
 
 class ComicGenerationRequest(BaseModel):
     journal_entry_id: str
     panel_contents: Dict[str, str]
-    is_first_generation: bool = False
 
 class ComicGenerationResponse(BaseModel):
     status: str
@@ -20,38 +19,41 @@ class ComicGenerationResponse(BaseModel):
     message: str
     comic_data: Optional[Dict[str, Any]] = None
 
-def generate_comic_with_progress(journal_entry_id: str, panel_contents: Dict[str, str], is_first_generation: bool = False):
+def get_progress_and_message(status: str) -> tuple[int, str]:
+    """상태 문자열에 따라 진행률과 메시지 반환"""
+    status_mapping = {
+        'generating-0': (0, "어떻게 그릴지 고민중이다~"),
+        'generating-1': (20, "첫번째 칸을 그리고 있어!"),
+        'generating-2': (40, "두번째 칸을 그리고 있어!"),
+        'generating-3': (60, "세번째 칸을 그리고 있어!"),
+        'generating-4': (80, "이제 마지막 칸이다!!"),
+        'completed': (100, "만화 생성 완료!"),
+        'error': (0, "만화 생성 중 오류가 발생했습니다."),
+        'cancelled': (0, "만화 생성이 취소되었습니다.")
+    }
+    return status_mapping.get(status, (0, "알 수 없는 상태"))
+
+def generate_comic_with_progress(journal_entry_id: str, panel_contents: Dict[str, str]):
     """백그라운드에서 만화를 생성하고 진행률을 업데이트"""
+    db = next(get_session())
     try:
         # 초기 상태 설정
-        comic_generation_status[journal_entry_id] = {
-            "status": "generating",
-            "progress": 0,
-            "message": "스토리 분석 중...",
-            "comic_data": None
-        }
+        update_comic_status(db, journal_entry_id, "generating-0")
         
-        # 1단계: 스토리 분석 (20%)
-        comic_generation_status[journal_entry_id]["progress"] = 20
-        comic_generation_status[journal_entry_id]["message"] = "어떻게 그릴지 고민중이다~"
-        
-        # 2단계: 패널 구조 분석 (40%)
-        comic_generation_status[journal_entry_id]["progress"] = 40
-        comic_generation_status[journal_entry_id]["message"] = "어떻게 그릴지 고민중이다~"
-        
-        # 3단계: 그리드 레이아웃 생성 (60%)
-        comic_generation_status[journal_entry_id]["progress"] = 60
-        comic_generation_status[journal_entry_id]["message"] = "오케이! 이렇게 그려보겠어!"
-        
-        # 4단계: 위치 관계 결정 (80%)
-        comic_generation_status[journal_entry_id]["progress"] = 80
-        comic_generation_status[journal_entry_id]["message"] = "오케이! 이렇게 그려보겠어!"
-        
-        # 5단계: 실제 만화 생성
+        # 실제 만화 생성 과정과 연동된 progress_callback 정의
         def progress_callback(progress: int, message: str):
-            comic_generation_status[journal_entry_id]["progress"] = progress
-            comic_generation_status[journal_entry_id]["message"] = message
+            """실제 만화 생성 진행률에 따라 상태 업데이트"""
+            if progress <= 20:
+                update_comic_status(db, journal_entry_id, "generating-1")
+            elif progress <= 60:
+                update_comic_status(db, journal_entry_id, "generating-2")
+            elif progress <= 75:
+                update_comic_status(db, journal_entry_id, "generating-3")
+            elif progress <= 90:
+                update_comic_status(db, journal_entry_id, "generating-4")
+            print(f"[DEBUG] Progress: {progress}% - {message}")
         
+        # 실제 만화 생성 (progress_callback과 함께)
         generator = ComicGridGenerator()
         comic_data = generator.generate_comic_grids(panel_contents, progress_callback)
         
@@ -59,48 +61,52 @@ def generate_comic_with_progress(journal_entry_id: str, panel_contents: Dict[str
         print(f"[DEBUG] Comic data: {comic_data}")
         
         # 완료 상태 설정
-        comic_generation_status[journal_entry_id] = {
-            "status": "completed",
-            "progress": 100,
-            "message": "만화 생성 완료!",
-            "comic_data": comic_data
-        }
+        update_comic_status(db, journal_entry_id, "completed")
         
         print(f"[DEBUG] Status updated to completed for {journal_entry_id}")
         
-        # 데이터베이스에 저장
-        from ...database.engine import get_session
-        db = next(get_session())
-        
-        if is_first_generation:
-            # 첫 번째 만화 생성: first_panel에 저장
-            update_comic_data(
-                db, journal_entry_id,
-                first_panel1=comic_data.get("panel1"),
-                first_panel2=comic_data.get("panel2"),
-                first_panel3=comic_data.get("panel3"),
-                first_panel4=comic_data.get("panel4")
-            )
-        else:
-            # 두 번째 만화 생성: second_panel에 저장
-            update_comic_data(
-                db, journal_entry_id,
-                second_panel1=comic_data.get("panel1"),
-                second_panel2=comic_data.get("panel2"),
-                second_panel3=comic_data.get("panel3"),
-                second_panel4=comic_data.get("panel4")
-            )
-        
-
+        # 데이터베이스에 저장 - 현재 상태에 따라 적절한 패널에 저장
+        comic = get_comic(db, journal_entry_id)
+        if comic:
+            # 기존 패널 데이터 확인하여 저장 위치 결정
+            if comic.first_panel1 is None:
+                # 첫 번째 만화로 저장
+                update_comic_data(
+                    db, journal_entry_id,
+                    first_panel1=comic_data.get("panel1"),
+                    first_panel2=comic_data.get("panel2"),
+                    first_panel3=comic_data.get("panel3"),
+                    first_panel4=comic_data.get("panel4")
+                )
+            else:
+                # 두 번째 만화로 저장
+                update_comic_data(
+                    db, journal_entry_id,
+                    second_panel1=comic_data.get("panel1"),
+                    second_panel2=comic_data.get("panel2"),
+                    second_panel3=comic_data.get("panel3"),
+                    second_panel4=comic_data.get("panel4")
+                )
         
     except Exception as e:
         # 에러 상태 설정
-        comic_generation_status[journal_entry_id] = {
-            "status": "error",
-            "progress": 0,
-            "message": f"만화 생성 중 오류가 발생했습니다: {str(e)}",
-            "comic_data": None
-        }
+        update_comic_status(db, journal_entry_id, "error")
+        print(f"[ERROR] Comic generation failed for {journal_entry_id}: {e}")
+    finally:
+        db.close()
+
+def update_comic_status(db: Session, journal_entry_id: str, status: str):
+    """만화 생성 상태 업데이트"""
+    comic = db.query(Comic).filter(Comic.journal_entry_id == journal_entry_id).first()
+    if comic:
+        comic.status = status
+        db.commit()
+        print(f"[DEBUG] Comic status updated to {status} for {journal_entry_id}")
+
+def get_comic_status(db: Session, journal_entry_id: str) -> Optional[str]:
+    """만화 생성 상태 조회"""
+    comic = db.query(Comic).filter(Comic.journal_entry_id == journal_entry_id).first()
+    return comic.status if comic else None
 
 @router.post("/start", response_model=ComicGenerationResponse)
 async def start_comic_generation(
@@ -111,43 +117,56 @@ async def start_comic_generation(
     journal_entry_id = request.journal_entry_id
     
     # 이미 생성 중인지 확인
-    if journal_entry_id in comic_generation_status:
-        current_status = comic_generation_status[journal_entry_id]
-        if current_status["status"] == "generating":
-            return ComicGenerationResponse(**current_status)
-    
-    # 백그라운드에서 만화 생성 시작
-    background_tasks.add_task(
-        generate_comic_with_progress,
-        journal_entry_id,
-        request.panel_contents,
-        request.is_first_generation
-    )
-    
-    return ComicGenerationResponse(
-        status="started",
-        progress=0,
-        message="만화 생성이 시작되었습니다."
-    )
+    db = next(get_session())
+    try:
+        current_status = get_comic_status(db, journal_entry_id)
+        if current_status and current_status.startswith("generating-"):
+            progress, message = get_progress_and_message(current_status)
+            return ComicGenerationResponse(
+                status="generating",
+                progress=progress,
+                message=message
+            )
+        
+        # 백그라운드에서 만화 생성 시작
+        background_tasks.add_task(
+            generate_comic_with_progress,
+            journal_entry_id,
+            request.panel_contents
+        )
+        
+        return ComicGenerationResponse(
+            status="started",
+            progress=0,
+            message="만화 생성이 시작되었습니다."
+        )
+    finally:
+        db.close()
 
 @router.get("/status/{journal_entry_id}", response_model=ComicGenerationResponse)
 async def get_comic_generation_status(journal_entry_id: str):
-    """만화 생성 상태 확인"""
-    if journal_entry_id not in comic_generation_status:
-        raise HTTPException(status_code=404, detail="만화 생성 작업을 찾을 수 없습니다.")
-    
-    return ComicGenerationResponse(**comic_generation_status[journal_entry_id])
+    """만화 생성 상태 조회"""
+    db = next(get_session())
+    try:
+        status = get_comic_status(db, journal_entry_id)
+        if not status:
+            raise HTTPException(status_code=404, detail="만화 생성 작업을 찾을 수 없습니다.")
+        
+        progress, message = get_progress_and_message(status)
+        return ComicGenerationResponse(
+            status=status,
+            progress=progress,
+            message=message
+        )
+    finally:
+        db.close()
 
 @router.delete("/cancel/{journal_entry_id}")
 async def cancel_comic_generation(journal_entry_id: str):
     """만화 생성 취소"""
-    if journal_entry_id in comic_generation_status:
-        comic_generation_status[journal_entry_id] = {
-            "status": "cancelled",
-            "progress": 0,
-            "message": "만화 생성이 취소되었습니다.",
-            "comic_data": None
-        }
+    db = next(get_session())
+    try:
+        update_comic_status(db, journal_entry_id, "cancelled")
         return {"message": "만화 생성이 취소되었습니다."}
-    
-    raise HTTPException(status_code=404, detail="만화 생성 작업을 찾을 수 없습니다.") 
+    finally:
+        db.close() 

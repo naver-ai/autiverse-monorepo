@@ -89,7 +89,7 @@ export const useComicGeneration = (journalEntryId: string | null) => {
       return;
     }
 
-    cancelGenerationMutation.mutate(journalEntryId);
+    cancelGenerationMutation.mutate({ journalEntryId });
   }, [journalEntryId, cancelGenerationMutation]);
 
 
