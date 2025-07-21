@@ -55,7 +55,10 @@
         {
           "microphonePermission": "음성인식을 위해 마이크 권한이 필요합니다."
         }
-      ]
+      ],
+      ["react-native-permissions", {
+        "iosPermissions": ["Microphone"]
+      }]
     ],
     "userInterfaceStyle": "light",
     "scheme": "autiverse-mobile",

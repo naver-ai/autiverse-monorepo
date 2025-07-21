@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 // @ts-ignore
 import format from 'string-format';
 import { styleTemplates } from '../../../../styles';
-import { speakText, stopSpeech } from '../../utils/speechUtils';
+import { useSpeech } from '../../utils';
 import { AgentImage } from '../AgentImage';
 
 const { width, height } = Dimensions.get('window');
@@ -23,7 +23,7 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
   const [hasCompleted, setHasCompleted] = useState(false);
   const [hasSpoken, setHasSpoken] = useState(false);
   const [poppedStamps, setPoppedStamps] = useState<boolean[]>([false, false, false]);
-  
+  const {startSpeech, stopSpeech} = useSpeech()
   // 단계별 메시지 상태
   const [currentStage, setCurrentStage] = useState(0); // 0: 첫번째 메시지, 1: 두번째 메시지, 2: 스탬프 메시지
   const [showFirstMessage, setShowFirstMessage] = useState(false);
@@ -160,7 +160,7 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowFirstMessage(true);
-      speakText(firstMessage, {
+      startSpeech(firstMessage, {
         language: 'ko-KR',
         pitch: 1.0,
         rate: 0.8,
@@ -185,7 +185,7 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
             });
             
             // 두 번째 메시지 TTS 시작
-            speakText(secondMessage, {
+            startSpeech(secondMessage, {
               language: 'ko-KR',
               pitch: 1.0,
               rate: 0.8,
@@ -196,7 +196,7 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
                   setShowStampMessage(true);
                   
                   // 스탬프 메시지 TTS 시작
-                  speakText(stampMessage, {
+                  startSpeech(stampMessage, {
                     language: 'ko-KR',
                     pitch: 1.0,
                     rate: 0.8,

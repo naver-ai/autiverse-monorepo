@@ -6,6 +6,7 @@ import {
   Animated,
   Alert,
   Modal,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +16,7 @@ import { LogoImage } from '../../../components/svg-images';
 import { useDyad } from '../../../api/dyad';
 import { TailwindButton } from '../../../components/TailwindButton';
 import { DyadProfileView } from '../components/DyadProfileView';
+import { check, PERMISSIONS, RESULTS, request } from 'react-native-permissions';
 
 const { width, height } = Dimensions.get('window');
 
@@ -103,6 +105,19 @@ export default function HomeScreen() {
   const handleGallery = () => {
     router.push('/(app)/gallery');
   };
+
+  useEffect(() => {
+    if(Platform.OS === 'android'){
+      check(PERMISSIONS.ANDROID.RECORD_AUDIO).then((status) => {
+        console.log("Microphone permission status:", status)
+        if(status === RESULTS.DENIED){
+          request(PERMISSIONS.ANDROID.RECORD_AUDIO).then((status) => {
+            console.log("Microphone permission status:", status)
+          })
+        }
+      })
+    }
+  }, []);
 
   return (
     <SafeAreaView className="flex-1 bg-gradient-to-b from-blue-50 to-indigo-100">

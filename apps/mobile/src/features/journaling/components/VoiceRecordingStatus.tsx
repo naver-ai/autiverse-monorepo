@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo } from 'react';
 import { View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
 import { styleTemplates } from '../../../styles';
 
@@ -23,26 +23,26 @@ const getKoreanParticle = (name: string): string => {
   return finalConsonant > 0 ? '이가' : '가';
 };
 
-interface VoiceRecordingStatusProps {
-  agentName: string;
-  isVoiceMode?: boolean;
-  isVoiceRecording?: boolean;
-  isTTSActive?: boolean;
-  onComplete: () => void;
-}
-
-export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
+export const VoiceRecordingStatus = memo(({
   agentName,
   isVoiceMode,
   isVoiceRecording,
   isTTSActive,
   onComplete
+}: {
+  agentName: string;
+  isVoiceMode?: boolean;
+  isVoiceRecording?: boolean;
+  isTTSActive?: boolean;
+  onComplete: () => void;
 }) => {
   const voiceMode = isVoiceMode ?? false;
   const voiceRecording = isVoiceRecording ?? false;
   const ttsActive = isTTSActive ?? false;
   const pulseAnimation = useRef(new Animated.Value(1)).current;
   const bounceAnimation = useRef(new Animated.Value(1)).current;
+
+  console.log('voiceRecording', voiceRecording, ttsActive)
 
   // 음성 녹음 애니메이션
   useEffect(() => {
@@ -157,4 +157,4 @@ export const VoiceRecordingStatus: React.FC<VoiceRecordingStatusProps> = ({
       {!voiceRecording && <View style={{ width: 90, height: 90 }} />}
     </View>
   );
-}; 
+})

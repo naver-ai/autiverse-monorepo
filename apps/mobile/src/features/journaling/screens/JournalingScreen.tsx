@@ -14,7 +14,7 @@ import PraiseSection from '../components/sections/PraiseSection';
 import FarewellSection from '../components/sections/FarewellSection';
 import { PresetSelectionStage, ChatStage } from '../components/stages';
 import { ChatMessage, Preset } from '@autiverse-monorepo/ts-core';
-import { stopSpeech, getSpeechManager } from '../utils/speechUtils';
+import { useSpeech } from '../utils';
 import { useVoiceRecorder } from '../utils/voiceUtils';
 import { useDyad } from '../../../api/dyad';
 import { useJournalingStore } from '../store';
@@ -29,7 +29,9 @@ export const JournalingScreen = () => {
 
   const {dyad, agentName, agentConfig, childName} = useDyad();
 
-  const {isRecording, canRecord, startRecording, stopRecording} = useVoiceRecorder()
+  const {isRecording, stopRecording} = useVoiceRecorder()
+
+  const {stopSpeech, isSpeaking} = useSpeech()
 
   // Store 사용
   const {
@@ -315,8 +317,7 @@ export const JournalingScreen = () => {
 
 
     // TTS 상태 확인 - TTS가 진행 중이면 메시지 전송 차단
-    const speechManager = getSpeechManager();
-    if (speechManager.getIsSpeaking()) {
+    if (isSpeaking) {
       console.log('TTS is currently active, blocking message send');
       return;
     }

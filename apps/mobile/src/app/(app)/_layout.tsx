@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { useAuthStore } from '../../features/auth/store';
+import { useKeepAwake } from "expo-keep-awake";
 
 export default function AppLayout() {
   const { jwt } = useAuthStore();
@@ -7,6 +8,10 @@ export default function AppLayout() {
   if (!jwt) {
     return null;
   }
+
+
+  useKeepAwake();
+
 
   return (
     <Stack>

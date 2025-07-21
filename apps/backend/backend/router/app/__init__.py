@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from . import chatbot, auth, profile, agents, comic_generation, tts
+from . import chatbot, auth, profile, agents, comic_generation, speech
 from .common import get_signed_in_dyad
 
 router = APIRouter()
@@ -11,4 +11,4 @@ router.include_router(profile.router, prefix="/profile", dependencies=[Depends(g
 router.include_router(agents.router, prefix="/agents", dependencies=[Depends(get_signed_in_dyad)])
 # router.include_router(comic_generation.router, prefix="/comic-generation", dependencies=[Depends(get_signed_in_dyad)])
 router.include_router(comic_generation.router, prefix="/comic-generation")
-router.include_router(tts.router, prefix="/tts")
+router.include_router(speech.router, prefix="/speech", dependencies=[Depends(get_signed_in_dyad)])

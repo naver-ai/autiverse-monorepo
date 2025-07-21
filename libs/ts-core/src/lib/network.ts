@@ -73,8 +73,9 @@ export class NetworkHelper {
         getStatusEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/status/${journalEntryId}`,
         getCancelEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/cancel/${journalEntryId}`,
       },
-      TTS: {
-        CLOVA: '/api/v1/app/tts/clova',
+      SPEECH: { 
+        CLOVA: '/api/v1/app/speech/clova',
+        RECOGNIZE: '/api/v1/app/speech/recognize',
       }
     }
   };

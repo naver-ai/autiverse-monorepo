@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { View, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ChatMessage } from '@autiverse-monorepo/ts-core';
-import { getSpeechManager } from '../utils/speechUtils';
+import { useSpeech } from '../utils/speechUtils';
 import { transcribeAudio, useVoiceRecorder } from '../utils/voiceUtils';
 import { ChatText } from './ChatText';
 import { ChatButtons } from './ChatButtons';
 import { VoiceRecordingStatus } from './VoiceRecordingStatus';
 import { useDyad } from '../../../api/dyad';
 import { uploadAudioFile } from '../api';
+import { useAuth } from '../../auth/hooks';
 
 interface ChatInputProps {
   inputText: string;
@@ -41,9 +42,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   isAfterFarewell = false,
   continueExisting = false
 }) => {
+
+  const {jwt} = useAuth()
+
   const { t } = useTranslation();
   const { dyad } = useDyad();
-  const [isTTSActive, setIsTTSActive] = useState<boolean>(false);
   const [isVoiceMode, setIsVoiceMode] = useState<boolean>(false);
   const [hasButtons, setHasButtons] = useState<boolean>(false);
   const [isVoiceCompleted, setIsVoiceCompleted] = useState<boolean>(false);
@@ -51,6 +54,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [previousMessageCount, setPreviousMessageCount] = useState<number>(0);
 
   const {isRecording: isVoiceRecording, canRecord, startRecording, stopRecording} = useVoiceRecorder()
+
+  const {isSpeaking} = useSpeech()
   
   const lastBotMessage = messages
     .filter(m => !m.isUser)
@@ -70,9 +75,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   // TTS 상태 구독
   useEffect(() => {
-    const speechManager = getSpeechManager();
-    const unsubscribe = speechManager.subscribeToStateChange((isSpeaking) => {
-      setIsTTSActive(isSpeaking);
       
       // TTS가 완료되면 바로 음성 녹음 모드로 전환
       if (!isSpeaking && !isLoading) {
@@ -114,18 +116,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                                         lastMessage?.text?.includes('채울 수 있을 것 같아');
         // 완료 메시지가 아니고 버튼이 표시되지 않으며, 만화 생성 완료 메시지도 아니고, farewell 이후도 아니고, 채팅 입력 메시지도 아니고, 제목 단계 전환 메시지도 아니고, sessionId가 존재할 때만 음성 녹음 시작
         const isTitleTransitionMessage = lastMessage?.text?.includes('그럼 이제 일기 제목을 정하러 가볼까?');
-        if (!isCompletionMessage && !shouldShowButtons && !isComicCompletionMessage && !isAfterFarewell && !isChatInputMessage && !isTitleTransitionMessage && sessionId) {
+        if (canRecord && !isCompletionMessage && !shouldShowButtons && !isComicCompletionMessage && !isAfterFarewell && !isChatInputMessage && !isTitleTransitionMessage && sessionId) {
           setIsVoiceCompleted(false); // 다음 음성 녹음 시작 전에 완료 상태 초기화
           startVoiceRecording();
         }
       }
-    });
-    
-    return unsubscribe;
-  }, [isLoading, messages, currentStage, continueExisting, isInitialLoad]);
+  }, [isSpeaking, canRecord, isLoading, messages, currentStage, continueExisting, isInitialLoad]);
   
   // TTS 또는 로딩 중일 때 비활성화, 또는 ChatInput이 비활성화 상태일 때
-  const isDisabled = isLoading || isTTSActive || comicGenerationStatus.status === 'generating' || !isInputActive || isVoiceRecording;
+  const isDisabled = isLoading || isSpeaking || comicGenerationStatus.status === 'generating' || !isInputActive || isVoiceRecording;
   
       // admin-web과 동일한 조건으로 버튼 표시 여부 결정
     const showYesNoButtons = (() => {
@@ -279,7 +278,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         }
         
         // Whisper API로 텍스트 변환 (현재 session context 정보 포함)
-        const transcribedText = await transcribeAudio(audioUri, peopleNames, placeNames);
+        const transcribedText = await transcribeAudio(jwt!, audioUri, peopleNames, placeNames);
         
         console.log('Transcribed text check:', {
           transcribedText,
@@ -349,7 +348,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         agentName={agentName}
         isVoiceMode={isVoiceMode}
         isVoiceRecording={isVoiceRecording}
-        isTTSActive={isTTSActive}
+        isTTSActive={isSpeaking}
         onComplete={completeVoiceRecording}
       />
       

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 // @ts-ignore
 import format from 'string-format';
 import { styleTemplates } from '../../../../styles';
-import { speakText, stopSpeech } from '../../utils/speechUtils';
+import { useSpeech } from '../../utils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -37,6 +37,7 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
   const { t } = useTranslation();
   const [hasCompleted, setHasCompleted] = useState(false);
   const [hasSpoken, setHasSpoken] = useState(false);
+  const {startSpeech, stopSpeech} = useSpeech()
 
   const childJosa = getKoreanJosa(childName);
   const farewellMessage = format(t('Journaling.FarewellSection.MessageTemplate'), { 
@@ -47,7 +48,7 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
   // TTS 시작
   useEffect(() => {
     if (!hasSpoken) {
-      speakText(farewellMessage, {
+      startSpeech(farewellMessage, {
         language: 'ko-KR',
         pitch: 1.0,
         rate: 0.8,
@@ -74,13 +75,6 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
       });
     }
   }, [hasSpoken, farewellMessage, hasCompleted, onComplete]);
-
-  // 컴포넌트 언마운트 시 TTS 정지
-  useEffect(() => {
-    return () => {
-      stopSpeech();
-    };
-  }, []);
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
