@@ -15,7 +15,6 @@ import FarewellSection from '../components/sections/FarewellSection';
 import { PresetSelectionStage, ChatStage } from '../components/stages';
 import { ChatMessage, Preset } from '@autiverse-monorepo/ts-core';
 import { useSpeech } from '../utils';
-import { useVoiceRecorder } from '../utils/voiceUtils';
 import { useDyad } from '../../../api/dyad';
 import { useJournalingStore } from '../store';
 
