@@ -367,19 +367,19 @@ class ChatbotController:
             )
         
         return JournalingSessionInfo(
-            journal_entry_id=journal_entry_id,
-            stage=journal_entry.stage.value if journal_entry.stage else "intro",
-            status=journal_entry.status.value if journal_entry.status else "initial",
-            location=journal.location if journal else None,
-            people=journal.people if journal else None,
-            events=journal.events if journal else None,
-            summary=journal.summary if journal else None,
-            title=journal.title if journal else None,
-            panels=comic_data,
-            message_count=len(messages) if messages else 0,
-            focusedPanel=focused_panel,
-            messages=formatted_messages
-        )
+                journal_entry_id=journal_entry_id,
+                stage=journal_entry.stage.value if journal_entry.stage else "intro",
+                status=journal_entry.status.value if journal_entry.status else "initial",
+                location=journal.location if journal else None,
+                people=journal.people if journal else None,
+                events=journal.events if journal else None,
+                summary=journal.summary if journal else None,
+                title=journal.title if journal else None,
+                panels=comic_data,
+                message_count=len(messages) if messages else 0,
+                focusedPanel=focused_panel,
+                messages=formatted_messages
+            )
     
     def reset_session(self, journal_entry_id: str) -> Dict[str, Any]:
         """세션 초기화"""

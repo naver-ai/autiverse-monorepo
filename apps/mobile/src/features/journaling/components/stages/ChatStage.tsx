@@ -18,8 +18,7 @@ interface ChatStageProps {
   agentName: string;
   agentConfig?: any;
   onTTSComplete?: () => void;
-  sessionId?: string;
-  loadSessionInfo?: (sessionId: string) => Promise<any>;
+  sessionId: string;
   onEndSession?: () => void;
   continueExisting?: boolean;
 }
@@ -32,7 +31,6 @@ export const ChatStage: React.FC<ChatStageProps> = ({
   agentConfig,
   onTTSComplete,
   sessionId,
-  loadSessionInfo,
   onEndSession,
   continueExisting = false
 }) => {
@@ -41,7 +39,6 @@ export const ChatStage: React.FC<ChatStageProps> = ({
     currentStage,
     comicData,
     focusedPanel,
-    messages,
     inputText,
     setInputText,
     isLoading,
@@ -189,7 +186,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
           {/* 현재 Agent 메시지 */}
           <View className="flex-1 p-3 bg-gray-50">
             <ChatMessageComponent
-              messages={messages}
+              journalEntryId={sessionId}
               isLoading={isLoading}
               agentName={agentName}
               agentConfig={agentConfig}
@@ -199,17 +196,15 @@ export const ChatStage: React.FC<ChatStageProps> = ({
 
           {/* 입력 영역 */}
           <ChatInput
+            journalEntryId={sessionId}
             inputText={inputText}
             setInputText={setInputText}
             sendMessage={sendMessage}
             isLoading={isLoading}
-            messages={messages}
             currentStage={currentStage}
             comicGenerationStatus={comicGenerationStatus}
             isInputActive={isInputActive}
             agentName={agentName}
-            sessionId={sessionId}
-            loadSessionInfo={loadSessionInfo}
             isAfterFarewell={isAfterFarewell}
             continueExisting={continueExisting}
           />

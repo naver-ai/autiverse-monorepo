@@ -1,45 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import { View, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { ChatMessage } from '@autiverse-monorepo/ts-core';
-import { useSpeech } from '../utils/speechUtils';
+import { useSpeechState } from '../utils/speechUtils';
 import { useVoiceRecorder } from '../utils';
 import { transcribeAudio } from '../utils/voiceUtils';
-import { ChatText } from './ChatText';
-import { ChatButtons } from './ChatButtons';
-import { VoiceRecordingStatus } from './VoiceRecordingStatus';
 import { useDyad } from '../../../api/dyad';
 import { uploadAudioFile } from '../api';
 import { useAuth } from '../../auth/hooks';
+import { usePrevious } from '@uidotdev/usehooks';
+import { useSession } from '../hooks/useSession';
+import { VoiceRecordingStatus } from './VoiceRecordingStatus';
+import { ChatButtons } from './ChatButtons';
+import { ChatText } from './ChatText';
 
 interface ChatInputProps {
+  journalEntryId: string;
   inputText: string;
   setInputText: (text: string) => void;
   sendMessage: (message: string, audioFilename?: string) => void;
   isLoading: boolean;
-  messages: ChatMessage[];
   currentStage: string;
   comicGenerationStatus: any;
   isInputActive?: boolean;
   agentName: string;
-  sessionId?: string;
-  loadSessionInfo?: (sessionId: string) => Promise<any>;
   isAfterFarewell?: boolean;
   continueExisting?: boolean;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
+  journalEntryId,
   inputText,
   setInputText,
   sendMessage,
   isLoading,
-  messages,
   currentStage,
   comicGenerationStatus,
   isInputActive = true,
   agentName,
-  sessionId,
-  loadSessionInfo,
   isAfterFarewell = false,
   continueExisting = false
 }) => {
@@ -52,27 +49,32 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [hasButtons, setHasButtons] = useState<boolean>(false);
   const [isVoiceCompleted, setIsVoiceCompleted] = useState<boolean>(false);
   const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
-  const [previousMessageCount, setPreviousMessageCount] = useState<number>(0);
 
   const {isRecording: isVoiceRecording, canRecord, startRecording, stopRecording} = useVoiceRecorder()
 
-  const {isSpeaking} = useSpeech()
+  const {isSpeaking} = useSpeechState()
+
+  const previousIsSpeaking = usePrevious(isSpeaking);
+
+  const {sessionInfo} = useSession({sessionId: journalEntryId});
+  const messages = sessionInfo?.messages;
+
+
+  const previousMessageCount = usePrevious(messages?.length || 0);
   
-  const lastBotMessage = messages
-    .filter(m => !m.isUser)
+  const lastBotMessage = messages?.filter(m => !m.isUser)
     .pop();
   
   // 메시지 개수 변화 감지 (이어쓰기 모드에서 초기 로드 방지용)
   useEffect(() => {
-    if (continueExisting && messages.length > previousMessageCount && previousMessageCount === 0) {
+    if (continueExisting && messages && messages.length > previousMessageCount && previousMessageCount === 0) {
       // 이어쓰기 모드에서 처음 메시지가 로드된 경우
-      setPreviousMessageCount(messages.length);
       setIsInitialLoad(false);
     } else if (!continueExisting) {
       // 새로운 작업인 경우 초기 로드 상태 해제
       setIsInitialLoad(false);
     }
-  }, [messages.length, continueExisting, previousMessageCount]);
+  }, [messages?.length, continueExisting, previousMessageCount]);
 
   // TTS 상태 구독
   useEffect(() => {
@@ -81,7 +83,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     console.log("isLoading", isLoading)
       
       // TTS가 완료되면 바로 음성 녹음 모드로 전환
-      if (!isSpeaking && !isLoading) {
+      if (previousIsSpeaking === true && !isSpeaking && !isLoading) {
         console.log("TTS completed, continueExisting:", continueExisting, "isInitialLoad:", isInitialLoad)
         // 이어쓰기 모드에서 초기 로드인 경우, 음성 녹음 시작하지 않음
         if (continueExisting && isInitialLoad) {
@@ -89,7 +91,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           return;
         }
         
-        const lastMessage = messages.filter(m => !m.isUser).pop();
+        const lastMessage = messages?.filter(m => !m.isUser).pop();
         const isCompletionMessage = lastMessage?.text?.includes('다음 버튼을 눌러줘!');
         
         // 채팅으로 입력하라는 메시지인지 확인 (title stage에서 2번 이상 거부했을 때)
@@ -122,12 +124,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                                         lastMessage?.text?.includes('채울 수 있을 것 같아');
         // 완료 메시지가 아니고 버튼이 표시되지 않으며, 만화 생성 완료 메시지도 아니고, farewell 이후도 아니고, 채팅 입력 메시지도 아니고, 제목 단계 전환 메시지도 아니고, sessionId가 존재할 때만 음성 녹음 시작
         const isTitleTransitionMessage = lastMessage?.text?.includes('그럼 이제 일기 제목을 정하러 가볼까?');
-        if (canRecord && !isCompletionMessage && !shouldShowButtons && !isComicCompletionMessage && !isAfterFarewell && !isChatInputMessage && !isTitleTransitionMessage && sessionId) {
+        
+        if (canRecord && !isCompletionMessage && !shouldShowButtons && !isComicCompletionMessage && !isAfterFarewell && !isChatInputMessage && !isTitleTransitionMessage) {
           setIsVoiceCompleted(false); // 다음 음성 녹음 시작 전에 완료 상태 초기화
           startVoiceRecording();
         }
       }
-  }, [isSpeaking, canRecord, isLoading, messages, currentStage, continueExisting, isInitialLoad]);
+  }, [previousIsSpeaking, isSpeaking, canRecord, isLoading, messages, currentStage, continueExisting, isInitialLoad]);
   
   // TTS 또는 로딩 중일 때 비활성화, 또는 ChatInput이 비활성화 상태일 때
   const isDisabled = isLoading || isSpeaking || comicGenerationStatus.status === 'generating' || !isInputActive || isVoiceRecording;
@@ -263,14 +266,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         let peopleNames: string[] = [];
         let placeNames: string[] = [];
         
-        if (sessionId && loadSessionInfo) {
+        if (sessionInfo) {
           try {
-            const sessionInfo = await loadSessionInfo(sessionId);
-            if (sessionInfo) {
               // 현재 journal의 location과 people 정보 사용
               peopleNames = sessionInfo.people || [];
               placeNames = sessionInfo.location ? [sessionInfo.location] : [];
-            }
           } catch (error) {
             console.error('Failed to load session info for Whisper prompt:', error);
             // fallback: dyad 정보 사용
@@ -299,15 +299,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         if (transcribedText && !isEmptyOrQuotesOnly) {
           // 오디오 파일 업로드
           let audioFilename: string | undefined = undefined;
-          if (sessionId) {
-            try {
-              const uploadResult = await uploadAudioFile(audioUri, sessionId, currentStage);
-              audioFilename = uploadResult.filename;
-              console.log('Audio file uploaded successfully:', audioFilename);
-            } catch (error) {
-              console.error('Failed to upload audio file:', error);
-              // 업로드 실패해도 메시지는 전송
-            }
+          try {
+            const uploadResult = await uploadAudioFile(audioUri, journalEntryId, currentStage);
+            audioFilename = uploadResult.filename;
+            console.log('Audio file uploaded successfully:', audioFilename);
+          } catch (error) {
+            console.error('Failed to upload audio file:', error);
+            // 업로드 실패해도 메시지는 전송
           }
           
           // 변환된 텍스트를 메시지로 전송 (audio_filename 포함)
@@ -352,7 +350,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {/* 음성 녹음 상태 표시 */}
       <VoiceRecordingStatus
         agentName={agentName}
-        isVoiceMode={isVoiceMode}
+        isVoiceMode={isVoiceRecording}
         onComplete={completeVoiceRecording}
       />
       
@@ -370,7 +368,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {/* 입력 필드 */}
       {(() => {
         // 채팅으로 입력하라는 메시지인지 확인 (title stage에서 2번 이상 거부했을 때)
-        const lastMessage = messages.filter(m => !m.isUser).pop();
+        const lastMessage = messages?.filter(m => !m.isUser).pop();
         const isChatInputMessage = lastMessage?.text?.includes('채팅으로 쳐서 정확하게 알려줘!');
         
         // 채팅 입력 메시지이거나 음성 녹음이 완료되지 않았을 때 ChatText 표시

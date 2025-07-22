@@ -15,7 +15,7 @@ export const getChatSessionAPI = async (journalEntryId: string, jwt: string) => 
 export const useChatSession = (journalEntryId: string) => {
     const { jwt } = useAuthStore();
     const { data, isLoading, error } = useQuery({
-        queryKey: ['chatSession', journalEntryId],
+        queryKey: ['session', journalEntryId],
         queryFn: () => getChatSessionAPI(journalEntryId, jwt!!),
     });
 

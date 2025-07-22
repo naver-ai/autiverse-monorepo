@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { NetworkHelper } from '@autiverse-monorepo/ts-core';
+import { ChatMessage, NetworkHelper } from '@autiverse-monorepo/ts-core';
 import { useAuthStore } from '../../auth/store';
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
@@ -44,7 +44,7 @@ export const useChatbot = (afterStart?: (data: ChatbotStartResponse, withSuggest
     mutationFn: (args: {location?: string, people?: Array<string>}) => createNewSessionAPI(jwt!!, args.location, args.people),
     onSuccess: (data) => {
       console.log('Successfully created new session:', data);
-      queryClient.setQueryData(['chatSession'], () => {
+      queryClient.setQueryData(['session', data.journal_entry_id], () => {
         return data;
       });
 
@@ -61,7 +61,7 @@ export const useChatbot = (afterStart?: (data: ChatbotStartResponse, withSuggest
     mutationFn: () => createNewSessionWithSuggestionsAPI(jwt!!),
     onSuccess: (data) => {
       console.log('Successfully created new session with suggestion:', data);
-      queryClient.setQueryData(['chatSession'], () => {
+      queryClient.setQueryData(['session', data.journal_entry_id], () => {
         return data;
       });
 
@@ -71,8 +71,19 @@ export const useChatbot = (afterStart?: (data: ChatbotStartResponse, withSuggest
     },
   })
 
+  const addMockMessages = (journalEntryId: string, messages: ChatMessage[]) => {
+    queryClient.setQueryData(['session', journalEntryId], (oldData: any) => {
+      if(oldData) {
+        return {
+          ...oldData,
+          messages: [...oldData.messages, ...messages]
+        };
+      }
+    });
+  }
+
   const sendMessage = useCallback(async (sessionId: string, messageText: string, audioFilename?: string) => {
-    if (!sessionId || !messageText.trim()) return null;
+    if (!sessionId || !messageText.trim() || !jwt) return null;
 
     try {
       const response = await NetworkHelper.axiosClient.post(
@@ -81,7 +92,8 @@ export const useChatbot = (afterStart?: (data: ChatbotStartResponse, withSuggest
           journal_entry_id: sessionId,
           message: messageText,
           audio_filename: audioFilename,
-        }
+        },
+        { headers: await NetworkHelper.getHeaders(jwt) }
       );
 
       if (response.status === 200) {
@@ -95,7 +107,7 @@ export const useChatbot = (afterStart?: (data: ChatbotStartResponse, withSuggest
       console.error('Failed to send message:', error);
       return null;
     }
-  }, []);
+  }, [jwt]);
 
   const startAutoComicGeneration = useCallback(async (sessionId: string) => {
     try {
@@ -122,6 +134,7 @@ export const useChatbot = (afterStart?: (data: ChatbotStartResponse, withSuggest
     startChatbotWithSuggestion: startChatbotWithSuggestionMutation.mutateAsync,
     isStartingChatbot: startChatbotMutation.isPending || startChatbotWithSuggestionMutation.isPending,
     sendMessage,
+    addMockMessages,
     startAutoComicGeneration,
   };
 }; 

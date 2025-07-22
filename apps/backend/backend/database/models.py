@@ -246,8 +246,8 @@ class Message(SQLModel, IdTimestampMixin, JournalEntryIdMixin, InteractionTurnId
 
 class Journal(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
     location: Optional[str] = Field(nullable=True, default=None)
-    people: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
-    events: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    people: Optional[list[str]] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    events: Optional[list[str]] = Field(sa_column=Column(JSON, nullable=True), default=None)
     summary: Optional[str] = Field(nullable=True, default=None)
     title: Optional[str] = Field(nullable=True, default=None)
     revision_1_count: int = Field(nullable=False, default=0)
@@ -300,8 +300,8 @@ class JournalingSessionInfo(BaseModel):
     stage: str
     status: str
     location: Optional[str] = None
-    people: Optional[dict] = None
-    events: Optional[dict] = None
+    people: Optional[list[str]] = None
+    events: Optional[list[str]] = None
     summary: Optional[str] = None
     title: Optional[str] = None
     panels: Optional[ComicData] = None

@@ -23,7 +23,7 @@ export const JournalingScreen = () => {
   const router = useRouter();
   const { t } = useTranslation();
 
-  const {journalEntryId, stage, continueExistingStr}: {journalEntryId?: string, stage?: string, continueExistingStr?: string} = useLocalSearchParams();
+  const {journalEntryId, stage, continueExistingStr}: {journalEntryId: string, stage: string, continueExistingStr: string} = useLocalSearchParams();
 
   const continueExisting = continueExistingStr === 'true';
 
@@ -33,10 +33,6 @@ export const JournalingScreen = () => {
 
   // Store 사용
   const {
-    messages,
-    setMessages,
-    addMessage,
-    addMessages,
     setIsLoading,
     currentStage,
     setCurrentStage,
@@ -57,10 +53,13 @@ export const JournalingScreen = () => {
   // Chatbot 훅 사용
   const {
     sendMessage: sendMessageFromHook,
-    startAutoComicGeneration: startAutoComicGenerationFromHook
+    startAutoComicGeneration: startAutoComicGenerationFromHook,
+    addMockMessages
   } = useChatbot();
 
   const {sessionInfo, isSessionInfoLoading, sessionInfoLoadError, refetchSessionInfo, invalidateSessionInfo} = useSession({sessionId: journalEntryId});
+
+  console.log("journalId: ", journalEntryId, "sessionInfo: ", sessionInfo)
 
   // 칭찬 섹션 완료 콜백
   const handlePraiseComplete = () => {
@@ -103,11 +102,13 @@ export const JournalingScreen = () => {
       console.log('Comic generation completed:', comicGenerationStatus.comic_data);
       
       // 만화 생성이 완료되면 고정 메시지들을 제거
+      //TODO
+      /*
       const filteredMessages = messages.filter(msg => 
         msg.text !== t('Journaling.Messages.Revision1Confirmation') &&
         msg.text !== t('Journaling.Messages.Revision2Confirmation')
       );
-      addMessages(filteredMessages);
+      addMessages(filteredMessages);*/
       
       // 세션 정보를 다시 로드하여 최신 만화 데이터 가져오기
       setTimeout(() => {
@@ -221,7 +222,7 @@ export const JournalingScreen = () => {
       timestamp: new Date(),
     };
 
-    addMessage(userMessage);
+    addMockMessages(journalEntryId, [userMessage]);
     prepareForMessageSend();
 
     // Revision_1에서 다음 단계로 넘어가는 기준이 달성될 때 고정 메시지를 먼저 추가
@@ -236,7 +237,7 @@ export const JournalingScreen = () => {
         isUser: false,
         timestamp: new Date(),
       };
-      addMessages([fixedMessage]);
+      addMockMessages(journalEntryId, [fixedMessage]);
     }
 
     try {
@@ -259,12 +260,12 @@ export const JournalingScreen = () => {
 
         // 완료 메시지 감지 (다음 버튼을 눌러야 넘어감)
         if (data.response.includes(t('Journaling.Messages.NextButtonPrompt'))) {
-          addMessage(botMessage);
+          addMockMessages(journalEntryId, [botMessage]);
         }
         // comic_context 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 다행이다~ 메시지가 제거됨)
         else if (data.stage === 'comic_context') {
           console.log('Comic context message detected, adding immediately...');
-          addMessage(botMessage);
+          addMockMessages(journalEntryId, [botMessage]);
         } else if (data.stage === 'revision_2' && data.response.includes('완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔')) {
           // Revision_2에서 만화 생성이 시작될 때 고정 메시지 추가
           console.log('Revision_2 comic generation detected, adding fixed message...');
@@ -275,13 +276,13 @@ export const JournalingScreen = () => {
             isUser: false,
             timestamp: new Date(),
           };
-          addMessage(fixedMessage);
+          addMockMessages(journalEntryId, [fixedMessage]);
           
           // revision_2 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 고정 메시지가 제거됨)
-          addMessage(botMessage);
+          addMockMessages(journalEntryId, [botMessage]);
         } else {
           // 다른 메시지들은 바로 표시
-          addMessage(botMessage);
+          addMockMessages(journalEntryId, [botMessage]);
         }
         
         // 세션 정보에서 최신 패널 데이터 가져오기 (만화 생성이 진행 중이지 않을 때만)
@@ -336,7 +337,7 @@ export const JournalingScreen = () => {
                   timestamp: new Date(),
                 };
                 
-                addMessage(autoBotMessage);
+                addMockMessages(journalEntryId, [autoBotMessage]);
                 
                 // 세션 정보 다시 로드 (한 번만)
                 if (!isComicCompleted) {
@@ -420,8 +421,7 @@ export const JournalingScreen = () => {
             sendMessage={sendMessage}
             agentName={agentName || t('Journaling.Common.DefaultAgentName')}
             agentConfig={agentConfig}
-            sessionId={journalEntryId || undefined}
-            loadSessionInfo={() => refetchSessionInfo()}
+            sessionId={journalEntryId}
             onTTSComplete={() => {
               // 완료 메시지가 아닐 때만 ChatInput 활성화
               if (!completionMessage) {

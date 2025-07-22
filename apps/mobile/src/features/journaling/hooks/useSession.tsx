@@ -3,12 +3,15 @@ import { getSessionInfoAPI } from "../api";
 import { useAuth } from "../../auth/hooks";
 import { useCallback } from "react";
 
-export function useSession({sessionId}: {sessionId?: string | null}) {
+export function useSession({sessionId}: {sessionId: string}) {
     const {jwt} = useAuth()
+
+    console.log("jwt: ", jwt)
+
     const {data, isLoading, error, refetch} = useQuery({
         queryKey: ['session', sessionId],
-        queryFn: () => getSessionInfoAPI({token: jwt!, sessionId: sessionId!}),
-        enabled: !!sessionId && !!jwt
+        queryFn: () => getSessionInfoAPI({token: jwt!, sessionId: sessionId}),
+        enabled: !!jwt
     })
 
     const queryClient = useQueryClient()

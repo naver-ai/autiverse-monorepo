@@ -40,7 +40,7 @@ export const VoiceRecordingStatus = memo(({
   const pulseAnimation = useRef(new Animated.Value(1)).current;
 
   const bounceAnimation = useRef(new Animated.Value(1)).current;
-  console.log('voiceRecording', isRecording, isSpeaking)
+  console.log('voiceRecording: ', isRecording, "isSpeaking: ", isSpeaking)
 
   // 음성 녹음 애니메이션
   useEffect(() => {

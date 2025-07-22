@@ -146,8 +146,8 @@ export interface JournalingSessionInfo {
   stage: string;
   status: string;
   location?: string | null;
-  people?: Record<string, any> | null;
-  events?: Record<string, any> | null;
+  people?: string[] | null;
+  events?: string[] | null;
   summary?: string | null;
   title?: string | null;
   panels?: ComicData | null;

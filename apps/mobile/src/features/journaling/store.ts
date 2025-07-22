@@ -3,7 +3,6 @@ import { ChatMessage, Preset } from '@autiverse-monorepo/ts-core';
 
 interface JournalingState {
   // 기본 상태
-  messages: ChatMessage[];
   inputText: string;
   isLoading: boolean;
   currentStage: string;
@@ -34,9 +33,6 @@ interface JournalingState {
   isAfterFarewell: boolean;
   
   // Actions - 실제 사용되는 것들만 유지
-  setMessages: (messages: ChatMessage[]) => void;
-  addMessage: (message: ChatMessage) => void;
-  addMessages: (newMessages: ChatMessage[]) => void;
   setIsLoading: (loading: boolean) => void;
   setCurrentStage: (stage: string) => void;
   setIsInputActive: (active: boolean) => void;
@@ -51,7 +47,6 @@ interface JournalingState {
     panels?: any;
     title?: string;
     focusedPanel?: string | null;
-    messages?: ChatMessage[];
     showPresetSelection?: boolean;
   }) => void;
   
@@ -88,7 +83,6 @@ interface JournalingState {
 
 export const useJournalingStore = create<JournalingState>((set, get) => ({
   // 초기 상태
-  messages: [],
   inputText: '',
   isLoading: false,
   currentStage: 'intro',
@@ -111,15 +105,7 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
   
   isInputActive: false,
   isAfterFarewell: false,
-  
-  // Actions - 실제 사용되는 것들만 유지
-  setMessages: (messages) => set({ messages }),
-  addMessage: (message) => set((state) => ({ 
-    messages: [...state.messages, message] 
-  })),
-  addMessages: (newMessages) => set((state) => ({ 
-    messages: [...state.messages, ...newMessages] 
-  })),
+
   setInputText: (inputText) => set({ inputText }),
   setIsLoading: (isLoading) => set({ isLoading }),
   setCurrentStage: (currentStage) => set({ currentStage }),
@@ -133,7 +119,6 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
     currentStage: sessionData.stage,
     comicData: sessionData.panels || null,
     focusedPanel: sessionData.focusedPanel || null,
-    messages: sessionData.messages || [],
     showPresetSelection: sessionData.showPresetSelection !== undefined ? sessionData.showPresetSelection : false
   }),
   
@@ -219,7 +204,6 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
   })),
   
   resetAll: () => set({
-    messages: [],
     inputText: '',
     isLoading: false,
     currentStage: 'intro',
@@ -241,7 +225,6 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
   }),
   
   resetForNewSession: () => set({
-    messages: [],
     inputText: '',
     isLoading: false,
     currentStage: 'intro',

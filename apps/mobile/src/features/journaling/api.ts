@@ -19,6 +19,7 @@ export const getSessionInfoAPI = async ({token, sessionId}: {token: string, sess
       headers: await NetworkHelper.getHeaders(token)
     }
   );
+
   return response.data;
 };
 

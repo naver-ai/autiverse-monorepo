@@ -17,7 +17,6 @@ export const PresetSelectionScreen = () => {
 
     const {t} = useTranslation();
 
-  const {startChatbotSession, addMessages} = useJournalingStore();
   const {startChatbot: startChatbotFromHook, 
         startChatbotWithSuggestion: startChatbotWithSuggestionFromHook,
         isStartingChatbot
@@ -35,27 +34,7 @@ export const PresetSelectionScreen = () => {
   const startChatbot = async (preset?: Preset) => {
     console.log('startChatbot called with preset:', preset);
     try {
-      const data = await startChatbotFromHook(preset || {});
-      if (data) {
-        console.log('Response data:', data);
-        startChatbotSession({
-          journalEntryId: data.journal_entry_id,
-          stage: data.stage
-        });
-        
-        const newMessage: ChatMessage = {
-          id: Date.now().toString(),
-          text: data.response,
-          isUser: false,
-          timestamp: new Date(),
-        };
-        
-        addMessages([newMessage]);
-        
-        console.log('Chatbot started successfully');
-      } else {
-        Alert.alert('오류', t('Journaling.Errors.ChatbotStartError'));
-      }
+      await startChatbotFromHook(preset || {});
     } catch (error) {
       console.error('Failed to start chatbot:', error);
       Alert.alert('오류', t('Journaling.Errors.ChatbotStartError'));
@@ -66,27 +45,7 @@ export const PresetSelectionScreen = () => {
   const startChatbotWithSuggestion = async () => {
     console.log('startChatbotWithSuggestion called');
     try {
-      const data = await startChatbotWithSuggestionFromHook();
-      if (data) {
-        console.log('Response data:', data);
-        startChatbotSession({
-          journalEntryId: data.journal_entry_id,
-          stage: data.stage
-        });
-        
-        const newMessage: ChatMessage = {
-          id: Date.now().toString(),
-          text: data.response,
-          isUser: false,
-          timestamp: new Date(),
-        };
-        
-        addMessages([newMessage]);
-        
-        console.log('Chatbot started with suggestion successfully');
-      } else {
-        Alert.alert('오류', t('Journaling.Errors.ChatbotStartError'));
-      }
+      await startChatbotWithSuggestionFromHook();
     } catch (error) {
       console.error('Failed to start chatbot with suggestion:', error);
       Alert.alert('오류', t('Journaling.Errors.ChatbotStartError'));

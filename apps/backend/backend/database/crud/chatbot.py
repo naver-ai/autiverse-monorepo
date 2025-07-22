@@ -39,7 +39,7 @@ def create_journal_entry(db: Session, dyad_id: str) -> JournalEntry:
 
 def get_journal_entry(db: Session, journal_entry_id: str) -> Optional[JournalEntry]:
     """journal entry 조회"""
-    return db.query(JournalEntry).filter(JournalEntry.id == journal_entry_id).first()
+    return db.get(JournalEntry, journal_entry_id)
 
 def update_journal_entry_stage(db: Session, journal_entry_id: str, stage: JournalEntryStage, status: JournalEntryStatus = None) -> Optional[JournalEntry]:
     """journal entry stage 업데이트"""

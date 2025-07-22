@@ -5,9 +5,10 @@ import { styleTemplates } from '../../../styles';
 import { useSpeech } from '../utils';
 import { getTTSOptionsFromAgentConfig } from '../utils/speechUtils';
 import { AgentImage } from './AgentImage';
+import { useSession } from '../hooks/useSession';
 
 interface ChatMessageProps {
-  messages: ChatMessageType[];
+  journalEntryId: string;
   isLoading: boolean;
   agentName: string;
   agentConfig?: any;
@@ -20,7 +21,7 @@ const removeEmojis = (text: string): string => {
 };
 
 export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
-  messages,
+  journalEntryId,
   isLoading,
   agentName,
   agentConfig,
@@ -29,9 +30,10 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
 
   const {startSpeech} = useSpeech()
 
-  const lastBotMessage = messages
-    .filter(m => !m.isUser)
-    .pop();
+  const {sessionInfo} = useSession({sessionId: journalEntryId});
+
+  const lastBotMessage = sessionInfo?.messages?.filter(m => !m.isUser)
+    ?.pop();
 
   // 새로운 봇 메시지가 올 때 자동으로 음성 재생
   useEffect(() => {
@@ -68,7 +70,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     }
   }, [lastBotMessage?.id, isLoading]);
   
-  if (messages.length === 0) {
+  if (!sessionInfo || sessionInfo.messages?.length === 0) {
     return (
       <View className="items-center justify-center py-8">
         <Text className="text-lg text-gray-600 text-center" style={styleTemplates.withSemiboldFont}>
