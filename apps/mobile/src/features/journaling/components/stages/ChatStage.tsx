@@ -10,6 +10,7 @@ import { useJournalingStore } from '../../store';
 import { ComicPanel } from '../ComicPanel';
 import { ChatMessageComponent } from '../ChatMessage';
 import { ChatInput } from '../ChatInput';
+import { useSession } from '../../hooks/useSession';
 
 interface ChatStageProps {
   comicGenerationStatus: any;
@@ -36,15 +37,21 @@ export const ChatStage: React.FC<ChatStageProps> = ({
 }) => {
   const { t } = useTranslation();
   const {
-    currentStage,
-    comicData,
-    focusedPanel,
     inputText,
     setInputText,
     isLoading,
     isInputActive,
     isAfterFarewell
   } = useJournalingStore();
+
+
+  const {sessionInfo} = useSession({sessionId: sessionId});
+
+  const comicData = sessionInfo?.panels;
+ 
+  const currentStage = sessionInfo?.stage;
+  const focusedPanel = sessionInfo?.focusedPanel;
+
   const convertComicDataToPanelsMemo = React.useMemo(() => {
     return convertComicDataToPanels(comicData);
   }, [comicData]);
@@ -201,7 +208,6 @@ export const ChatStage: React.FC<ChatStageProps> = ({
             setInputText={setInputText}
             sendMessage={sendMessage}
             isLoading={isLoading}
-            currentStage={currentStage}
             comicGenerationStatus={comicGenerationStatus}
             isInputActive={isInputActive}
             agentName={agentName}

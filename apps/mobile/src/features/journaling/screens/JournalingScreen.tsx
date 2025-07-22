@@ -34,8 +34,6 @@ export const JournalingScreen = () => {
   // Store 사용
   const {
     setIsLoading,
-    currentStage,
-    setCurrentStage,
     isComicCompleted,
     showPraiseSection,
     showFarewellSection,
@@ -58,6 +56,8 @@ export const JournalingScreen = () => {
   } = useChatbot();
 
   const {sessionInfo, isSessionInfoLoading, sessionInfoLoadError, refetchSessionInfo, invalidateSessionInfo} = useSession({sessionId: journalEntryId});
+
+  const currentStage = sessionInfo?.stage;
 
   console.log("journalId: ", journalEntryId, "sessionInfo: ", sessionInfo)
 
@@ -194,7 +194,7 @@ export const JournalingScreen = () => {
       
       // 백엔드에 '다음' 메시지 전송
       try {
-        const data = await sendMessageFromHook(journalEntryId, messageText, audioFilename);
+        const data = await sendMessageFromHook({journalEntryId, message: messageText, audioFilename});
         if (data) {
           console.log('Next button message sent to backend:', data);
         }
@@ -241,7 +241,7 @@ export const JournalingScreen = () => {
     }
 
     try {
-      const data = await sendMessageFromHook(journalEntryId, messageText, audioFilename);
+      const data = await sendMessageFromHook({journalEntryId, message: messageText, audioFilename});
       if (data) {
         const botMessage: ChatMessage = {
           id: (Date.now() + 2).toString(),
@@ -249,14 +249,6 @@ export const JournalingScreen = () => {
           isUser: false,
           timestamp: new Date(),
         };
-
-        // 기본 응답 처리
-        handleMessageResponse({
-          stage: data.stage,
-          response: data.response,
-          focusedPanel: data.focusedPanel,
-          auto_comic_generation: data.auto_comic_generation
-        });
 
         // 완료 메시지 감지 (다음 버튼을 눌러야 넘어감)
         if (data.response.includes(t('Journaling.Messages.NextButtonPrompt'))) {
@@ -304,11 +296,11 @@ export const JournalingScreen = () => {
         if (data.auto_comic_generation && !isComicCompleted) {
           console.log('Auto comic generation detected, immediately setting next stage...');
           
-          // 즉시 다음 단계로 stage 설정 (깜빡임 방지)
+          //TODO 즉시 다음 단계로 stage 설정 (깜빡임 방지)
           if (data.stage === 'revision_1') {
-            setCurrentStage('comic_context');
+            //setCurrentStage('comic_context');
           } else if (data.stage === 'comic_context') {
-            setCurrentStage('revision_2');
+            //setCurrentStage('revision_2');
           }
           
           // 만화 생성 상태 모니터링 시작

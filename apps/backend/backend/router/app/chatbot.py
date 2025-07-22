@@ -132,7 +132,7 @@ def send_message(
 @router.get("/session/{journal_entry_id}", response_model=JournalingSessionInfo)
 def get_session_info(
     journal_entry_id: str,
-    db: Session = Depends(get_session)
+    db: Annotated[Session, Depends(get_session)]
 ):
     """세션 정보 조회"""
     try:
@@ -146,7 +146,7 @@ def get_session_info(
 @router.post("/reset/{journal_entry_id}")
 def reset_session(
     journal_entry_id: str,
-    db: Session = Depends(get_session)
+    db: Annotated[Session, Depends(get_session)]
 ):
     """세션 초기화"""
     try:
@@ -167,7 +167,7 @@ def reset_session(
 @router.get("/dyad/{dyad_id}/places")
 def get_places(
     dyad: Annotated[Dyad, Depends(get_signed_in_dyad)],
-    db: Session = Depends(get_session),
+    db: Annotated[Session, Depends(get_session)],
 ):
     places = get_dyad_places(db, dyad.id)
     return {

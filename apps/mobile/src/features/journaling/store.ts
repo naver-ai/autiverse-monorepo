@@ -1,24 +1,11 @@
 import { create } from 'zustand';
-import { ChatMessage, Preset } from '@autiverse-monorepo/ts-core';
 
 interface JournalingState {
   // 기본 상태
   inputText: string;
   isLoading: boolean;
-  currentStage: string;
-  sessionId: string | null;
-  comicData: any;
-  focusedPanel: string | null;
   
-  // 2단계 선택을 위한 상태
-  selectedLocation: string | null;
-  selectedPeople: string[];
-  selectionStep: 'location' | 'people';
   showPresetSelection: boolean;
-  
-  // API 기반 상태
-  selectedPlaceId: string | null;
-  selectedPersonIds: string[];
   
   // 만화 생성 관련 상태
   isComicCompleted: boolean;
@@ -34,7 +21,6 @@ interface JournalingState {
   
   // Actions - 실제 사용되는 것들만 유지
   setIsLoading: (loading: boolean) => void;
-  setCurrentStage: (stage: string) => void;
   setIsInputActive: (active: boolean) => void;
   setIsAfterFarewell: (after: boolean) => void;
   setInputText: (text: string) => void;
@@ -48,13 +34,6 @@ interface JournalingState {
     title?: string;
     focusedPanel?: string | null;
     showPresetSelection?: boolean;
-  }) => void;
-  
-  updateSessionInfo: (sessionData: {
-    panels?: any;
-    stage?: string;
-    title?: string;
-    focusedPanel?: string | null;
   }) => void;
   
   startChatbotSession: (sessionData: {
@@ -74,9 +53,6 @@ interface JournalingState {
   }) => void;
   
   // 복합 actions
-  handleLocationSelect: (location: string, placeId?: string) => void;
-  handlePersonToggle: (person: string, personId?: string) => void;
-  handleBackToLocation: () => void;
   resetAll: () => void;
   resetForNewSession: () => void;
 }
@@ -85,14 +61,7 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
   // 초기 상태
   inputText: '',
   isLoading: false,
-  currentStage: 'intro',
-  sessionId: null,
-  comicData: null,
-  focusedPanel: null,
   
-  selectedLocation: null,
-  selectedPeople: [],
-  selectionStep: 'location',
   showPresetSelection: true,
   
   selectedPlaceId: null,
@@ -108,30 +77,16 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
 
   setInputText: (inputText) => set({ inputText }),
   setIsLoading: (isLoading) => set({ isLoading }),
-  setCurrentStage: (currentStage) => set({ currentStage }),
   setIsInputActive: (isInputActive) => set({ isInputActive }),
   setIsAfterFarewell: (isAfterFarewell) => set({ isAfterFarewell }),
   setShowPresetSelection: (showPresetSelection: boolean) => set({ showPresetSelection }),
   
   // Semantic setters
   initializeSession: (sessionData) => set({
-    sessionId: sessionData.journalEntryId,
-    currentStage: sessionData.stage,
-    comicData: sessionData.panels || null,
-    focusedPanel: sessionData.focusedPanel || null,
     showPresetSelection: sessionData.showPresetSelection !== undefined ? sessionData.showPresetSelection : false
   }),
   
-  updateSessionInfo: (sessionData) => set((state) => ({
-    comicData: sessionData.panels !== undefined ? sessionData.panels : state.comicData,
-    currentStage: sessionData.stage || state.currentStage,
-    focusedPanel: sessionData.focusedPanel !== undefined ? sessionData.focusedPanel : state.focusedPanel,
-    showPresetSelection: false // 이어가기 시에는 항상 false로 설정
-  })),
-  
   startChatbotSession: (sessionData) => set({
-    sessionId: sessionData.journalEntryId,
-    currentStage: sessionData.stage,
     showPresetSelection: false
   }),
   
@@ -172,50 +127,10 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
     return updates;
   }),
   
-  // 복합 actions
-  handleLocationSelect: (location, placeId) => set((state) => ({
-    selectedLocation: location,
-    selectedPlaceId: placeId || null,
-    selectedPeople: [],
-    selectedPersonIds: [],
-    selectionStep: 'people'
-  })),
-  
-  handlePersonToggle: (person, personId) => set((state) => {
-    if (personId) {
-      const newSelectedPersonIds = state.selectedPersonIds.includes(personId)
-        ? state.selectedPersonIds.filter(p => p !== personId)
-        : [...state.selectedPersonIds, personId];
-      return { selectedPersonIds: newSelectedPersonIds };
-    } else {
-      const newSelectedPeople = state.selectedPeople.includes(person)
-        ? state.selectedPeople.filter(p => p !== person)
-        : [...state.selectedPeople, person];
-      return { selectedPeople: newSelectedPeople };
-    }
-  }),
-  
-  handleBackToLocation: () => set((state) => ({
-    selectedLocation: null,
-    selectedPlaceId: null,
-    selectedPeople: [],
-    selectedPersonIds: [],
-    selectionStep: 'location'
-  })),
-  
   resetAll: () => set({
     inputText: '',
     isLoading: false,
-    currentStage: 'intro',
-    sessionId: null,
-    comicData: null,
-    focusedPanel: null,
-    selectedLocation: null,
-    selectedPeople: [],
-    selectionStep: 'location',
     showPresetSelection: false,
-    selectedPlaceId: null,
-    selectedPersonIds: [],
     isComicCompleted: false,
     showPraiseSection: false,
     showFarewellSection: false,
@@ -227,15 +142,6 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
   resetForNewSession: () => set({
     inputText: '',
     isLoading: false,
-    currentStage: 'intro',
-    sessionId: null,
-    comicData: null,
-    focusedPanel: null,
-    selectedLocation: null,
-    selectedPeople: [],
-    selectionStep: 'location',
-    selectedPlaceId: null,
-    selectedPersonIds: [],
     isComicCompleted: false,
     showPraiseSection: false,
     showFarewellSection: false,

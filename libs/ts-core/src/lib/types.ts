@@ -157,26 +157,9 @@ export interface JournalingSessionInfo {
 }
 
 // Chatbot response types
-export interface ChatbotStartResponse {
+export interface ChatbotResponse {
   journal_entry_id: string;
   response: string;
   stage: string;
-  auto_comic_generation: any;
-}
-
-export interface ChatbotMessageResponse {
-  response: string;
-  stage: string;
-  journal_entry_id: string;
-}
-
-export interface ChatbotResetResponse {
-  response: string;
-  stage: string;
-}
-
-// Comic generation response types
-export interface ComicGenerationResponse {
-  response: string;
-  stage: string;
+  auto_comic_generation?: any;
 }

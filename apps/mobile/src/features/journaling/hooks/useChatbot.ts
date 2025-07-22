@@ -1,11 +1,9 @@
 import { useState, useCallback } from 'react';
-import { ChatMessage, NetworkHelper } from '@autiverse-monorepo/ts-core';
+import { ChatbotResponse, ChatMessage, JournalingSessionInfo, NetworkHelper } from '@autiverse-monorepo/ts-core';
 import { useAuthStore } from '../../auth/store';
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { ChatbotStartResponse } from '@autiverse-monorepo/ts-core';
-
-const createNewSessionAPI = async (jwt: string, location?: string, people?: Array<string>): Promise<ChatbotStartResponse> => {
+const createNewSessionAPI = async (jwt: string, location?: string, people?: Array<string>): Promise<ChatbotResponse> => {
 
   const requestBody = {
     location: location,
@@ -21,7 +19,7 @@ const createNewSessionAPI = async (jwt: string, location?: string, people?: Arra
   return response.data;
 }
 
-const createNewSessionWithSuggestionsAPI = async (jwt: string): Promise<ChatbotStartResponse> => {
+const createNewSessionWithSuggestionsAPI = async (jwt: string): Promise<ChatbotResponse> => {
 
   const response = await NetworkHelper.axiosClient.post(
     NetworkHelper.ENDPOINTS.APP.CHATBOT.START_WITH_SUGGESTION,
@@ -32,9 +30,26 @@ const createNewSessionWithSuggestionsAPI = async (jwt: string): Promise<ChatbotS
   return response.data;
 }
 
+const sendMessageAPI = async (jwt: string, journalEntryId: string, message: string, audioFilename?: string): Promise<ChatbotResponse> => {
+  const response = await NetworkHelper.axiosClient.post(
+    NetworkHelper.ENDPOINTS.APP.CHATBOT.SEND,
+    { journal_entry_id: journalEntryId, message: message, audio_filename: audioFilename },
+    { headers: await NetworkHelper.getHeaders(jwt) }
+  )
 
+  return response.data;
+}
 
-export const useChatbot = (afterStart?: (data: ChatbotStartResponse, withSuggestion: boolean) => void) => {
+const startAutoComicGenerationAPI = async (jwt: string, journalEntryId: string): Promise<ChatbotResponse> => {
+  const response = await NetworkHelper.axiosClient.post(
+    NetworkHelper.ENDPOINTS.APP.CHATBOT.getAutoComicGenerationEndpoint(journalEntryId),
+    null,
+    { headers: await NetworkHelper.getHeaders(jwt) }
+  )
+  return response.data;
+}
+
+export const useChatbot = (afterStart?: (data: ChatbotResponse, withSuggestion: boolean) => void) => {
   
   const queryClient = useQueryClient();
 
@@ -82,59 +97,39 @@ export const useChatbot = (afterStart?: (data: ChatbotStartResponse, withSuggest
     });
   }
 
-  const sendMessage = useCallback(async (sessionId: string, messageText: string, audioFilename?: string) => {
-    if (!sessionId || !messageText.trim() || !jwt) return null;
-
-    try {
-      const response = await NetworkHelper.axiosClient.post(
-        NetworkHelper.ENDPOINTS.APP.CHATBOT.SEND,
-        {
-          journal_entry_id: sessionId,
-          message: messageText,
-          audio_filename: audioFilename,
-        },
-        { headers: await NetworkHelper.getHeaders(jwt) }
-      );
-
-      if (response.status === 200) {
-        const data = response.data;
-        return data;
-      } else {
-        console.error('Failed to send message, status:', response.status);
-        return null;
-      }
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      return null;
+  const sendMessageMutation = useMutation({
+    mutationFn: (args: {journalEntryId: string, message: string, audioFilename?: string}) => sendMessageAPI(jwt!!, args.journalEntryId, args.message, args.audioFilename),
+    onSuccess: (data) => {
+      console.log('Successfully sent message:', data);
+      queryClient.setQueryData(['session', data.journal_entry_id], (oldData: JournalingSessionInfo) => {
+        if(oldData) {
+          return {
+            ...oldData,
+            stage: data.stage
+          };
+        }else return oldData;
+      });
     }
-  }, [jwt]);
+  })
 
-  const startAutoComicGeneration = useCallback(async (sessionId: string) => {
-    try {
-      const response = await NetworkHelper.axiosClient.post(
-        NetworkHelper.ENDPOINTS.APP.CHATBOT.getAutoComicGenerationEndpoint(sessionId)
-      );
-
-      if (response.status === 200) {
-        const data = response.data;
-        return data;
-      } else {
-        console.error('Failed to start auto comic generation, status:', response.status);
-        return null;
-      }
-    } catch (error) {
-      console.error('Failed to start auto comic generation:', error);
-      return null;
+  const startAutoComicGenerationMutation = useMutation({
+    mutationFn: (journalEntryId: string) => startAutoComicGenerationAPI(jwt!!, journalEntryId),
+    onSuccess: (data) => {
+      console.log('Successfully started auto comic generation:', data);
     }
-  }, []);
+  })
 
   return {
     // Actions
     startChatbot: startChatbotMutation.mutateAsync,
     startChatbotWithSuggestion: startChatbotWithSuggestionMutation.mutateAsync,
     isStartingChatbot: startChatbotMutation.isPending || startChatbotWithSuggestionMutation.isPending,
-    sendMessage,
+    sendMessage: sendMessageMutation.mutateAsync,
+    isSendingMessage: sendMessageMutation.isPending,
+    sendMessageError: sendMessageMutation.error,
     addMockMessages,
-    startAutoComicGeneration,
+    startAutoComicGeneration: startAutoComicGenerationMutation.mutateAsync,
+    isStartingAutoComicGeneration: startAutoComicGenerationMutation.isPending,
+    startAutoComicGenerationError: startAutoComicGenerationMutation.error,
   };
 }; 

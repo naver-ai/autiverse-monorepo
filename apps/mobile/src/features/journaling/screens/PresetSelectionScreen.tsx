@@ -2,7 +2,7 @@ import { View, Alert } from "react-native"
 import PresetSelectionStage from "../components/stages/PresetSelectionStage"
 import { useJournalingStore } from "../store";
 import { useChatbot } from "../hooks/useChatbot";
-import { Preset, ChatMessage, ChatbotStartResponse, Place } from "@autiverse-monorepo/ts-core";
+import { Preset, ChatMessage, ChatbotResponse, Place } from "@autiverse-monorepo/ts-core";
 import { useDyad } from "../../../api/dyad";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
@@ -20,7 +20,7 @@ export const PresetSelectionScreen = () => {
   const {startChatbot: startChatbotFromHook, 
         startChatbotWithSuggestion: startChatbotWithSuggestionFromHook,
         isStartingChatbot
-        } = useChatbot(useCallback((data: ChatbotStartResponse, withSuggestion: boolean) => {
+        } = useChatbot(useCallback((data: ChatbotResponse, withSuggestion: boolean) => {
             router.replace({
               pathname: '/(app)/create-comic',
               params: {

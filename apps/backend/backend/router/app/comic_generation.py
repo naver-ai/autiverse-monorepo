@@ -6,6 +6,8 @@ from backend.core.ai import ComicGridGenerator
 from backend.database.engine import get_session
 from backend.database.models import Comic
 from sqlalchemy.orm import Session
+from typing import Annotated
+from fastapi import Depends
 
 router = APIRouter()
 
@@ -144,9 +146,8 @@ async def start_comic_generation(
         db.close()
 
 @router.get("/status/{journal_entry_id}", response_model=ComicGenerationResponse)
-async def get_comic_generation_status(journal_entry_id: str):
+async def get_comic_generation_status(journal_entry_id: str, db: Annotated[Session, Depends(get_session)]):
     """만화 생성 상태 조회"""
-    db = next(get_session())
     try:
         status = get_comic_status(db, journal_entry_id)
         if not status:

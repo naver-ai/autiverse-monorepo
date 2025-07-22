@@ -7,14 +7,18 @@ import {
   ComicGenerationStatus 
 } from '../api';
 import { useCallback, useEffect, useRef } from 'react';
+import { useAuth } from '../../auth/hooks';
 
 export const useComicGeneration = (journalEntryId: string | null) => {
+
+  const {jwt} = useAuth();
+
   const queryClient = useQueryClient();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // 만화 생성 시작 mutation
   const startGenerationMutation = useMutation({
-    mutationFn: startComicGenerationAPI,
+    mutationFn: (request: ComicGenerationRequest) => startComicGenerationAPI(jwt!!, request),
     onSuccess: () => {
       console.log('Comic generation started successfully');
       // 상태 쿼리를 무효화하여 즉시 상태를 다시 가져오도록 함
@@ -29,7 +33,7 @@ export const useComicGeneration = (journalEntryId: string | null) => {
 
   // 만화 생성 취소 mutation
   const cancelGenerationMutation = useMutation({
-    mutationFn: cancelComicGenerationAPI,
+    mutationFn: (journalEntryId: string) => cancelComicGenerationAPI(jwt!!, journalEntryId),
     onSuccess: () => {
       console.log('Comic generation cancelled successfully');
       if (journalEntryId) {
@@ -44,7 +48,7 @@ export const useComicGeneration = (journalEntryId: string | null) => {
   // 만화 생성 상태 쿼리
   const statusQuery = useQuery({
     queryKey: ['comicGenerationStatus', journalEntryId],
-    queryFn: () => getComicGenerationStatusAPI(journalEntryId!),
+    queryFn: () => getComicGenerationStatusAPI(jwt!!, journalEntryId!),
     enabled: !!journalEntryId,
     refetchInterval: (query) => {
       const data = query.state.data;
@@ -89,7 +93,7 @@ export const useComicGeneration = (journalEntryId: string | null) => {
       return;
     }
 
-    cancelGenerationMutation.mutate({ journalEntryId });
+    cancelGenerationMutation.mutate(journalEntryId);
   }, [journalEntryId, cancelGenerationMutation]);
 
 

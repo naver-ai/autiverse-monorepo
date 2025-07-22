@@ -19,7 +19,6 @@ interface ChatInputProps {
   setInputText: (text: string) => void;
   sendMessage: (message: string, audioFilename?: string) => void;
   isLoading: boolean;
-  currentStage: string;
   comicGenerationStatus: any;
   isInputActive?: boolean;
   agentName: string;
@@ -33,7 +32,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   setInputText,
   sendMessage,
   isLoading,
-  currentStage,
   comicGenerationStatus,
   isInputActive = true,
   agentName,
@@ -58,7 +56,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const {sessionInfo} = useSession({sessionId: journalEntryId});
   const messages = sessionInfo?.messages;
-
+  const currentStage = sessionInfo?.stage;
 
   const previousMessageCount = usePrevious(messages?.length || 0);
   
@@ -300,7 +298,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           // 오디오 파일 업로드
           let audioFilename: string | undefined = undefined;
           try {
-            const uploadResult = await uploadAudioFile(audioUri, journalEntryId, currentStage);
+            const uploadResult = await uploadAudioFile(jwt!!, audioUri, journalEntryId, currentStage);
             audioFilename = uploadResult.filename;
             console.log('Audio file uploaded successfully:', audioFilename);
           } catch (error) {
