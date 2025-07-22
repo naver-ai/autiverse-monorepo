@@ -32,12 +32,12 @@ export const SignedInLayout = () => {
             icon: <UserCircleIcon className="w-5 h-5" />,
         },
         {
-            label: 'Books',
+            label: 'Journal',
             key: 'books',
             icon: <BookOpenIcon className="w-5 h-5" />,
             children: dyads?.map((dyad: Dyad) => ({
                 label: dyad.alias,
-                key: `dyads/${dyad.id}/books`,
+                key: `dyads/${dyad.id}/journal-entries`,
             })) || []
         }
     ]
