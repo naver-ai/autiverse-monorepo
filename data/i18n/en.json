@@ -19,7 +19,9 @@
             "BackToLocation": "← Back to location selection",
             "Preparing": "Preparing...",
             "LocationDataError": "Unable to load location data",
-            "PeopleDataError": "Unable to load people data"
+            "PeopleDataError": "Unable to load people data",
+            "LoadingPeople": "Loading people data...",
+            "NoPeopleInPlace": "No people registered at this location"
         },
         "AgentIntro": {
             "FirstVisitGreetingTemplate": "Hello, {child_name}. I'm {agent_name}, and I'll be writing comic diaries with you for 2 weeks. Nice to meet you!",

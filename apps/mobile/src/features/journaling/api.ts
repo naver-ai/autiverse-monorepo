@@ -127,4 +127,26 @@ export const continueSessionAPI = async (journalEntryId: string, stage: string):
     console.error('Error continuing session:', error);
     throw error;
   }
+};
+
+export interface PlacePerson {
+  id: string;
+  name: string;
+  avatar_config?: any;
+}
+
+export const getPlacePeopleAPI = async (placeId: string): Promise<{ place_id: string; people: PlacePerson[] }> => {
+  try {
+    const response = await NetworkHelper.axiosClient.get(
+      NetworkHelper.ENDPOINTS.APP.CHATBOT.getPlacePeopleEndpoint(placeId),
+      {
+        headers: await NetworkHelper.getHeaders(),
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching place people:', error);
+    throw error;
+  }
 }; 
