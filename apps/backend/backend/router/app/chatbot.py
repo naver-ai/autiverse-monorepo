@@ -256,12 +256,12 @@ def get_gallery(
 ):
     """갤러리에서 stage가 intro가 아닌 모든 만화들 조회"""
     try:
-        # stage가 intro와 revision_1이 아닌 모든 저널 엔트리들 조회
+        # stage가 intro와 revision_1이 아닌 모든 저널 엔트리들 조회 (최신순 정렬)
         journal_entries = db.query(JournalEntry).filter(
             JournalEntry.dyad_id == dyad.id,
             JournalEntry.stage != "intro",
             JournalEntry.stage != "revision_1"
-        ).all()
+        ).order_by(JournalEntry.created_at.desc()).all()
         
         gallery_items = []
         for entry in journal_entries:

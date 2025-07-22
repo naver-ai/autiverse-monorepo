@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 import format from 'string-format';
 import { styleTemplates } from '../../../../styles';
 import { useSpeech } from '../../utils';
+import { getTTSOptionsFromAgentConfig } from '../../utils/speechUtils';
+import { useDyad } from '../../../../api/dyad';
 
 const { width, height } = Dimensions.get('window');
 
@@ -37,7 +39,8 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
   const { t } = useTranslation();
   const [hasCompleted, setHasCompleted] = useState(false);
   const [hasSpoken, setHasSpoken] = useState(false);
-  const {startSpeech, stopSpeech} = useSpeech()
+  const {startSpeech, stopSpeech} = useSpeech();
+  const { agentConfig } = useDyad();
 
   const childJosa = getKoreanJosa(childName);
   const farewellMessage = useMemo(() => {
@@ -51,7 +54,7 @@ export default function FarewellSection({ childName, onComplete }: FarewellSecti
 
   // TTS 시작
   useEffect(() => {
-    if (!hasSpoken) {
+    if (!hasSpoken && agentConfig) {
       startSpeech(farewellMessage, {
         ...getTTSOptionsFromAgentConfig(agentConfig),
         onDone: () => {

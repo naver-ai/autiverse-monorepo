@@ -22,6 +22,7 @@ import { AgentImage } from '../AgentImage';
 import { TailwindButton } from '../../../../components/TailwindButton';
 import colors from 'tailwindcss/colors';
 import { CheckCircleIcon } from '../../../../components/svg-images';
+import { getPlacePeopleAPI, PlacePerson } from '../../api';
 
 const styles = StyleSheet.create({
   avatarImage: {
@@ -76,6 +77,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
     selectionStep,
     selectedLocation,
     selectedPersonIds,
+    selectedPlaceId,
     isLoading,
     handleLocationSelect,
     handlePersonToggle,
@@ -86,7 +88,32 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
 
   const [isTTSActive, setIsTTSActive] = useState(false);
   const [messageViewHeight, setMessageViewHeight] = useState(0);
+  const [placePeople, setPlacePeople] = useState<PlacePerson[]>([]);
+  const [isLoadingPlacePeople, setIsLoadingPlacePeople] = useState(false);
   const { dyad, agentConfig } = useDyad();
+
+  // 장소별 인물 가져오기
+  useEffect(() => {
+    const fetchPlacePeople = async () => {
+      if (selectionStep === 'people' && selectedPlaceId) {
+        setIsLoadingPlacePeople(true);
+        try {
+          const result = await getPlacePeopleAPI(selectedPlaceId);
+          setPlacePeople(result.people);
+        } catch (error) {
+          console.error('Failed to fetch place people:', error);
+          // 에러 발생 시 빈 배열로 설정
+          setPlacePeople([]);
+        } finally {
+          setIsLoadingPlacePeople(false);
+        }
+      } else {
+        setPlacePeople([]);
+      }
+    };
+
+    fetchPlacePeople();
+  }, [selectionStep, selectedPlaceId]);
 
   // TTS 시작
   useEffect(() => {
@@ -276,9 +303,19 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
 
             {/* 사람 선택 그리드 */}
           <View className="flex-1 flex flex-row items-center justify-center flex-wrap mb-4">
-              {dyad && dyad.people.length > 0 ? (
-                // API 데이터 사용
-                dyad?.people.map((person) => {
+              {isLoadingPlacePeople ? (
+                // 로딩 상태
+                <View className="p-4 border-2 border-gray-200 rounded-xl bg-white">
+                  <Text
+                    className="text-center text-gray-500 text-lg"
+                    style={styleTemplates.withSemiboldFont}
+                  >
+                    {t('Journaling.PresetSelection.LoadingPeople')}
+                  </Text>
+                </View>
+              ) : placePeople.length > 0 ? (
+                // 장소별 인물 데이터 사용
+                placePeople.map((person) => {
                   const isSelected = selectedPersonIds.includes(person.id);
                   return (
                   <TailwindButton
@@ -301,13 +338,13 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                     </View></TailwindButton>
                 )})
               ) : (
-                // API 데이터가 없을 때 빈 상태 표시
+                // 장소에 인물이 없을 때 빈 상태 표시
                 <View className="p-4 border-2 border-gray-200 rounded-xl bg-white">
                   <Text
                     className="text-center text-gray-500 text-lg"
                     style={styleTemplates.withSemiboldFont}
                   >
-                    {t('Journaling.PresetSelection.PeopleDataError')}
+                    {t('Journaling.PresetSelection.NoPeopleInPlace')}
                   </Text>
                 </View>
               )}

@@ -212,7 +212,9 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
   
   handleBackToLocation: () => set((state) => ({
     selectedLocation: null,
+    selectedPlaceId: null,
     selectedPeople: [],
+    selectedPersonIds: [],
     selectionStep: 'location'
   })),
   

@@ -41,7 +41,9 @@
             "BackToLocation": "← 장소 다시 선택",
             "Preparing": "준비 중...",
             "LocationDataError": "장소 정보를 불러올 수 없습니다",
-            "PeopleDataError": "사람 정보를 불러올 수 없습니다"
+            "PeopleDataError": "사람 정보를 불러올 수 없습니다",
+            "LoadingPeople": "사람 정보를 불러오는 중...",
+            "NoPeopleInPlace": "이 장소에는 등록된 사람이 없습니다"
         },
         "AgentIntro": {
             "FirstVisitGreetingTemplate": "안녕, {child_name}{child_josa}. 나는 2주간 너와 함께 그림 일기를 쓸 {agent_name}{agent_josa}. 만나서 반가워!",
