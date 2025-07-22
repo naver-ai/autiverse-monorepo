@@ -161,6 +161,7 @@ export interface ChatbotStartResponse {
   journal_entry_id: string;
   response: string;
   stage: string;
+  auto_comic_generation: any;
 }
 
 export interface ChatbotMessageResponse {

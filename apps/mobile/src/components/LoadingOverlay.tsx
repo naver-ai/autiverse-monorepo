@@ -1,37 +1,54 @@
-import React from 'react';
-import { View, Text, ActivityIndicator, Modal } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { styleTemplates } from '../styles';
+import { View, Text, Platform } from "react-native"
+import { RewardStarImage } from "./svg-images"
+import { styleTemplates } from "../styles"
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withRepeat, withSequence, Easing } from "react-native-reanimated"
+import { useEffect } from "react"
 
-interface LoadingOverlayProps {
-  visible: boolean;
-  message?: string;
+export const LoadingOverlay = ({message, isLoading}: {message: string, isLoading: boolean}) => {
+    const progress = useSharedValue(0)
+    const rotation = useSharedValue(0)
+
+    useEffect(() => {
+        if (isLoading) {
+            progress.value = withTiming(1, { duration: 300 })
+            rotation.value = withRepeat(
+                withSequence(
+                    withTiming(360, { duration: 1000 }),
+                    withTiming(0, { duration: 0 })
+                ),
+                -1,
+                false
+            )
+        } else {
+            progress.value = withTiming(0, { duration: 300 })
+            rotation.value = withTiming(0, { duration: 300 })
+        }
+    }, [isLoading])
+
+    const animatedStyle = useAnimatedStyle(() => {
+        return {
+            opacity: progress.value,
+        }
+    })
+
+    const starAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ rotate: `${rotation.value}deg` }]
+        }
+    })
+
+    return (
+        <Animated.View 
+            style={animatedStyle} 
+            className="absolute inset-0 top-0 left-0 right-0 bottom-0 bg-white/50 flex items-center justify-center z-10"
+            pointerEvents={isLoading ? "auto" : "none"}
+        >
+            <View className="flex flex-row items-center gap-2 bg-white px-5 py-3 rounded-xl shadow-lg shadow-slate-500/50 border-2 border-slate-300">
+                <Animated.View style={starAnimatedStyle}>
+                    <RewardStarImage width={24} height={24} fill="#757575"/>
+                </Animated.View>
+                <Text className="text-2xl" style={styleTemplates.withSemiboldFont}>{message}</Text>
+            </View>
+        </Animated.View>
+    )
 }
-
-export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ 
-  visible, 
-  message 
-}) => {
-  const { t } = useTranslation();
-  const defaultMessage = message || t('Loading.DefaultMessage');
-
-  return (
-    <Modal
-      transparent
-      visible={visible}
-      animationType="fade"
-    >
-      <View className="flex-1 justify-center items-center bg-black bg-opacity-50">
-        <View className="bg-white p-6 rounded-xl shadow-lg max-w-sm w-4/5">
-          <ActivityIndicator size="large" color="#3B82F6" />
-          <Text className="text-center mt-4 text-lg font-semibold text-gray-800" style={styleTemplates.withBoldFont}>
-            {defaultMessage}
-          </Text>
-          <Text className="text-center mt-2 text-sm text-gray-600" style={styleTemplates.withSemiboldFont}>
-            {t('Loading.WaitMessage')}
-          </Text>
-        </View>
-      </View>
-    </Modal>
-  );
-}; 

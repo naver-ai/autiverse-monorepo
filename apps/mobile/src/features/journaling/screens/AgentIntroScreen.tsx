@@ -109,7 +109,7 @@ export function AgentIntroScreen() {
     if (autoNavigate && !hasNavigated) {
       setHasNavigated(true);
       router.push({
-        pathname: '/(app)/create-comic',
+        pathname: '/(app)/preset-selection',
       });
     }
   }, [autoNavigate, router, hasNavigated]);

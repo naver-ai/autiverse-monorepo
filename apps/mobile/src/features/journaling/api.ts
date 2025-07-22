@@ -135,12 +135,12 @@ export interface PlacePerson {
   avatar_config?: any;
 }
 
-export const getPlacePeopleAPI = async (placeId: string): Promise<{ place_id: string; people: PlacePerson[] }> => {
+export const getPlacePeopleAPI = async ({placeId, token}: {placeId: string, token: string}): Promise<{ place_id: string; people: PlacePerson[] }> => {
   try {
     const response = await NetworkHelper.axiosClient.get(
       NetworkHelper.ENDPOINTS.APP.CHATBOT.getPlacePeopleEndpoint(placeId),
       {
-        headers: await NetworkHelper.getHeaders(),
+        headers: await NetworkHelper.getHeaders(token),
       }
     );
 

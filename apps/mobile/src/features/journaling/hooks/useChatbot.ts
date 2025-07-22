@@ -3,7 +3,9 @@ import { NetworkHelper } from '@autiverse-monorepo/ts-core';
 import { useAuthStore } from '../../auth/store';
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-const createNewSessionAPI = async (jwt: string, location?: string, people?: Array<string>) => {
+import { ChatbotStartResponse } from '@autiverse-monorepo/ts-core';
+
+const createNewSessionAPI = async (jwt: string, location?: string, people?: Array<string>): Promise<ChatbotStartResponse> => {
 
   const requestBody = {
     location: location,
@@ -19,7 +21,7 @@ const createNewSessionAPI = async (jwt: string, location?: string, people?: Arra
   return response.data;
 }
 
-const createNewSessionWithSuggestionsAPI = async (jwt: string) => {
+const createNewSessionWithSuggestionsAPI = async (jwt: string): Promise<ChatbotStartResponse> => {
 
   const response = await NetworkHelper.axiosClient.post(
     NetworkHelper.ENDPOINTS.APP.CHATBOT.START_WITH_SUGGESTION,
@@ -32,36 +34,11 @@ const createNewSessionWithSuggestionsAPI = async (jwt: string) => {
 
 
 
-export const useChatbot = () => {
+export const useChatbot = (afterStart?: (data: ChatbotStartResponse, withSuggestion: boolean) => void) => {
   
   const queryClient = useQueryClient();
 
   const { jwt } = useAuthStore();
-
-  const loadSessionInfo = useCallback(async (sessionId: string) => {
-    if (!sessionId) {
-      console.log('No sessionId available for loadSessionInfo');
-      return null;
-    }
-    
-    try {
-      console.log('Loading session info for sessionId:', sessionId);
-      const response = await NetworkHelper.axiosClient.get(
-        NetworkHelper.ENDPOINTS.APP.CHATBOT.getSessionEndpoint(sessionId)
-      );
-      if (response.status === 200) {
-        const data = response.data;
-        console.log('Session info received:');
-        return data;
-      } else {
-        console.error('Failed to load session info, status:', response.status);
-        return null;
-      }
-    } catch (error) {
-      console.error('Error loading session info:', error);
-      return null;
-    }
-  }, []);
 
   const startChatbotMutation = useMutation({
     mutationFn: (args: {location?: string, people?: Array<string>}) => createNewSessionAPI(jwt!!, args.location, args.people),
@@ -70,6 +47,10 @@ export const useChatbot = () => {
       queryClient.setQueryData(['chatSession'], () => {
         return data;
       });
+
+      if (afterStart) {
+        afterStart(data, false);
+      }
     },
     onError: (error) => {
       console.error('Failed to create new session:', error);
@@ -83,6 +64,10 @@ export const useChatbot = () => {
       queryClient.setQueryData(['chatSession'], () => {
         return data;
       });
+
+      if (afterStart) {
+        afterStart(data, true);
+      }
     },
   })
 
@@ -133,9 +118,9 @@ export const useChatbot = () => {
 
   return {
     // Actions
-    loadSessionInfo,
     startChatbot: startChatbotMutation.mutateAsync,
     startChatbotWithSuggestion: startChatbotWithSuggestionMutation.mutateAsync,
+    isStartingChatbot: startChatbotMutation.isPending || startChatbotWithSuggestionMutation.isPending,
     sendMessage,
     startAutoComicGeneration,
   };

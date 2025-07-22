@@ -251,7 +251,6 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
     selectedLocation: null,
     selectedPeople: [],
     selectionStep: 'location',
-    showPresetSelection: false, // intro로 돌아갈 때는 false
     selectedPlaceId: null,
     selectedPersonIds: [],
     isComicCompleted: false,

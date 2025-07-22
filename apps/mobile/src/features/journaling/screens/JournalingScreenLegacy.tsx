@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Alert,
@@ -12,8 +12,8 @@ import { useComicGeneration } from '../hooks/useComicGenerationQuery';
 import { useChatbot } from '../hooks/useChatbot';
 import PraiseSection from '../components/sections/PraiseSection';
 import FarewellSection from '../components/sections/FarewellSection';
-import { ChatStage } from '../components/stages';
-import { ChatMessage } from '@autiverse-monorepo/ts-core';
+import { PresetSelectionStage, ChatStage } from '../components/stages';
+import { ChatMessage, Preset } from '@autiverse-monorepo/ts-core';
 import { useSpeech } from '../utils';
 import { useDyad } from '../../../api/dyad';
 import { useJournalingStore } from '../store';
@@ -34,7 +34,6 @@ export const JournalingScreen = () => {
   // Store 사용
   const {
     messages,
-    setMessages,
     addMessage,
     addMessages,
     setIsLoading,
