@@ -119,6 +119,8 @@ export interface ChatMessage {
   text: string;
   isUser: boolean;
   timestamp: Date;
+  intent?: MessageIntent | null;
+  metadata?: Record<string, any> | null;
 }
 
 export interface Preset {
@@ -162,4 +164,19 @@ export interface ChatbotResponse {
   response: string;
   stage: string;
   auto_comic_generation?: any;
+  focusedPanel?: string | null;
+  intent?: MessageIntent | null;
+  metadata?: Record<string, any> | null;
+}
+
+export enum MessageIntent {
+  InitialTitleConfirm = "initial_title_confirm",
+  CustomTitleConfirm = "custom_title_confirm",
+  PromptNext = "prompt_next",
+  PromptConfirm = "prompt_confirm",
+  PromptEmotion = "prompt_emotion",
+  Agree = "agree",
+  Disagree = "disagree",
+  PromptTextInput = "prompt_text_input",
+  PromptOpenEndedAnswer = "prompt_open_ended_answer",
 }

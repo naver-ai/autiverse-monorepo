@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Alert,
@@ -13,7 +13,7 @@ import { useChatbot } from '../hooks/useChatbot';
 import PraiseSection from '../components/sections/PraiseSection';
 import FarewellSection from '../components/sections/FarewellSection';
 import { ChatStage } from '../components/stages';
-import { ChatMessage } from '@autiverse-monorepo/ts-core';
+import { ChatMessage, MessageIntent } from '@autiverse-monorepo/ts-core';
 import { useSpeech } from '../utils';
 import { useDyad } from '../../../api/dyad';
 import { useJournalingStore } from '../store';
@@ -34,10 +34,8 @@ export const JournalingScreen = () => {
   // Store 사용
   const {
     setIsLoading,
-    isComicCompleted,
     showPraiseSection,
     showFarewellSection,
-    completionMessage,
     setIsInputActive,
     setIsAfterFarewell,
     resetAll,
@@ -45,7 +43,6 @@ export const JournalingScreen = () => {
     transitionToPraiseSection,
     transitionToFarewellSection,
     prepareForMessageSend,
-    handleMessageResponse
   } = useJournalingStore();
 
   // Chatbot 훅 사용
@@ -95,6 +92,8 @@ export const JournalingScreen = () => {
     isLoading: isComicGenerating,
     startError: comicGenerationError 
   } = useComicGeneration(journalEntryId || null);
+
+  const isComicCompleted = comicGenerationStatus.status === 'completed';
   
   // 만화 생성 완료 처리
   useEffect(() => {
@@ -119,44 +118,6 @@ export const JournalingScreen = () => {
 
   // 프로그레스바 애니메이션
   const progressAnimation = useRef(new Animated.Value(0)).current;
-/*
-  // 이어가기 기능 처리
-  useEffect(() => {
-    if (continueExisting && journalEntryId && stage) {
-      console.log('Continuing existing work:', { journalEntryId, stage });
-      
-      // 기존 session 설정
-      initializeSession({
-        journalEntryId,
-        stage,
-        showPresetSelection: false
-      });
-      
-      // 기존 session 정보 로드
-      const loadExistingSession = async () => {
-        try {
-          const data = await loadSessionInfoFromHook(journalEntryId);
-          if (data) {
-            updateSessionInfo({
-              panels: data.panels,
-              stage: data.stage,
-              title: data.title,
-              focusedPanel: data.focusedPanel
-            });
-            
-            // 기존 메시지들 로드 (필요한 경우)
-            if (data.messages) {
-              setMessages(data.messages);
-            }
-          }
-        } catch (error) {
-          console.error('Error loading existing session:', error);
-        }
-      };
-      
-      loadExistingSession();
-    }
-  }, [continueExisting, journalEntryId, stage, loadSessionInfoFromHook]);*/
 
   // 프로그레스바 애니메이션 업데이트
   useEffect(() => {
@@ -184,12 +145,20 @@ export const JournalingScreen = () => {
       });
     }
   }, [comicGenerationStatus.status, comicGenerationStatus.progress, comicGenerationStatus.message]);
+
+  const lastBotMessage = useMemo(() => {
+    // Search from the end for the last message where isUser is false
+    return sessionInfo?.messages && sessionInfo.messages.length > 0
+      ? [...sessionInfo.messages].reverse().find(msg => msg.isUser === false)
+      : undefined;
+  }, [sessionInfo]);
   
   const sendMessage = async (messageText: string, audioFilename?: string) => {
     if (!journalEntryId || !messageText.trim()) return;
 
     // "다음" 버튼 클릭 시 백엔드에 메시지 전송 후 칭찬 섹션으로 넘어가기
-    if (messageText === t('Journaling.Messages.NextButton') && completionMessage.includes(t('Journaling.Messages.NextButtonPrompt'))) {
+    console.log("lastBotMessage: ", lastBotMessage, "messageText: ", messageText)
+    if (messageText === t('Journaling.Messages.NextButton') && lastBotMessage?.intent === MessageIntent.PromptNext) {
       console.log('Next button clicked, sending message to backend and showing praise section...');
       
       // 백엔드에 '다음' 메시지 전송
@@ -206,8 +175,6 @@ export const JournalingScreen = () => {
       transitionToPraiseSection();
       return;
     }
-
-
 
     // TTS 상태 확인 - TTS가 진행 중이면 메시지 전송 차단
     if (isSpeaking) {
@@ -248,10 +215,12 @@ export const JournalingScreen = () => {
           text: data.response,
           isUser: false,
           timestamp: new Date(),
+          intent: data.intent,
+          metadata: data.metadata,
         };
 
         // 완료 메시지 감지 (다음 버튼을 눌러야 넘어감)
-        if (data.response.includes(t('Journaling.Messages.NextButtonPrompt'))) {
+        if (data.intent === MessageIntent.PromptNext) {
           addMockMessages(journalEntryId, [botMessage]);
         }
         // comic_context 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 다행이다~ 메시지가 제거됨)
@@ -416,7 +385,7 @@ export const JournalingScreen = () => {
             sessionId={journalEntryId}
             onTTSComplete={() => {
               // 완료 메시지가 아닐 때만 ChatInput 활성화
-              if (!completionMessage) {
+              if (lastBotMessage?.intent !== MessageIntent.PromptNext) {
                 setIsInputActive(true);
               }
             }}

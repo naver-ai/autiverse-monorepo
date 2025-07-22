@@ -3,11 +3,10 @@ from typing import Dict, Any, List, Optional
 from backend.database.crud.chatbot import (
     get_journal_entry, update_journal_entry_stage, get_journal, 
     update_journal_data, create_interaction_turn, create_message,
-    get_messages_by_journal_entry, update_comic_data
+    get_messages_by_journal_entry, update_comic_data, update_comic_status
 )
 from backend.database.models import JournalEntryStage, MessageRole
 from sqlalchemy.orm import Session
-from backend.utils.network_helper import NetworkHelper
 
 
 class Revision1Stage:
@@ -320,24 +319,46 @@ User's correction request: {correction}
                 "panel4": journal.revision_1.get("panel4", "") if journal.revision_1.get("panel4") != "null" else ""
             }
             
-            # NetworkHelper를 사용하여 API 호출
+            # 직접 ComicGridGenerator 호출
             try:
-                endpoints = NetworkHelper.get_comic_generation_endpoints()
-                start_url = endpoints['START']
+                from backend.core.ai import ComicGridGenerator
+                
+                # 진행률 콜백 함수 정의
+                def progress_callback(progress: int, message: str):
+                    """만화 생성 진행률에 따라 상태 업데이트"""
+                    if progress <= 20:
+                        update_comic_status(self.db, self.journal_entry_id, "generating-1")
+                    elif progress <= 60:
+                        update_comic_status(self.db, self.journal_entry_id, "generating-2")
+                    elif progress <= 75:
+                        update_comic_status(self.db, self.journal_entry_id, "generating-3")
+                    elif progress <= 90:
+                        update_comic_status(self.db, self.journal_entry_id, "generating-4")
+                    print(f"[DEBUG] Progress: {progress}% - {message}")
+                
+                # 초기 상태 설정
+                update_comic_status(self.db, self.journal_entry_id, "generating-0")
                 
                 # 만화 생성 시작
-                response = NetworkHelper.make_internal_request('POST', start_url, {
-                    'journal_entry_id': self.journal_entry_id,
-                    'panel_contents': panel_contents
-                })
+                generator = ComicGridGenerator()
+                comic_data = generator.generate_comic_grids(panel_contents, progress_callback)
                 
-                if response.status_code == 200:
-                    print(f"[DEBUG] revision_1: Comic generation started for {self.journal_entry_id}")
-                else:
-                    print(f"[DEBUG] revision_1: Failed to start comic generation: {response.status_code}")
-                    
+                print(f"[DEBUG] revision_1: Comic generation completed for {self.journal_entry_id}")
+                print(f"[DEBUG] revision_1: Comic data: {comic_data}")
+                
+                # 완료 상태 설정
+                update_comic_status(self.db, self.journal_entry_id, "completed")
+                
+                # 데이터베이스에 저장
+                update_comic_data(self.db, self.journal_entry_id, comic_data)
+                
+                print(f"[DEBUG] revision_1: Status updated to completed for {self.journal_entry_id}")
+                
             except Exception as e:
-                print(f"[DEBUG] revision_1: Error starting comic generation: {e}")
+                print(f"[DEBUG] revision_1: Error in comic generation: {e}")
+                update_comic_status(self.db, self.journal_entry_id, "error")
+                import traceback
+                traceback.print_exc()
             
         except Exception as e:
             print(f"[DEBUG] revision_1: Error generating comic panels: {e}")

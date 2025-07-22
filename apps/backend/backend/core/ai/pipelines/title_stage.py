@@ -4,7 +4,7 @@ from backend.database.crud.chatbot import (
     get_journal, update_journal_data, create_interaction_turn, 
     create_message, get_messages_by_journal_entry_and_stage
 )
-from backend.database.models import JournalEntryStage, MessageRole
+from backend.database.models import JournalEntryStage, MessageRole, Message, MessageIntent
 from .title_generator import TitleGenerator
 import re
 
@@ -23,7 +23,7 @@ class TitleStage:
             return journal_entry.dyad.child_name or "친구"
         return "친구"
     
-    def start_title_selection(self) -> str:
+    def start_title_selection(self) -> tuple[str, MessageIntent | None, dict | None]:
         """제목 선택 시작"""
         try:
             # Journal entry stage 업데이트
@@ -53,14 +53,16 @@ class TitleStage:
             self._save_title(generated_title)
             
             # 첫 번째 질문 생성
-            initial_question = f"우리 오늘 일기의 제목은 뭐로 할까? {generated_title} 어때??"
+            initial_question = f"우리 오늘 일기의 제목은 뭐로 할까? {generated_title} 어때?"
             
-            create_message(
+            new_message = create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
-                initial_question, MessageRole.Assistant, JournalEntryStage.Title
+                initial_question, MessageRole.Assistant, JournalEntryStage.Title, 
+                metadata_json={"title": generated_title},
+                intent=MessageIntent.InitialTitleConfirm
             )
             
-            return initial_question
+            return initial_question, new_message.intent, new_message.metadata_json
             
         except Exception as e:
             print(f"[DEBUG] title_stage: Error in start_title_selection: {e}")
@@ -86,47 +88,50 @@ class TitleStage:
             messages = get_messages_by_journal_entry_and_stage(self.db, self.journal_entry_id, JournalEntryStage.Title)
             
             # 마지막 Assistant 메시지 확인
-            last_assistant_message = None
+            last_assistant_message: Message | None = None
             for message in reversed(messages):
                 if message.role == MessageRole.Assistant:
-                    last_assistant_message = message.content
+                    last_assistant_message = message
                     break
             
             if not last_assistant_message:
-                return ""
+                return "", None, None
             
+            metadata = None
+
             # 마지막 메시지에 따라 처리
-            if "어때??" in last_assistant_message:
+            if last_assistant_message.intent == MessageIntent.InitialTitleConfirm:
                 # 첫 번째 제목 제안에 대한 피드백
-                response = self.title_generator.process_title_feedback(user_message, "", child_name)
+                response, intent = self.title_generator.process_title_feedback(user_message, "", child_name)
                 
-            elif "이걸로 할까??" in last_assistant_message:
+            elif last_assistant_message.intent == MessageIntent.CustomTitleConfirm:
                 # 커스텀 제목 확인에 대한 피드백
                 # 마지막 메시지에서 제목 추출 (따옴표 안의 내용)
-                
-                title_match = re.search(r"'([^']+)' 이걸로 할까\?\?", last_assistant_message)
-                custom_title = title_match.group(1) if title_match else ""
-                
+                custom_title = last_assistant_message.metadata_json.get("title", "")
+
                 # 전체 메시지 히스토리에서 '아니, 다른 걸로' 버튼을 클릭한 횟수 계산 (새로운 제목이 나와도 유지)
                 reject_count = 0
                 for message in messages:
                     if message.role == MessageRole.User and message.content == "아니, 다른 걸로":
                         reject_count += 1
                 
-                response = self.title_generator.process_custom_title_feedback(user_message, custom_title, child_name, reject_count)
+                response, intent = self.title_generator.process_custom_title_feedback(user_message, custom_title, child_name, reject_count)
                 
             elif ("그럼 어떤 제목으로 하고 싶어?" in last_assistant_message) or ("채팅으로 쳐서 정확하게 알려줘!" in last_assistant_message):
                 # 커스텀 제목 입력
                 self._save_title(user_message.strip())
-                response = self.title_generator.confirm_custom_title(user_message.strip(), child_name)
+                response, intent, metadata = self.title_generator.confirm_custom_title(user_message.strip(), child_name)
             else:
                 # 기본 응답 (예상치 못한 상황)
                 response = ""
-            
+                intent = None
+
             # 봇 응답 저장
             create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
-                response, MessageRole.Assistant, JournalEntryStage.Title
+                response, MessageRole.Assistant, JournalEntryStage.Title,
+                metadata_json=metadata,
+                intent=intent
             )
             
             return response

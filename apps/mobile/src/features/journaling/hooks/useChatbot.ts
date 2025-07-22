@@ -101,11 +101,13 @@ export const useChatbot = (afterStart?: (data: ChatbotResponse, withSuggestion: 
     mutationFn: (args: {journalEntryId: string, message: string, audioFilename?: string}) => sendMessageAPI(jwt!!, args.journalEntryId, args.message, args.audioFilename),
     onSuccess: (data) => {
       console.log('Successfully sent message:', data);
+
       queryClient.setQueryData(['session', data.journal_entry_id], (oldData: JournalingSessionInfo) => {
         if(oldData) {
           return {
             ...oldData,
-            stage: data.stage
+            stage: data.stage,
+            focusedPanel: data.focusedPanel || oldData.focusedPanel
           };
         }else return oldData;
       });

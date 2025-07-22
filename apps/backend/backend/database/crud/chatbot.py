@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import Optional, List, Dict, Any
 from ..models import JournalEntry, Journal, Comic, Message, InteractionTurn, Dyad, Place, Person
-from ..models import JournalEntryStatus, JournalEntryStage, MessageRole
+from ..models import JournalEntryStatus, JournalEntryStage, MessageRole, MessageIntent
 import json
 
 def get_dyad_by_passcode(db: Session, passcode: str) -> Optional[Dyad]:
@@ -181,7 +181,11 @@ def get_latest_interaction_turn(db: Session, journal_entry_id: str) -> Optional[
         InteractionTurn.journal_entry_id == journal_entry_id
     ).order_by(InteractionTurn.created_at.desc()).first()
 
-def create_message(db: Session, journal_entry_id: str, interaction_turn_id: str, content: str, role: MessageRole, stage: JournalEntryStage = None, metadata_json: Dict[str, Any] = None, audio_filename: str = None) -> Message:
+def create_message(db: Session, journal_entry_id: str, interaction_turn_id: str, content: str, role: MessageRole, 
+                   stage: JournalEntryStage = None, 
+                   metadata_json: Dict[str, Any] = None, 
+                   intent: MessageIntent = None,
+                   audio_filename: str = None) -> Message:
     """새로운 message 생성"""
     # stage가 제공되지 않은 경우 interaction turn에서 가져오기
     if stage is None:
@@ -198,6 +202,10 @@ def create_message(db: Session, journal_entry_id: str, interaction_turn_id: str,
         metadata_json=metadata_json,
         audio_filename=audio_filename
     )
+
+    if intent:
+        message.set_intent_metadata(intent)
+
     db.add(message)
     db.commit()
     db.refresh(message)

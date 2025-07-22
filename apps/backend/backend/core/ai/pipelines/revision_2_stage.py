@@ -1,7 +1,4 @@
-from typing import Dict, Any, Optional
-from langchain_openai import ChatOpenAI
-from langchain.schema import HumanMessage, SystemMessage
-from backend.utils.environment import get_env_variable, EnvironmentVariables
+from typing import Dict, Any
 from backend.database.crud.chatbot import *
 from .completion_message_generator import CompletionMessageGenerator
 

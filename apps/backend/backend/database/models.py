@@ -227,6 +227,17 @@ class MessageRole(StrEnum):
     User="user"
     Assistant="assistant"
 
+class MessageIntent(StrEnum):
+    PromptNext="prompt_next"
+    PromptConfirm="prompt_confirm" # Yes / no
+    InitialTitleConfirm="initial_title_confirm" # 첫 번째 제목 제안에 대한 피드백
+    CustomTitleConfirm="custom_title_confirm" # 커스텀 제목 확인에 대한 피드백
+    PromptOpenEndedAnswer="prompt_open_ended_answer" # 채팅으로 쳐서 정확하게 알려줘!, etc
+    PromptTextInput="prompt_text_input"
+    PromptEmotion="prompt_emotion"
+    Agree="agree"
+    Disagree="disagree"
+
 class Message(SQLModel, IdTimestampMixin, JournalEntryIdMixin, InteractionTurnIdMixin, table=True):
     model_config = ConfigDict(use_enum_values=True)
 
@@ -243,6 +254,23 @@ class Message(SQLModel, IdTimestampMixin, JournalEntryIdMixin, InteractionTurnId
     @property
     def stage_property(self)->JournalEntryStage:
         return self.interaction_turn.stage
+    
+    def set_metadata(self, key: str, value: any):
+        new_metadata = {}
+
+        if self.metadata_json is not None:
+            new_metadata.update(self.metadata_json)
+
+        new_metadata[key] = value
+
+        self.metadata_json = new_metadata
+    
+    def set_intent_metadata(self, intent: MessageIntent):
+        self.set_metadata("intent", intent.value)
+
+    @property
+    def intent(self) -> MessageIntent | None:
+        return self.metadata_json.get("intent", None) if self.metadata_json else None
 
 class Journal(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
     location: Optional[str] = Field(nullable=True, default=None)
@@ -293,6 +321,8 @@ class ChatMessage(BaseModel):
     text: str
     isUser: bool
     timestamp: Optional[str] = None
+    intent: Optional[MessageIntent] = None
+    metadata: Optional[dict] = None
 
 # JournalingSessionInfo type for get_session_info method
 class JournalingSessionInfo(BaseModel):

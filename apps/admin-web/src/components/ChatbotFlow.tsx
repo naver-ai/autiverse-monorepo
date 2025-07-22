@@ -167,18 +167,7 @@ export const ChatbotFlow: React.FC = () => {
       setIsLoading(false);
     }
   };
-
-  const resetChatbot = () => {
-    setMessages([]);
-    setCurrentStage('intro');
-    setComicData(null);
-    setEvents([]);
-    setSummary('');
-    setChatbotFlow(null);
-    setSelectedPreset(null);
-    setShowPresetSelection(true);
-  };
-
+  
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}

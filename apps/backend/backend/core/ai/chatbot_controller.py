@@ -235,7 +235,7 @@ class ChatbotController:
             
             # title stage 시작
             self.title_stage = TitleStage(self.db, journal_entry_id)
-            title_response = self.title_stage.start_title_selection()
+            title_response, intent, metadata = self.title_stage.start_title_selection()
             
             return {
                 "response": title_response,
@@ -353,7 +353,9 @@ class ChatbotController:
                     id=msg.id,
                     text=msg.content,
                     isUser=msg.role == MessageRole.User,
-                    timestamp=msg.created_at.isoformat() if msg.created_at else None
+                    timestamp=msg.created_at.isoformat() if msg.created_at else None,
+                    intent=msg.intent,
+                    metadata=msg.metadata_json
                 ))
         
         # Convert current_panels to ComicData if it exists

@@ -16,7 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from backend.database.engine import get_session
 from backend.database.crud.chatbot import get_dyad_by_id, get_dyad_places, get_place_people, generate_audio_filename
 from backend.core.ai import ChatbotController
-from backend.database.models import Dyad, Comic, JournalEntry, Journal, Message, MessageRole, JournalEntryStage, InteractionTurn, JournalingSessionInfo
+from backend.database.models import Dyad, Comic, JournalEntry, Journal, Message, MessageRole, JournalEntryStage, InteractionTurn, JournalingSessionInfo, MessageIntent
 from backend.router.app.common import get_signed_in_dyad
 from backend.utils.environment import FilePaths
 
@@ -37,6 +37,8 @@ class ChatbotResponse(BaseModel):
     stage: str
     data: Optional[Dict[str, Any]] = None
     auto_comic_generation: Optional[bool] = None
+    intent: Optional[MessageIntent] = None
+    metadata: Optional[Dict[str, Any]] = None
 
 class UpdateTitleRequest(BaseModel):
     journal_entry_id: str
@@ -122,6 +124,8 @@ def send_message(
             response=result["response"],
             stage=result["stage"],
             data=result.get("data"),
+            intent=result.get("intent"),
+            metadata=result.get("metadata"),
             auto_comic_generation=result.get("auto_comic_generation")
         )
     except ValueError as e:
