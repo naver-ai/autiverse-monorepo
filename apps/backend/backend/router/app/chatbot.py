@@ -16,7 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from backend.database.engine import get_session
 from backend.database.crud.chatbot import get_dyad_by_id, get_dyad_places, get_place_people, generate_audio_filename
 from backend.core.ai import ChatbotController
-from backend.database.models import Dyad, Comic, JournalEntry, Journal, Message, MessageRole, JournalEntryStage, InteractionTurn
+from backend.database.models import Dyad, Comic, JournalEntry, Journal, Message, MessageRole, JournalEntryStage, InteractionTurn, JournalingSessionInfo
 from backend.router.app.common import get_signed_in_dyad
 from backend.utils.environment import FilePaths
 
@@ -129,7 +129,7 @@ def send_message(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.get("/session/{journal_entry_id}")
+@router.get("/session/{journal_entry_id}", response_model=JournalingSessionInfo)
 def get_session_info(
     journal_entry_id: str,
     db: Session = Depends(get_session)

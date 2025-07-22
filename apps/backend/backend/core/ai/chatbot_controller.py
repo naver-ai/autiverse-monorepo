@@ -5,7 +5,7 @@ from backend.database.crud.chatbot import (
     create_journal, get_journal, update_journal_data, 
     get_messages_by_journal_entry, delete_journal_entry, reset_journal_entry
 )
-from backend.database.models import JournalEntryStage, JournalEntryStatus, MessageRole
+from backend.database.models import JournalEntryStage, JournalEntryStatus, MessageRole, JournalingSessionInfo, ChatMessage, ComicData
 from backend.core.ai.pipelines import ComicIntroStage, Revision1Stage, ComicContextStage, Revision2Stage, TitleStage
 
 class ChatbotController:
@@ -284,7 +284,7 @@ class ChatbotController:
             "stage": "complete"
         }
     
-    def get_session_info(self, journal_entry_id: str) -> Dict[str, Any]:
+    def get_session_info(self, journal_entry_id: str) -> JournalingSessionInfo:
         """세션 정보 조회"""
         journal_entry = get_journal_entry(self.db, journal_entry_id)
         if not journal_entry:
@@ -349,27 +349,37 @@ class ChatbotController:
         formatted_messages = []
         if messages:
             for msg in messages:
-                formatted_messages.append({
-                    "id": msg.id,
-                    "text": msg.content,
-                    "isUser": msg.role == MessageRole.User,
-                    "timestamp": msg.created_at.isoformat() if msg.created_at else None
-                })
+                formatted_messages.append(ChatMessage(
+                    id=msg.id,
+                    text=msg.content,
+                    isUser=msg.role == MessageRole.User,
+                    timestamp=msg.created_at.isoformat() if msg.created_at else None
+                ))
         
-        return {
-            "journal_entry_id": journal_entry_id,
-            "stage": journal_entry.stage.value if journal_entry.stage else "intro",
-            "status": journal_entry.status.value if journal_entry.status else "initial",
-            "location": journal.location if journal else None,
-            "people": journal.people if journal else None,
-            "events": journal.events if journal else None,
-            "summary": journal.summary if journal else None,
-            "title": journal.title if journal else None,
-            "panels": current_panels,
-            "message_count": len(messages) if messages else 0,
-            "focusedPanel": focused_panel,
-            "messages": formatted_messages
-        }
+        # Convert current_panels to ComicData if it exists
+        comic_data = None
+        if current_panels:
+            comic_data = ComicData(
+                panel1=current_panels.get("panel1"),
+                panel2=current_panels.get("panel2"),
+                panel3=current_panels.get("panel3"),
+                panel4=current_panels.get("panel4")
+            )
+        
+        return JournalingSessionInfo(
+            journal_entry_id=journal_entry_id,
+            stage=journal_entry.stage.value if journal_entry.stage else "intro",
+            status=journal_entry.status.value if journal_entry.status else "initial",
+            location=journal.location if journal else None,
+            people=journal.people if journal else None,
+            events=journal.events if journal else None,
+            summary=journal.summary if journal else None,
+            title=journal.title if journal else None,
+            panels=comic_data,
+            message_count=len(messages) if messages else 0,
+            focusedPanel=focused_panel,
+            messages=formatted_messages
+        )
     
     def reset_session(self, journal_entry_id: str) -> Dict[str, Any]:
         """세션 초기화"""

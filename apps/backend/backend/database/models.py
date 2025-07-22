@@ -274,3 +274,37 @@ class Comic(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
     status: Optional[str] = Field(nullable=True, default=None)
     journal_entry_id: str = Field(foreign_key="journalentry.id")
     journal_id: str = Field(foreign_key="journal.id")
+
+# Comic panel type
+class ComicPanel(BaseModel):
+    content: str
+    grid: list = []
+
+# Comic data type
+class ComicData(BaseModel):
+    panel1: Optional[ComicPanel | str] = None
+    panel2: Optional[ComicPanel | str] = None
+    panel3: Optional[ComicPanel | str] = None
+    panel4: Optional[ComicPanel | str] = None
+
+# Message type for JournalingSessionInfo
+class ChatMessage(BaseModel):
+    id: str
+    text: str
+    isUser: bool
+    timestamp: Optional[str] = None
+
+# JournalingSessionInfo type for get_session_info method
+class JournalingSessionInfo(BaseModel):
+    journal_entry_id: str
+    stage: str
+    status: str
+    location: Optional[str] = None
+    people: Optional[dict] = None
+    events: Optional[dict] = None
+    summary: Optional[str] = None
+    title: Optional[str] = None
+    panels: Optional[ComicData] = None
+    message_count: int
+    focusedPanel: Optional[str] = None
+    messages: list[ChatMessage] = []

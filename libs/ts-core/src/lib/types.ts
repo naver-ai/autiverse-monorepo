@@ -139,3 +139,43 @@ export interface ComicData {
   panel3?: ComicPanel | string;
   panel4?: ComicPanel | string;
 }
+
+// Backend API response types
+export interface JournalingSessionInfo {
+  journal_entry_id: string;
+  stage: string;
+  status: string;
+  location?: string | null;
+  people?: Record<string, any> | null;
+  events?: Record<string, any> | null;
+  summary?: string | null;
+  title?: string | null;
+  panels?: ComicData | null;
+  message_count: number;
+  focusedPanel?: string | null;
+  messages: ChatMessage[];
+}
+
+// Chatbot response types
+export interface ChatbotStartResponse {
+  journal_entry_id: string;
+  response: string;
+  stage: string;
+}
+
+export interface ChatbotMessageResponse {
+  response: string;
+  stage: string;
+  journal_entry_id: string;
+}
+
+export interface ChatbotResetResponse {
+  response: string;
+  stage: string;
+}
+
+// Comic generation response types
+export interface ComicGenerationResponse {
+  response: string;
+  stage: string;
+}

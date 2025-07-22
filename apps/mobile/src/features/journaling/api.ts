@@ -1,4 +1,4 @@
-import { NetworkHelper } from '@autiverse-monorepo/ts-core';
+import { JournalingSessionInfo, NetworkHelper } from '@autiverse-monorepo/ts-core';
 
 export interface ComicGenerationRequest {
   journal_entry_id: string;
@@ -11,6 +11,16 @@ export interface ComicGenerationStatus {
   message: string;
   comic_data?: any;
 }
+
+export const getSessionInfoAPI = async ({token, sessionId}: {token: string, sessionId: string}): Promise<JournalingSessionInfo> => {
+  const response = await NetworkHelper.axiosClient.get(
+    NetworkHelper.ENDPOINTS.APP.CHATBOT.getSessionEndpoint(sessionId),
+    {
+      headers: await NetworkHelper.getHeaders(token)
+    }
+  );
+  return response.data;
+};
 
 export const startComicGenerationAPI = async (request: ComicGenerationRequest): Promise<void> => {
   const response = await NetworkHelper.axiosClient.post(
