@@ -32,6 +32,8 @@ export class NetworkHelper {
         getSetPlaceScheduleEndpoint: (dyadId: string, placeId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/places/${placeId}/schedule`,
         getAddPersonToPlaceEndpoint: (dyadId: string, placeId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/places/${placeId}/people/add`,
         getDeletePersonFromPlaceEndpoint: (dyadId: string, placeId: string, personId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/places/${placeId}/people/${personId}`,
+        getJournalEntriesEndpoint: (dyadId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/journal-entries`,
+        getJournalEntryDetailEndpoint: (dyadId: string, journalEntryId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/journal-entries/${journalEntryId}`,
       },
     },
 
