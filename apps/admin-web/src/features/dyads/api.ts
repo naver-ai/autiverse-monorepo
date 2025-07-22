@@ -317,3 +317,27 @@ export const useDeletePersonFromPlaceMutation = () => {
 
     return mutation;
 };
+
+export const getDyadJournalEntriesApi = async (dyadId: string) => {
+    const token = localStorage.getItem('auth_token') || undefined;
+    const response = await NetworkHelper.axiosClient.get(
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getJournalEntriesEndpoint(dyadId),
+        {
+            headers: NetworkHelper.getHeaders(token)
+        }
+    );
+    
+    return response.data;
+};
+
+export const getJournalEntryDetailApi = async (dyadId: string, journalEntryId: string) => {
+    const token = localStorage.getItem('auth_token') || undefined;
+    const response = await NetworkHelper.axiosClient.get(
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getJournalEntryDetailEndpoint(dyadId, journalEntryId),
+        {
+            headers: NetworkHelper.getHeaders(token)
+        }
+    );
+    
+    return response.data;
+};

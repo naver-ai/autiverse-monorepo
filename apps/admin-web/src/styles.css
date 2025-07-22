@@ -1,7 +1,7 @@
+/* Import tablet-specific styles */
+@import './styles/tablet.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 /* You can add global styles to this file, and also import other style files */
-
-/* Import tablet-specific styles */
-@import './styles/tablet.css';

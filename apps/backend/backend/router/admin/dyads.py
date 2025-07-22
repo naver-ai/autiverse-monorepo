@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.database.engine import with_db_session, engine
 from backend.database.models import Dyad, Person, Place, PlacePersonLink, UserLocale, CaregiverType, ChildGender, SharableDyad, SharablePlace
-from backend.database.models import Agent
+from backend.database.models import Agent, JournalEntry, Journal, Message, Comic
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -205,3 +205,62 @@ async def delete_person_from_place(dyad_id: str, place_id: str, person_id: str, 
     await db.delete(entity_orm)
     await db.commit()
     return (await db.get(Place, place_id)).to_sharable()
+
+async def _get_journal_entry_data(journal_entry: JournalEntry, db: AsyncSession):
+    """Helper function to get journal entry data with related information"""
+    # Get associated journal data
+    journal = (await db.exec(
+        select(Journal).where(Journal.journal_entry_id == journal_entry.id)
+    )).first()
+    
+    # Get associated comic data
+    comic = (await db.exec(
+        select(Comic).where(Comic.journal_entry_id == journal_entry.id)
+    )).first()
+    
+    # Get messages for this journal entry
+    messages = (await db.exec(
+        select(Message)
+        .where(Message.journal_entry_id == journal_entry.id)
+        .order_by(Message.created_at.asc())
+    )).all()
+    
+    return {
+        "id": journal_entry.id,
+        "stage": journal_entry.stage,
+        "title": journal.title if journal else None,
+        "created_at": journal_entry.created_at,
+        "updated_at": journal_entry.updated_at,
+        "journal": journal.model_dump() if journal else None,
+        "comic": comic.model_dump() if comic else None,
+        "messages": [message.model_dump() for message in messages]
+    }
+
+@router.get("/{dyad_id}/journal-entries")
+async def get_dyad_journal_entries(dyad_id: str, db: Annotated[AsyncSession, Depends(with_db_session)]):
+    """Get all journal entries for a specific dyad"""
+    journal_entries = (await db.exec(
+        select(JournalEntry)
+        .where(JournalEntry.dyad_id == dyad_id)
+        .order_by(JournalEntry.created_at.desc())
+    )).all()
+    
+    result = []
+    for entry in journal_entries:
+        entry_data = await _get_journal_entry_data(entry, db)
+        result.append(entry_data)
+    
+    return result
+
+@router.get("/{dyad_id}/journal-entries/{journal_entry_id}")
+async def get_journal_entry_detail(dyad_id: str, journal_entry_id: str, db: Annotated[AsyncSession, Depends(with_db_session)]):
+    """Get detailed information for a specific journal entry"""
+    journal_entry = (await db.exec(
+        select(JournalEntry)
+        .where(JournalEntry.id == journal_entry_id, JournalEntry.dyad_id == dyad_id)
+    )).first()
+    
+    if not journal_entry:
+        raise HTTPException(status_code=404, detail="Journal entry not found")
+    
+    return await _get_journal_entry_data(journal_entry, db)

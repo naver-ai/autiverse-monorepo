@@ -92,7 +92,7 @@ export const DyadCard = (props: {
                     </div>,
                     children:  <div className="flex gap-2 flex-wrap">
                     {
-                        props.dyad.people?.map(person => <PersonView person={person} dyadId={props.dyad.id}/>) || 'No people'
+                        props.dyad.people?.map(person => <PersonView key={person.id} person={person} dyadId={props.dyad.id}/>) || 'No people'
                     }
                     <Button type="link" size="small" onClick={() => openPersonModal(props.dyad.id)}>
                         Add Person
