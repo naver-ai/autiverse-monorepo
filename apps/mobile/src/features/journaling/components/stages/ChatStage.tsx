@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { View, Text, Animated, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 // @ts-ignore
@@ -9,8 +9,10 @@ import { LogoImage } from '../../../../components/svg-images';
 import { useJournalingStore } from '../../store';
 import { ComicPanel } from '../ComicPanel';
 import { ChatMessageComponent } from '../ChatMessage';
-import { ChatInput } from '../ChatInput';
+import { ChatInput, ChatInputRef } from '../ChatInput';
 import { useSession } from '../../hooks/useSession';
+import { UserButtonMode } from '../../types';
+import { MessageIntent } from '@autiverse-monorepo/ts-core';
 
 interface ChatStageProps {
   comicGenerationStatus: any;
@@ -50,9 +52,76 @@ export const ChatStage: React.FC<ChatStageProps> = ({
   const currentStage = sessionInfo?.stage;
   const focusedPanel = sessionInfo?.focusedPanel;
 
+
+
+  const lastBotMessage = sessionInfo?.messages?.filter((m) => !m.isUser).pop();
+
+  const userButtonMode = useMemo<UserButtonMode|null>(() => {
+    // revision_1에서 "다 맞게 들었을까?" 또는 "아직도 틀린 부분 있어?" 또는 "이제 다 맞을까?" 질문일 때만 버튼 표시
+    if (currentStage === 'revision_1') {
+      if (lastBotMessage?.text?.includes('다 맞게 들었을까?') ||
+          lastBotMessage?.text?.includes('아직도 틀린 부분 있어?') ||
+          lastBotMessage?.text?.includes('이제 다 맞을까?')) {
+        return UserButtonMode.YES_NO_BUTTON;
+      }
+    }
+
+    // revision_2에서 수정 관련 질문들일 때만 버튼 표시
+    if (currentStage === 'revision_2') {
+      if (lastBotMessage?.text?.includes('수정하거나 추가하고 싶은 부분 있어?') ||
+          lastBotMessage?.text?.includes('더 추가하거나 바꿀 곳 있어?') ||
+          lastBotMessage?.text?.includes('일기 제목')) {
+        return UserButtonMode.YES_NO_BUTTON;
+      }
+    }
+
+    // comic_context에서 "몇가지 확인해줄래??" 멘트가 포함된 질문일 때 버튼 표시
+    if (currentStage === 'comic_context') {
+      if (lastBotMessage?.text?.includes('몇가지 확인해줄래??')) {
+        return UserButtonMode.YES_NO_BUTTON;
+      }
+      // comic_context에서 "기분이 어땠어?" 질문일 때 감정 버튼 표시
+      if (lastBotMessage?.intent === MessageIntent.PromptEmotion) {
+        return UserButtonMode.EMOTION_BUTTON;
+      }
+    }
+
+    // title stage에서 제목 정하기 관련 버튼 표시
+    if (currentStage === 'title') {
+      if (lastBotMessage?.intent === MessageIntent.PromptConfirm ||
+          lastBotMessage?.intent === MessageIntent.InitialTitleConfirm ||
+          lastBotMessage?.intent === MessageIntent.CustomTitleConfirm) {
+        return UserButtonMode.YES_NO_BUTTON;
+      }
+      // title stage에서 제목 정하기 완료 시 다음 버튼 표시
+      if (lastBotMessage?.intent === MessageIntent.PromptNext) {
+        return UserButtonMode.NEXT_BUTTON;
+      }
+    }
+
+    // completion message 뒤에 나오는 "그럼 이제 일기 제목을 정하러 가볼까?" 메시지일 때 버튼 표시
+    if (lastBotMessage?.intent === MessageIntent.TransitionToTitle) {
+      return UserButtonMode.YES_NO_BUTTON;
+    }
+
+    return null;
+  }, [currentStage, lastBotMessage?.intent, lastBotMessage?.text]);
+
   const convertComicDataToPanelsMemo = React.useMemo(() => {
+    if(!comicData) {
+      return null;
+    }
     return convertComicDataToPanels(comicData);
   }, [comicData]);
+
+  const chatInputRef = useRef<ChatInputRef>(null);
+
+  const handleOnTTSComplete = useCallback(() => {
+    onTTSComplete?.();
+    if(chatInputRef.current && userButtonMode == null) {
+      chatInputRef.current.startRecording();
+    }
+  }, [onTTSComplete, userButtonMode]);
 
   // 만화 패널 렌더링 함수
   const renderComicPanels = () => {
@@ -195,12 +264,13 @@ export const ChatStage: React.FC<ChatStageProps> = ({
               isLoading={isLoading}
               agentName={agentName}
               agentConfig={agentConfig}
-              onTTSComplete={onTTSComplete}
+              onTTSComplete={handleOnTTSComplete}
             />
           </View>
 
           {/* 입력 영역 */}
           <ChatInput
+            ref={chatInputRef}
             journalEntryId={sessionId}
             sendMessage={sendMessage}
             isLoading={isLoading}
@@ -209,6 +279,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
             agentName={agentName}
             isAfterFarewell={isAfterFarewell}
             continueExisting={continueExisting}
+            userButtonMode={userButtonMode}
           />
         </View>
       </View>

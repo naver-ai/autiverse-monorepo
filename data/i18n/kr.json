@@ -94,7 +94,9 @@
     },
     "Chat": {
         "VoiceModePlaceholder": "채팅으로 하려면 여기를 클릭하세요",
-        "SendButton": "전송"
+        "SendButton": "전송",
+        "SubmittingMessage": "메시지 전송 중...",
+        "LoadingMessage": "답변을 생각중이야..."
     },
     "ChatStage": {
         "DefaultComicMessage": "네가 말해준 내용으로 내가 여기에 조금 이따 4컷 만화를 그릴거야~",

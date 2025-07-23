@@ -6,6 +6,7 @@ import * as yup from 'yup';
 import { Controller, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { TailwindButton } from '../../../components/TailwindButton';
+import { useJournalingStore } from '../store';
 
 const schema = yup.object().shape({
   message: yup.string().trim().required('Message is required'),
@@ -25,6 +26,8 @@ export const ChatText = ({
   showButtons?: boolean;
 }) => {
   const { t } = useTranslation();
+
+  const { isLoading } = useJournalingStore();
 
   const { reset, control, register, handleSubmit, formState: { errors, isSubmitting, isValid } } = useForm({
     resolver: yupResolver(schema),
@@ -53,17 +56,14 @@ export const ChatText = ({
             className={`flex-1 border-2 rounded-xl px-4 mr-3 text-lg h-18 ${
               (isDisabled && !isVoiceMode) || showButtons ? 'border-gray-300 bg-gray-100' : 'border-gray-200'
             }`}
-            placeholder={isVoiceMode ? t('Chat.VoiceModePlaceholder') : ""}
+            placeholder={isVoiceMode ? t('Chat.VoiceModePlaceholder') : isSubmitting ? t('Chat.SubmittingMessage') : isLoading ? t('Chat.LoadingMessage') : ""}
             onChangeText={onChange}
             onBlur={onBlur}
             value={value}
             onSubmitEditing={handleSubmit(onSubmit)}
             onFocus={onFocus}
             editable={(!isDisabled || isVoiceMode) && !showButtons}
-            style={{
-              fontSize: 16,
-              ...styleTemplates.withSemiboldFont,
-            }}
+            style={styleTemplates.withSemiboldFont}
           />
           )}
       />

@@ -347,7 +347,7 @@ User's correction request: {correction}
                 update_comic_status(self.db, self.journal_entry_id, "completed")
                 
                 # 데이터베이스에 저장
-                update_comic_data(self.db, self.journal_entry_id, comic_data)
+                update_comic_data(self.db, self.journal_entry_id, **comic_data)
                 
                 print(f"[DEBUG] revision_1: Status updated to completed for {self.journal_entry_id}")
                 

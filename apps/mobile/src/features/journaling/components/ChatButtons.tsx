@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { styleTemplates } from '../../../styles';
+import { UserButtonMode } from '../types';
 
 interface ChatButtonsProps {
-  showYesNoButtons: boolean;
-  showEmotionButtons: boolean;
-  showNextButton: boolean;
+  buttonMode: UserButtonMode|null;
   buttonTexts: { left: string; right: string };
   isDisabled: boolean;
   sendMessage: (message: string, audioFilename?: string) => void;
@@ -13,14 +12,17 @@ interface ChatButtonsProps {
 }
 
 export const ChatButtons: React.FC<ChatButtonsProps> = ({
-  showYesNoButtons,
-  showEmotionButtons,
-  showNextButton,
+  buttonMode,
   buttonTexts,
   isDisabled,
   sendMessage,
   onButtonsVisibilityChange
 }) => {
+
+  const showYesNoButtons = buttonMode === UserButtonMode.YES_NO_BUTTON;
+  const showEmotionButtons = buttonMode === UserButtonMode.EMOTION_BUTTON;
+  const showNextButton = buttonMode === UserButtonMode.NEXT_BUTTON;
+
   const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
 
   const emotionButtons = [
