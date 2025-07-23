@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useComicGeneration } from '../hooks/useComicGenerationQuery';
+import { useComicGeneration } from '../hooks/useComicGeneration';
 import { useChatbot } from '../hooks/useChatbot';
 import PraiseSection from '../components/sections/PraiseSection';
 import FarewellSection from '../components/sections/FarewellSection';
@@ -92,30 +92,9 @@ export const JournalingScreen = () => {
     startGeneration, 
     isLoading: isComicGenerating,
     startError: comicGenerationError 
-  } = useComicGeneration(journalEntryId || null);
+  } = useComicGeneration(journalEntryId || null, refetchSessionInfo);
 
   const isComicCompleted = comicGenerationStatus.status === 'completed';
-  
-  // 만화 생성 완료 처리
-  useEffect(() => {
-    if (comicGenerationStatus.status === 'completed' && comicGenerationStatus.comic_data) {
-      console.log('Comic generation completed:', comicGenerationStatus.comic_data);
-      
-      // 만화 생성이 완료되면 고정 메시지들을 제거
-      //TODO
-      /*
-      const filteredMessages = messages.filter(msg => 
-        msg.text !== t('Journaling.Messages.Revision1Confirmation') &&
-        msg.text !== t('Journaling.Messages.Revision2Confirmation')
-      );
-      addMessages(filteredMessages);*/
-      
-      // 세션 정보를 다시 로드하여 최신 만화 데이터 가져오기
-      setTimeout(() => {
-        refetchSessionInfo();
-      }, 200); // 200ms
-    }
-  }, [comicGenerationStatus.status]);
 
   // 프로그레스바 애니메이션
   const progressAnimation = useRef(new Animated.Value(0)).current;

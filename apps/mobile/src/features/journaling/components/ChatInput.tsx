@@ -69,8 +69,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
 
     const { isSpeaking } = useSpeechState();
 
-    const previousIsSpeaking = usePrevious(isSpeaking);
-
     const { sessionInfo } = useSession({ sessionId: journalEntryId });
     const messages = sessionInfo?.messages;
     const currentStage = sessionInfo?.stage;
@@ -208,12 +206,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
             peopleNames,
             placeNames,
           );
-
-          console.log('Transcribed text check:', {
-            transcribedText,
-            trimmed: transcribedText?.trim(),
-            isEmpty: !transcribedText?.trim(),
-          });
 
           // 빈 문자열이거나 따옴표만 있는 경우 체크
           const trimmedText = transcribedText?.trim();

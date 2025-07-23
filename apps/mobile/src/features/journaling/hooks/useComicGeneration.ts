@@ -1,40 +1,149 @@
-// 이 파일은 더 이상 사용되지 않습니다. useComicGenerationQuery.ts를 사용하세요.
-// 기존 코드와의 호환성을 위해 임시로 남겨둡니다.
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { 
+  startComicGenerationAPI, 
+  getComicGenerationStatusAPI, 
+  cancelComicGenerationAPI,
+  ComicGenerationRequest,
+  ComicGenerationStatus 
+} from '../api';
+import { useCallback, useEffect, useRef } from 'react';
+import { useAuth } from '../../auth/hooks';
+import { usePrevious } from '@uidotdev/usehooks';
 
-import React from 'react';
-import { useComicGeneration as useComicGenerationQuery } from './useComicGenerationQuery';
+export const useComicGeneration = (journalEntryId: string | null, onGenerationComplete?: (comicData: any) => void) => {
 
-interface UseComicGenerationProps {
-  journalEntryId: string | null;
-  onComplete?: (comicData: any) => void;
-}
+  const {jwt} = useAuth();
 
-export const useComicGeneration = ({ 
-  journalEntryId, 
-  onComplete 
-}: UseComicGenerationProps) => {
-  const {
-    status,
-    startGeneration,
-    cancelGeneration,
-    isLoading,
-    startError,
-    cancelError
-  } = useComicGenerationQuery(journalEntryId);
-        
-  // onComplete 콜백 처리
-  React.useEffect(() => {
-    if (status.status === 'completed' && status.comic_data && onComplete) {
-      onComplete(status.comic_data);
-            }
-  }, [status.status, status.comic_data, onComplete]);
+  const queryClient = useQueryClient();
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 만화 생성 시작 mutation
+  const startGenerationMutation = useMutation({
+    mutationFn: (request: ComicGenerationRequest) => startComicGenerationAPI(jwt!!, request),
+    onSuccess: () => {
+      console.log('Comic generation started successfully');
+      // 상태 쿼리를 무효화하여 즉시 상태를 다시 가져오도록 함
+      if (journalEntryId) {
+        queryClient.invalidateQueries({ queryKey: ['comicGenerationStatus', journalEntryId] });
+      }
+    },
+    onError: (error) => {
+      console.error('Error starting comic generation:', error);
+    },
+  });
+
+  // 만화 생성 취소 mutation
+  const cancelGenerationMutation = useMutation({
+    mutationFn: (journalEntryId: string) => cancelComicGenerationAPI(jwt!!, journalEntryId),
+    onSuccess: () => {
+      console.log('Comic generation cancelled successfully');
+      if (journalEntryId) {
+        queryClient.invalidateQueries({ queryKey: ['comicGenerationStatus', journalEntryId] });
+      }
+    },
+    onError: (error) => {
+      console.error('Error cancelling comic generation:', error);
+    },
+  });
+
+  // 만화 생성 상태 쿼리
+  const statusQuery = useQuery({
+    queryKey: ['comicGenerationStatus', journalEntryId],
+    queryFn: () => getComicGenerationStatusAPI(jwt!!, journalEntryId!),
+    enabled: !!journalEntryId,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      // 완료되면 폴링 중단
+      if (data?.status === 'completed') {
+        return false;
+      }
+      // 에러나면 폴링 중단
+      if (query.state.error || data?.status === 'error' || data?.status === 'cancelled') {
+        return false;
+      }
+      // 데이터가 없으면 폴링 중단
+      if (!data) {
+        return false;
+      }
+      // 그 외에는 500ms마다 폴링
+      return 500;
+    },
+    refetchIntervalInBackground: false,
+    retry: false, // 404 에러 시 재시도하지 않음
+  });
+
+  const previousStatus = usePrevious(statusQuery.data?.status);
+
+  useEffect(() => {
+    if(statusQuery.data?.status === 'completed' && statusQuery.data?.comic_data && onGenerationComplete && previousStatus !== 'completed') {
+      onGenerationComplete(statusQuery.data.comic_data);
+    }
+  }, [statusQuery.data?.status, statusQuery.data?.comic_data, onGenerationComplete, previousStatus]);
+
+  // 만화 생성 시작 함수
+  const startGeneration = useCallback((panelContents: Record<string, string>) => {
+    if (!journalEntryId) {
+      console.error('journalEntryId is required to start comic generation');
+      return;
+    }
+
+    const request: ComicGenerationRequest = {
+      journal_entry_id: journalEntryId,
+      panel_contents: panelContents
+    };
+
+    startGenerationMutation.mutate(request);
+  }, [journalEntryId, startGenerationMutation]);
+
+  // 만화 생성 취소 함수
+  const cancelGeneration = useCallback(() => {
+    if (!journalEntryId) {
+      console.error('journalEntryId is required to cancel comic generation');
+      return;
+    }
+
+    cancelGenerationMutation.mutate(journalEntryId);
+  }, [journalEntryId, cancelGenerationMutation]);
+
+
+
+
+
+  // 컴포넌트 언마운트 시 정리
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, []);
 
   return {
-    status,
+    // 상태
+    status: statusQuery.data || {
+      status: 'idle' as const,
+      progress: 0,
+      message: ''
+    },
+    
+    // 로딩 상태
+    isLoading: startGenerationMutation.isPending || cancelGenerationMutation.isPending,
+    isStarting: startGenerationMutation.isPending,
+    isCancelling: cancelGenerationMutation.isPending,
+    isStatusLoading: statusQuery.isLoading,
+    
+    // 에러 상태
+    startError: startGenerationMutation.error,
+    cancelError: cancelGenerationMutation.error,
+    statusError: statusQuery.error,
+    
+    // 액션
     startGeneration,
     cancelGeneration,
-    isLoading,
-    startError,
-    cancelError
+    
+    // 에러 리셋
+    resetStartError: startGenerationMutation.reset,
+    resetCancelError: cancelGenerationMutation.reset,
   };
 }; 

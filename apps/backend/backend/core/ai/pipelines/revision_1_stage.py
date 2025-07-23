@@ -167,6 +167,7 @@ class Revision1Stage:
             # 현재 사용자 메시지가 저장되기 전의 마지막 봇 메시지를 찾기 위해 -2 인덱스 사용
             for i in range(len(messages) - 1, -1, -1):
                 if messages[i].role == MessageRole.Assistant:
+                    
                     last_bot_message = messages[i].content
                     # 질문인지 확인
                     question_keywords = [
