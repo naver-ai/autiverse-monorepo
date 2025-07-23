@@ -94,8 +94,6 @@ export const JournalingScreen = () => {
     startError: comicGenerationError 
   } = useComicGeneration(journalEntryId || null, refetchSessionInfo);
 
-  const isComicCompleted = comicGenerationStatus.status === 'completed';
-
   // 프로그레스바 애니메이션
   const progressAnimation = useRef(new Animated.Value(0)).current;
 
@@ -231,7 +229,7 @@ export const JournalingScreen = () => {
         }
         
         // 세션 정보에서 최신 패널 데이터 가져오기 (만화 생성이 진행 중이지 않을 때만)
-        if (comicGenerationStatus.status !== 'generating' && !isComicCompleted) {
+        if (comicGenerationStatus.status !== 'generating') {
           console.log('Loading session info after message sent...');
           await invalidateSessionInfo();
         } else {
@@ -245,9 +243,8 @@ export const JournalingScreen = () => {
         
         // auto_comic_generation 플래그 확인
         console.log('Response data:', data);
-        console.log('auto_comic_generation flag:', data.auto_comic_generation);
-        if (data.auto_comic_generation && !isComicCompleted) {
-          console.log('Auto comic generation detected, immediately setting next stage...');
+        console.log(data.intent == MessageIntent.StartComicGeneration)
+        if (data.intent == MessageIntent.StartComicGeneration) {
           
           //즉시 다음 단계로 stage 설정 (깜빡임 방지)
           if (data.stage === 'revision_1') {
@@ -290,10 +287,6 @@ export const JournalingScreen = () => {
                 
                 addMockMessages(journalEntryId, [autoBotMessage]);
                 
-                // 세션 정보 다시 로드 (한 번만)
-                if (!isComicCompleted) {
-                  await invalidateSessionInfo();
-                }
               }
             } catch (error) {
               console.error('Failed to start auto comic generation:', error);

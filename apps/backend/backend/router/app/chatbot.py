@@ -106,14 +106,14 @@ def start_chatbot_with_suggestion(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.post("/send", response_model=ChatbotResponse)
-def send_message(
+async def send_message(
     request: SendMessageRequest,
     db: Session = Depends(get_session)
 ):
     """메시지 전송"""
     try:
         controller = ChatbotController(db)
-        result = controller.send_message(
+        result = await controller.send_message(
             journal_entry_id=request.journal_entry_id,
             message=request.message,
             audio_filename=request.audio_filename
@@ -129,8 +129,10 @@ def send_message(
             auto_comic_generation=result.get("auto_comic_generation")
         )
     except ValueError as e:
+        print("value error: ", e)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        print("error: ", e)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.get("/session/{journal_entry_id}", response_model=JournalingSessionInfo)

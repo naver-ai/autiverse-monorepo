@@ -1,8 +1,10 @@
 from sqlalchemy.orm import Session
 from typing import Optional, List, Dict, Any
 from ..models import JournalEntry, Journal, Comic, Message, InteractionTurn, Dyad, Place, Person
-from ..models import JournalEntryStatus, JournalEntryStage, MessageRole, MessageIntent
+from ..models import JournalEntryStatus, JournalEntryStage, MessageRole, MessageIntent, ComicStatus
 import json
+import asyncio
+from backend.core.socket import emit_comic_generation_started, emit_comic_generation_progress, emit_comic_generation_completed, emit_comic_generation_error
 
 def get_dyad_by_passcode(db: Session, passcode: str) -> Optional[Dyad]:
     """패스코드로 dyad 조회"""
@@ -125,14 +127,22 @@ def get_comic(db: Session, journal_entry_id: str) -> Optional[Comic]:
     """comic 조회"""
     return db.query(Comic).filter(Comic.journal_entry_id == journal_entry_id).first()
 
-def update_comic_status(db: Session, journal_entry_id: str, status: str) -> Optional[Comic]:
-    """comic 생성 상태 업데이트 (통합)"""
-    comic = get_comic(db, journal_entry_id)
+async def update_comic_status(db: Session, journal_entry_id: str, status: ComicStatus):
+    """만화 생성 상태 업데이트"""
+    comic = db.query(Comic).filter(Comic.journal_entry_id == journal_entry_id).first()
     if comic:
         comic.status = status
         db.commit()
-        db.refresh(comic)
-    return comic
+        print(f"[DEBUG] Comic status updated to {status} for {journal_entry_id}")
+
+        if status == ComicStatus.Error:
+            await emit_comic_generation_error(comic.dyad_id, journal_entry_id, comic)    
+
+        if status == ComicStatus.Generating0:
+            await emit_comic_generation_started(comic.dyad_id, journal_entry_id, comic)
+        await emit_comic_generation_progress(comic.dyad_id, journal_entry_id, comic)
+        if status == ComicStatus.Completed:
+            await emit_comic_generation_completed(comic.dyad_id, journal_entry_id, comic)
 
 def get_comic_status(db: Session, journal_entry_id: str) -> Optional[str]:
     """comic 생성 상태 조회 (통합)"""

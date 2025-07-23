@@ -1,7 +1,8 @@
-from typing import Dict, Any
+from typing import Any
 import socketio
 from backend.database.crud.auth import verify_token_and_get_dyad
 from backend.database.engine import db_sessionmaker
+from backend.database.models import Comic
 from backend.router.admin.common import verify_admin_token
 import json
 
@@ -16,8 +17,8 @@ socket_app = socketio.ASGIApp(sio)
 connected_admins: list[str] = []
 
 # Store connected dyads
-connected_dyads: Dict[str, str] = {}  # sid -> dyad_id
-dyad_sids: Dict[str, set[str]] = {}  # dyad_id -> set of sids
+connected_dyads: dict[str, str] = {}  # sid -> dyad_id
+dyad_sids: dict[str, set[str]] = {}  # dyad_id -> set of sids
 
 @sio.event
 async def connect(sid, environ, auth):
@@ -49,8 +50,9 @@ async def connect(sid, environ, auth):
             
             await sio.emit('dyad_connected', {
                 'dyad_id': dyad.id,
-                'callable_name': dyad.callable_name
-            }, sid)
+                'child_name': dyad.child_name,
+                'alias': dyad.alias,
+            }, to=sid)
             
             return True
     except Exception as e:
@@ -88,3 +90,16 @@ async def emit_to_dyad(dyad_id: str, event: str, data: Any):
             await sio.emit(event, data, room=sid)
 
     await emit_to_admin(event, data)
+
+
+async def emit_comic_generation_progress(dyad_id: str, journal_entry_id: str, comic: Comic):
+    await emit_to_dyad(dyad_id, "comic_generation_progress", {"journal_entry_id": journal_entry_id, "comic": comic.model_dump(mode="json")})
+
+async def emit_comic_generation_completed(dyad_id: str, journal_entry_id: str, comic: Comic):
+    await emit_to_dyad(dyad_id, "comic_generation_completed", {"journal_entry_id": journal_entry_id, "comic": comic.model_dump(mode="json")})
+
+async def emit_comic_generation_started(dyad_id: str, journal_entry_id: str, comic: Comic):
+    await emit_to_dyad(dyad_id, "comic_generation_started", {"journal_entry_id": journal_entry_id, "comic": comic.model_dump(mode="json")})
+
+async def emit_comic_generation_error(dyad_id: str, journal_entry_id: str, comic: Comic):
+    await emit_to_dyad(dyad_id, "comic_generation_error", {"journal_entry_id": journal_entry_id, "comic": comic.model_dump(mode="json")})

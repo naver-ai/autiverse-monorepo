@@ -2,9 +2,9 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 from backend.database.crud.chatbot import update_comic_data, update_comic_status, get_comic_status, get_comic
+from backend.database.models import ComicStatus
 from backend.core.ai import ComicGridGenerator
 from backend.database.engine import get_session
-from backend.database.models import Comic
 from sqlalchemy.orm import Session
 from typing import Annotated
 from fastapi import Depends
@@ -35,35 +35,38 @@ def get_progress_and_message(status: str) -> tuple[int, str]:
     }
     return status_mapping.get(status, (0, "알 수 없는 상태"))
 
-def generate_comic_with_progress(journal_entry_id: str, panel_contents: Dict[str, str]):
+async def generate_comic_with_progress(journal_entry_id: str, panel_contents: Dict[str, str]):
     """백그라운드에서 만화를 생성하고 진행률을 업데이트"""
     db = next(get_session())
     try:
         # 초기 상태 설정
-        update_comic_status(db, journal_entry_id, "generating-0")
+        await update_comic_status(db, journal_entry_id, ComicStatus.Generating0)
         
         # 실제 만화 생성 과정과 연동된 progress_callback 정의
-        def progress_callback(progress: int, message: str):
+        async def progress_callback(progress: int, message: str):
             """실제 만화 생성 진행률에 따라 상태 업데이트"""
+            status = ComicStatus.Generating0
             if progress <= 20:
-                update_comic_status(db, journal_entry_id, "generating-1")
+                status = ComicStatus.Generating1
             elif progress <= 60:
-                update_comic_status(db, journal_entry_id, "generating-2")
+                status = ComicStatus.Generating2
             elif progress <= 75:
-                update_comic_status(db, journal_entry_id, "generating-3")
+                status = ComicStatus.Generating3
             elif progress <= 90:
-                update_comic_status(db, journal_entry_id, "generating-4")
+                status = ComicStatus.Generating4
             print(f"[DEBUG] Progress: {progress}% - {message}")
+
+            await update_comic_status(db, journal_entry_id, status)
         
         # 실제 만화 생성 (progress_callback과 함께)
         generator = ComicGridGenerator()
-        comic_data = generator.generate_comic_grids(panel_contents, progress_callback)
+        comic_data = await generator.generate_comic_grids(panel_contents, progress_callback)
         
         print(f"[DEBUG] Comic generation completed for {journal_entry_id}")
         print(f"[DEBUG] Comic data: {comic_data}")
         
         # 완료 상태 설정
-        update_comic_status(db, journal_entry_id, "completed")
+        await update_comic_status(db, journal_entry_id, ComicStatus.Completed)
         
         print(f"[DEBUG] Status updated to completed for {journal_entry_id}")
         
@@ -92,23 +95,10 @@ def generate_comic_with_progress(journal_entry_id: str, panel_contents: Dict[str
         
     except Exception as e:
         # 에러 상태 설정
-        update_comic_status(db, journal_entry_id, "error")
+        await update_comic_status(db, journal_entry_id, ComicStatus.Error)
         print(f"[ERROR] Comic generation failed for {journal_entry_id}: {e}")
     finally:
         db.close()
-
-def update_comic_status(db: Session, journal_entry_id: str, status: str):
-    """만화 생성 상태 업데이트"""
-    comic = db.query(Comic).filter(Comic.journal_entry_id == journal_entry_id).first()
-    if comic:
-        comic.status = status
-        db.commit()
-        print(f"[DEBUG] Comic status updated to {status} for {journal_entry_id}")
-
-def get_comic_status(db: Session, journal_entry_id: str) -> Optional[str]:
-    """만화 생성 상태 조회"""
-    comic = db.query(Comic).filter(Comic.journal_entry_id == journal_entry_id).first()
-    return comic.status if comic else None
 
 @router.post("/start", response_model=ComicGenerationResponse)
 async def start_comic_generation(
@@ -122,7 +112,7 @@ async def start_comic_generation(
     db = next(get_session())
     try:
         current_status = get_comic_status(db, journal_entry_id)
-        if current_status and current_status.startswith("generating-"):
+        if current_status and (current_status == ComicStatus.Generating0 or current_status == ComicStatus.Generating1 or current_status == ComicStatus.Generating2 or current_status == ComicStatus.Generating3 or current_status == ComicStatus.Generating4):
             progress, message = get_progress_and_message(current_status)
             return ComicGenerationResponse(
                 status="generating",
@@ -167,7 +157,7 @@ async def cancel_comic_generation(journal_entry_id: str):
     """만화 생성 취소"""
     db = next(get_session())
     try:
-        update_comic_status(db, journal_entry_id, "cancelled")
+        await update_comic_status(db, journal_entry_id, ComicStatus.Cancelled)
         return {"message": "만화 생성이 취소되었습니다."}
     finally:
         db.close() 

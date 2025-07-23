@@ -9,13 +9,13 @@ import {
 import { useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '../../auth/hooks';
 import { usePrevious } from '@uidotdev/usehooks';
+import { useSocket } from '../utils/socket';
 
 export const useComicGeneration = (journalEntryId: string | null, onGenerationComplete?: (comicData: any) => void) => {
 
   const {jwt} = useAuth();
 
   const queryClient = useQueryClient();
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // 만화 생성 시작 mutation
   const startGenerationMutation = useMutation({
@@ -72,14 +72,6 @@ export const useComicGeneration = (journalEntryId: string | null, onGenerationCo
     retry: false, // 404 에러 시 재시도하지 않음
   });
 
-  const previousStatus = usePrevious(statusQuery.data?.status);
-
-  useEffect(() => {
-    if(statusQuery.data?.status === 'completed' && statusQuery.data?.comic_data && onGenerationComplete && previousStatus !== 'completed') {
-      onGenerationComplete(statusQuery.data.comic_data);
-    }
-  }, [statusQuery.data?.status, statusQuery.data?.comic_data, onGenerationComplete, previousStatus]);
-
   // 만화 생성 시작 함수
   const startGeneration = useCallback((panelContents: Record<string, string>) => {
     if (!journalEntryId) {
@@ -106,18 +98,13 @@ export const useComicGeneration = (journalEntryId: string | null, onGenerationCo
   }, [journalEntryId, cancelGenerationMutation]);
 
 
-
-
-
-  // 컴포넌트 언마운트 시 정리
+  const {eventSubject$} = useSocket(jwt);
   useEffect(() => {
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, []);
+    const subscription = eventSubject$.subscribe((event) => {
+      console.log("Websocket event: ", event);
+    });
+    return () => subscription.unsubscribe();
+  }, [eventSubject$]);
 
   return {
     // 상태

@@ -70,7 +70,7 @@ class ChatbotController:
             "stage": "intro"
         }
     
-    def send_message(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
+    async def send_message(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """메시지 전송"""
         # journal entry 조회
         journal_entry = get_journal_entry(self.db, journal_entry_id)
@@ -83,7 +83,7 @@ class ChatbotController:
         if current_stage == JournalEntryStage.Intro:
             return self._handle_intro_stage(journal_entry_id, message, audio_filename)
         elif current_stage == JournalEntryStage.Revision1 or current_stage == JournalEntryStage.ComicContext or current_stage == JournalEntryStage.Revision2:
-            return self._handle_drawing_stage(journal_entry_id, message, audio_filename)
+            return await self._handle_drawing_stage(journal_entry_id, message, audio_filename)
         elif current_stage == JournalEntryStage.Title:
             return self._handle_title_stage(journal_entry_id, message, audio_filename)
         elif current_stage == JournalEntryStage.Complete:
@@ -129,7 +129,7 @@ class ChatbotController:
             "stage": "intro"
         }
     
-    def _handle_drawing_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
+    async def _handle_drawing_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """그리기 단계 처리 (revision_1, comic_context, revision_2)"""
         journal_entry = get_journal_entry(self.db, journal_entry_id)
         journal = get_journal(self.db, journal_entry_id)
@@ -141,11 +141,11 @@ class ChatbotController:
         current_stage = journal_entry.stage
         
         if current_stage == JournalEntryStage.Revision1:
-            return self._handle_revision_1_stage(journal_entry_id, message, audio_filename)
+            return await self._handle_revision_1_stage(journal_entry_id, message, audio_filename)
         elif current_stage == JournalEntryStage.ComicContext:
-            return self._handle_comic_context_stage(journal_entry_id, message, audio_filename)
+            return await self._handle_comic_context_stage(journal_entry_id, message, audio_filename)
         elif current_stage == JournalEntryStage.Revision2:
-            return self._handle_revision_2_stage(journal_entry_id, message, audio_filename)
+            return await self._handle_revision_2_stage(journal_entry_id, message, audio_filename)
         else:
             # 완료
             return {
@@ -153,21 +153,26 @@ class ChatbotController:
                 "stage": "complete"
             }
     
-    def _handle_revision_1_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
+    async def _handle_revision_1_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """revision_1 단계 처리"""
         revision_stage = Revision1Stage(self.db, journal_entry_id)
         response, intent = revision_stage.process_message(message, audio_filename)
         
         # 만화 생성 시작 신호인지 확인
-        auto_comic_generation = intent == MessageIntent.StartComicGenerationToken
+        auto_comic_generation = intent == MessageIntent.StartComicGeneration
         if auto_comic_generation:
             # 만화 생성 시작 (프론트엔드에서 모니터링할 수 있도록)
-            revision_stage._generate_comic_panels()
+            print("Start comic generation in revision_1 stage")
+            await revision_stage._generate_comic_panels()
+
+        
+        print("auto_comic_generation (rev1): ", auto_comic_generation)
         
         # 만화 생성 완료 신호인지 확인
 
         # 완료되었는지 확인
         if "다행이다" in response:
+            print("다행이다 in response. Move to comic_context stage.")
             return {
                 "response": response,
                 "intent": intent,
@@ -181,18 +186,18 @@ class ChatbotController:
             "stage": "revision_1"
         }
     
-    def _handle_comic_context_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
+    async def _handle_comic_context_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """comic_context 단계 처리"""
         context_stage = ComicContextStage(self.db, journal_entry_id)
         response, intent = context_stage.process_message(message, audio_filename)
         
-        auto_comic_generation = intent == MessageIntent.StartComicGenerationToken
+        auto_comic_generation = intent == MessageIntent.StartComicGeneration
+        focused_panel = None
         # 만화 생성 시작 신호인 경우
         if auto_comic_generation:
-            context_stage._generate_final_comic_panels()
+            await context_stage._generate_final_comic_panels()
         else:
             # focusedPanel 설정 로직 추가
-            focused_panel = None
             if context_stage.story_analysis:
                 # story_analysis에서 첫 번째로 누락된 정보가 있는 패널 찾기
                 content_issues = context_stage.story_analysis.get("content", {})
@@ -202,6 +207,8 @@ class ChatbotController:
                     if content_issues.get(panel) and content_issues[panel]:  # 해당 패널에 누락된 정보가 있으면
                         # A -> panel1, B -> panel2, C -> panel3                   panel_mapping = {"A": "panel1,B": "panel2,C": "panel3,                    focused_panel = panel_mapping[panel]
                         break
+
+        print("auto_comic_generation (comic_context): ", auto_comic_generation)
         
         return {
             "response": response,
@@ -211,7 +218,7 @@ class ChatbotController:
             "auto_comic_generation": auto_comic_generation
         }
     
-    def _handle_revision_2_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
+    async def _handle_revision_2_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """revision_2 단계 처리"""
         print(f"[DEBUG] _handle_revision_2_stage: message={message.strip()}")
         if message.strip() == "좋아!" or message.strip() == "그러자!":

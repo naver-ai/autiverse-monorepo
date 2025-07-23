@@ -238,7 +238,7 @@ class MessageIntent(StrEnum):
     PromptEmotion="prompt_emotion"
     Agree="agree"
     Disagree="disagree"
-    StartComicGenerationToken="start_comic_generation"
+    StartComicGeneration="start_comic_generation"
     TransitionToTitle="transition_to_title"
 
 class Message(SQLModel, IdTimestampMixin, JournalEntryIdMixin, InteractionTurnIdMixin, table=True):
@@ -293,7 +293,20 @@ class Journal(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
 class JournalIdMixin(BaseModel):
     journal_id: str = Field(foreign_key=f"{Journal.__tablename__}.id")
 
+class ComicStatus(StrEnum):
+    Generating0="generating-0"
+    Generating1="generating-1"
+    Generating2="generating-2"
+    Generating3="generating-3"
+    Generating4="generating-4"
+    Completed="completed"
+    Error="error"
+    Cancelled="cancelled"
+
 class Comic(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
+    model_config = ConfigDict(use_enum_values=True)
+    
+
     first_panel1: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
     first_panel2: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
     first_panel3: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
@@ -302,7 +315,7 @@ class Comic(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
     second_panel2: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
     second_panel3: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
     second_panel4: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
-    status: Optional[str] = Field(nullable=True, default=None)
+    status: Optional[ComicStatus] = Field(sa_type=SQLEnum(ComicStatus, native_enum=False), nullable=True, default=None)
     journal_entry_id: str = Field(foreign_key="journalentry.id")
     journal_id: str = Field(foreign_key="journal.id")
 

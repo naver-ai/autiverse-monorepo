@@ -180,6 +180,6 @@ export enum MessageIntent {
   PromptTextInput = "prompt_text_input",
   PromptOpenEndedAnswer = "prompt_open_ended_answer",
   PromptIssueExist = "prompt_issue_exist",
-  StartComicGenerationToken = "start_comic_generation_token",
+  StartComicGeneration = "start_comic_generation",
   TransitionToTitle="transition_to_title"
 }

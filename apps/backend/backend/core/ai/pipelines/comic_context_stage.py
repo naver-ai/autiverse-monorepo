@@ -170,7 +170,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             # 완료 상태 확인
             if self.is_complete():
                 # 만화 생성 시작 신호 반환 (실제 만화 생성은 controller에서 처리)
-                return "내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~", MessageIntent.StartComicGenerationToken
+                return "내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~", MessageIntent.StartComicGeneration
             
             # 다음 질문 생성
             next_question, intent = self._get_next_question()
@@ -1072,7 +1072,7 @@ Please generate a question that addresses the FIRST missing information gap."""
         
         return is_complete
     
-    def _generate_final_comic_panels(self) -> None:
+    async def _generate_final_comic_panels(self) -> None:
         """comic_context 완료 시 최종 만화 패널 생성 및 Comic 테이블에 저장"""
         try:
             # comic_context 데이터 가져오기
@@ -1093,30 +1093,33 @@ Please generate a question that addresses the FIRST missing information gap."""
                 from backend.core.ai import ComicGridGenerator
                 
                 # 진행률 콜백 함수 정의
-                def progress_callback(progress: int, message: str):
+                async def progress_callback(progress: int, message: str):
                     """만화 생성 진행률에 따라 상태 업데이트"""
+                    status = ComicStatus.Generating0
                     if progress <= 20:
-                        update_comic_status(self.db, self.journal_entry_id, "generating-1")
+                        status = ComicStatus.Generating1
                     elif progress <= 60:
-                        update_comic_status(self.db, self.journal_entry_id, "generating-2")
+                        status = ComicStatus.Generating2
                     elif progress <= 75:
-                        update_comic_status(self.db, self.journal_entry_id, "generating-3")
+                        status = ComicStatus.Generating3
                     elif progress <= 90:
-                        update_comic_status(self.db, self.journal_entry_id, "generating-4")
+                        status = ComicStatus.Generating4
+
+                    await update_comic_status(self.db, self.journal_entry_id, status)
                     print(f"[DEBUG] Progress: {progress}% - {message}")
                 
                 # 초기 상태 설정
-                update_comic_status(self.db, self.journal_entry_id, "generating-0")
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Generating0)
                 
                 # 만화 생성 시작
                 generator = ComicGridGenerator()
-                comic_data = generator.generate_comic_grids(panel_contents, progress_callback)
+                comic_data = await generator.generate_comic_grids(panel_contents, progress_callback)
                 
                 print(f"[DEBUG] comic_context: Comic generation completed for {self.journal_entry_id}")
                 print(f"[DEBUG] comic_context: Comic data: {comic_data}")
                 
                 # 완료 상태 설정
-                update_comic_status(self.db, self.journal_entry_id, "completed")
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Completed)
                 
                 # 데이터베이스에 저장
                 update_comic_data(self.db, self.journal_entry_id, comic_data)
@@ -1125,7 +1128,7 @@ Please generate a question that addresses the FIRST missing information gap."""
                 
             except Exception as e:
                 print(f"[DEBUG] comic_context: Error in comic generation: {e}")
-                update_comic_status(self.db, self.journal_entry_id, "error")
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Error)
                 import traceback
                 traceback.print_exc()
             
