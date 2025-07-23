@@ -37,8 +37,6 @@ export const ChatStage: React.FC<ChatStageProps> = ({
 }) => {
   const { t } = useTranslation();
   const {
-    inputText,
-    setInputText,
     isLoading,
     isInputActive,
     isAfterFarewell
@@ -204,8 +202,6 @@ export const ChatStage: React.FC<ChatStageProps> = ({
           {/* 입력 영역 */}
           <ChatInput
             journalEntryId={sessionId}
-            inputText={inputText}
-            setInputText={setInputText}
             sendMessage={sendMessage}
             isLoading={isLoading}
             comicGenerationStatus={comicGenerationStatus}

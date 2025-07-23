@@ -230,6 +230,7 @@ class MessageRole(StrEnum):
 class MessageIntent(StrEnum):
     PromptNext="prompt_next"
     PromptConfirm="prompt_confirm" # Yes / no
+    PromptIssueExist="prompt_issue_exist" # 문제가 있는 부분이 있어?
     InitialTitleConfirm="initial_title_confirm" # 첫 번째 제목 제안에 대한 피드백
     CustomTitleConfirm="custom_title_confirm" # 커스텀 제목 확인에 대한 피드백
     PromptOpenEndedAnswer="prompt_open_ended_answer" # 채팅으로 쳐서 정확하게 알려줘!, etc
@@ -237,6 +238,8 @@ class MessageIntent(StrEnum):
     PromptEmotion="prompt_emotion"
     Agree="agree"
     Disagree="disagree"
+    StartComicGenerationToken="start_comic_generation"
+    TransitionToTitle="transition_to_title"
 
 class Message(SQLModel, IdTimestampMixin, JournalEntryIdMixin, InteractionTurnIdMixin, table=True):
     model_config = ConfigDict(use_enum_values=True)

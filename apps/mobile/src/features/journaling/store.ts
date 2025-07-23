@@ -2,7 +2,6 @@ import { create } from 'zustand';
 
 interface JournalingState {
   // 기본 상태
-  inputText: string;
   isLoading: boolean;
   
   // 섹션 관련 상태
@@ -18,13 +17,10 @@ interface JournalingState {
   setIsLoading: (loading: boolean) => void;
   setIsInputActive: (active: boolean) => void;
   setIsAfterFarewell: (after: boolean) => void;
-  setInputText: (text: string) => void;
   // Semantic setters - 관련된 상태들을 함께 업데이트
 
   transitionToPraiseSection: () => void;
   transitionToFarewellSection: () => void;
-  
-  prepareForMessageSend: () => void;
   
   // 복합 actions
   resetAll: () => void;
@@ -33,7 +29,6 @@ interface JournalingState {
 
 export const useJournalingStore = create<JournalingState>((set, get) => ({
   // 초기 상태
-  inputText: '',
   isLoading: false,
 
   showPraiseSection: false,
@@ -43,7 +38,6 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
   isInputActive: false,
   isAfterFarewell: false,
 
-  setInputText: (inputText) => set({ inputText }),
   setIsLoading: (isLoading) => set({ isLoading }),
   setIsInputActive: (isInputActive) => set({ isInputActive }),
   setIsAfterFarewell: (isAfterFarewell) => set({ isAfterFarewell }),
@@ -58,13 +52,7 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
     showFarewellSection: true
   }),
   
-  prepareForMessageSend: () => set({
-    inputText: '',
-    isLoading: true
-  }),
-  
   resetAll: () => set({
-    inputText: '',
     isLoading: false,
     showPraiseSection: false,
     showFarewellSection: false,
@@ -74,7 +62,6 @@ export const useJournalingStore = create<JournalingState>((set, get) => ({
   }),
   
   resetForNewSession: () => set({
-    inputText: '',
     isLoading: false,
     showPraiseSection: false,
     showFarewellSection: false,

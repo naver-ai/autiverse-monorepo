@@ -5,7 +5,7 @@ from backend.database.crud.chatbot import (
     create_journal, get_journal, update_journal_data, 
     get_messages_by_journal_entry, delete_journal_entry, reset_journal_entry
 )
-from backend.database.models import JournalEntryStage, JournalEntryStatus, MessageRole, JournalingSessionInfo, ChatMessage, ComicData
+from backend.database.models import JournalEntryStage, JournalEntryStatus, MessageRole, JournalingSessionInfo, ChatMessage, ComicData, MessageIntent
 from backend.core.ai.pipelines import ComicIntroStage, Revision1Stage, ComicContextStage, Revision2Stage, TitleStage
 
 class ChatbotController:
@@ -111,11 +111,12 @@ class ChatbotController:
             
             # revision_1 단계로 전환
             revision_stage = Revision1Stage(self.db, journal_entry_id)
-            revision_response = revision_stage.start_revision()
+            revision_response, intent = revision_stage.start_revision()
             
             return {
                 "response": revision_response,
                 "stage": "revision_1",
+                "intent": intent,
                 "data": {
                     "events": analysis.get("events_identified", []),
                     "summary": analysis.get("conversation_summary", ""),
@@ -155,19 +156,13 @@ class ChatbotController:
     def _handle_revision_1_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """revision_1 단계 처리"""
         revision_stage = Revision1Stage(self.db, journal_entry_id)
-        response = revision_stage.process_message(message, audio_filename)
+        response, intent = revision_stage.process_message(message, audio_filename)
         
         # 만화 생성 시작 신호인지 확인
-        if response == "COMIC_GENERATION_START":
+        auto_comic_generation = intent == MessageIntent.StartComicGenerationToken
+        if auto_comic_generation:
             # 만화 생성 시작 (프론트엔드에서 모니터링할 수 있도록)
             revision_stage._generate_comic_panels()
-            
-            # 만화 생성 시작 메시지 반환
-            return {
-                "response": "다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~",
-                "stage": "revision_1",
-                "auto_comic_generation": True
-            }
         
         # 만화 생성 완료 신호인지 확인
 
@@ -175,46 +170,45 @@ class ChatbotController:
         if "다행이다" in response:
             return {
                 "response": response,
+                "intent": intent,
                 "stage": "comic_context"
             }
         
         return {
             "response": response,
+            "intent": intent,
+            "auto_comic_generation": auto_comic_generation,
             "stage": "revision_1"
         }
     
     def _handle_comic_context_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
         """comic_context 단계 처리"""
         context_stage = ComicContextStage(self.db, journal_entry_id)
-        response = context_stage.process_message(message, audio_filename)
+        response, intent = context_stage.process_message(message, audio_filename)
         
+        auto_comic_generation = intent == MessageIntent.StartComicGenerationToken
         # 만화 생성 시작 신호인 경우
-        if response == "COMIC_GENERATION_START":
+        if auto_comic_generation:
             context_stage._generate_final_comic_panels()
-            
-            # 만화 생성 시작 메시지 반환
-            return {
-                "response": "내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~",
-                "stage": "comic_context",
-                "auto_comic_generation": True
-            }
-        
-        # focusedPanel 설정 로직 추가
-        focused_panel = None
-        if context_stage.story_analysis:
-            # story_analysis에서 첫 번째로 누락된 정보가 있는 패널 찾기
-            content_issues = context_stage.story_analysis.get("content", {})
-            panels = ["A", "B", "C", "D"] # Assuming these are the panel keys
-            panel_mapping = {"A": "panel1", "B": "panel2", "C": "panel3", "D": "panel4"}
-            for panel in panels:
-                if content_issues.get(panel) and content_issues[panel]:  # 해당 패널에 누락된 정보가 있으면
-                    # A -> panel1, B -> panel2, C -> panel3                   panel_mapping = {"A": "panel1,B": "panel2,C": "panel3,                    focused_panel = panel_mapping[panel]
-                    break
+        else:
+            # focusedPanel 설정 로직 추가
+            focused_panel = None
+            if context_stage.story_analysis:
+                # story_analysis에서 첫 번째로 누락된 정보가 있는 패널 찾기
+                content_issues = context_stage.story_analysis.get("content", {})
+                panels = ["A", "B", "C", "D"] # Assuming these are the panel keys
+                panel_mapping = {"A": "panel1", "B": "panel2", "C": "panel3", "D": "panel4"}
+                for panel in panels:
+                    if content_issues.get(panel) and content_issues[panel]:  # 해당 패널에 누락된 정보가 있으면
+                        # A -> panel1, B -> panel2, C -> panel3                   panel_mapping = {"A": "panel1,B": "panel2,C": "panel3,                    focused_panel = panel_mapping[panel]
+                        break
         
         return {
             "response": response,
+            "intent": intent,
             "stage": "comic_context",
-            "focusedPanel": focused_panel
+            "focusedPanel": focused_panel,
+            "auto_comic_generation": auto_comic_generation
         }
     
     def _handle_revision_2_stage(self, journal_entry_id: str, message: str, audio_filename: str = None) -> Dict[str, Any]:
@@ -239,14 +233,17 @@ class ChatbotController:
             
             return {
                 "response": title_response,
+                "intent": intent,
+                "metadata": metadata,
                 "stage": "title"
             }
         
         revision2_stage = Revision2Stage(self.db, journal_entry_id)
-        response = revision2_stage.process_message(message, audio_filename)
+        response, intent = revision2_stage.process_message(message, audio_filename)
         
         return {
             "response": response,
+            "intent": intent,
             "stage": "revision_2"
         }
     
@@ -435,10 +432,11 @@ class ChatbotController:
             
             # comic_context로 전환
             context_stage = ComicContextStage(self.db, journal_entry_id)
-            context_response = context_stage.start_context_analysis()
+            context_response, intent = context_stage.start_context_analysis()
             
             return {
                 "response": context_response,
+                "intent": intent,
                 "stage": "comic_context"
             }
         elif current_stage == JournalEntryStage.ComicContext:

@@ -5,7 +5,7 @@ from backend.database.crud.chatbot import (
     update_journal_data, create_interaction_turn, create_message,
     get_messages_by_journal_entry, update_comic_data, update_comic_status
 )
-from backend.database.models import JournalEntryStage, MessageRole
+from backend.database.models import JournalEntryStage, MessageRole, MessageIntent
 from sqlalchemy.orm import Session
 
 
@@ -46,7 +46,7 @@ class Revision1Stage:
         )
         self.revision_count = new_count
         
-    def start_revision(self) -> str:
+    def start_revision(self) -> tuple[str, MessageIntent]:
         """첫 번째 수정 단계 시작"""
         # Journal entry stage 업데이트
         update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Revision1)
@@ -60,10 +60,11 @@ class Revision1Stage:
         initial_question = "그럼 네가 지금 말해준 내용으로 오늘의 그림일기를 써보자! 먼저 내가 잘 들었는지 왼쪽 내용을 읽어서 확인해줘~ 내가 다 맞게 들었을까? 🤔"
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            initial_question, MessageRole.Assistant, JournalEntryStage.Revision1
+            initial_question, MessageRole.Assistant, JournalEntryStage.Revision1,
+            intent=MessageIntent.PromptConfirm
         )
         
-        return initial_question
+        return initial_question, MessageIntent.PromptConfirm
     
     def process_message(self, user_message: str, audio_filename: str = None) -> str:
         """사용자 메시지 처리"""
@@ -78,22 +79,18 @@ class Revision1Stage:
         )
         
         # 봇 응답 생성
-        bot_response = self._generate_response(user_message)
-        
-        # 만화 생성 시작 신호인지 확인
-        if bot_response == "COMIC_GENERATION_START":
-            # 만화 생성 시작 신호만 반환
-            return "COMIC_GENERATION_START"
+        bot_response, intent = self._generate_response(user_message)
         
         # 봇 응답 저장
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            bot_response, MessageRole.Assistant, JournalEntryStage.Revision1
+            bot_response, MessageRole.Assistant, JournalEntryStage.Revision1,
+            intent=intent
         )
         
-        return bot_response
+        return bot_response, intent
     
-    def _generate_response(self, user_message: str) -> str:
+    def _generate_response(self, user_message: str) -> tuple[str, MessageIntent]:
         """사용자 메시지에 대한 응답 생성"""
         
         # "네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까?" 질문에 대한 답변 처리
@@ -104,16 +101,16 @@ class Revision1Stage:
                 self._update_revision_count(new_count)
                 print(f"[DEBUG] revision_1: revision_count: {self.revision_count}")
                 if self.revision_count > self.max_revisions:
-                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 고치고 싶은 부분이 있다면 말해줘~"
+                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 고치고 싶은 부분이 있다면 말해줘~", MessageIntent.PromptOpenEndedAnswer
                 elif self.revision_count == self.max_revisions:
-                    return "아앗;; 이제 마지막 기회야! 지금 틀린 부분이 있다면 다 말해줘~ 😅"
+                    return "아앗;; 이제 마지막 기회야! 지금 틀린 부분이 있다면 다 말해줘~ 😅", MessageIntent.PromptOpenEndedAnswer
                 else:
-                    return "아앗;; 어디가 어떻게 틀렸어? 😅"
+                    return "아앗;; 어디가 어떻게 틀렸어? 😅", MessageIntent.PromptOpenEndedAnswer
             elif self._is_positive_response(user_message):
                 # 수정 완료, 만화 생성 시작 메시지 전송
-                return "COMIC_GENERATION_START"
+                return "다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~", MessageIntent.StartComicGenerationToken
             else:
-                return "응 아니 중에 골라줘! 😅"
+                return "응 아니 중에 골라줘! 😅", MessageIntent.PromptConfirm
         
         # 질문에 대한 답변 처리
         if self._is_question_response():
@@ -123,11 +120,11 @@ class Revision1Stage:
                 self._update_revision_count(new_count)
                 print(f"[DEBUG] revision_1: revision_count: {self.revision_count}")
                 if self.revision_count > self.max_revisions:
-                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 고치고 싶은 부분이 있다면 말해줘~"
+                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 고치고 싶은 부분이 있다면 말해줘~", MessageIntent.PromptOpenEndedAnswer
                 elif self.revision_count == self.max_revisions:
-                    return "아앗;; 이제 마지막 기회야! 지금 틀린 부분이 있다면 다 말해줘~ 😅"
+                    return "아앗;; 이제 마지막 기회야! 지금 틀린 부분이 있다면 다 말해줘~ 😅", MessageIntent.PromptOpenEndedAnswer
                 else:
-                    return "아앗;; 어디가 어떻게 틀렸어? 😅"
+                    return "아앗;; 어디가 어떻게 틀렸어? 😅", MessageIntent.PromptOpenEndedAnswer
             elif self._is_positive_response(user_message):
                 # 수정할 부분이 없다면 comic_intro를 revision_1에 저장하고 만화 생성 시작 메시지 전송
                 journal = get_journal(self.db, self.journal_entry_id)
@@ -136,17 +133,17 @@ class Revision1Stage:
                         self.db, self.journal_entry_id,
                         revision_1=journal.comic_intro
                     )
-                return "COMIC_GENERATION_START"
+                return "다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~", MessageIntent.StartComicGenerationToken
             else:
-                return "응 아니 중에 골라줘! 😅"
+                return "응 아니 중에 골라줘! 😅", MessageIntent.PromptConfirm
         else:
             # 구체적인 수정 내용이 들어온 경우
             try:
                 self._apply_user_correction(user_message)
-                return "네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까? 🤔"
+                return "네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까? 🤔", MessageIntent.PromptConfirm
             except Exception as e:
                 print(f"[DEBUG] revision_1: Error applying user correction: {e}")
-                return "수정하는데 문제가 생겼어. 다시 말해줘! 😅"
+                return "수정하는데 문제가 생겼어. 다시 말해줘! 😅", MessageIntent.PromptOpenEndedAnswer
         
 
     
@@ -367,8 +364,6 @@ User's correction request: {correction}
     
 
     
-    def get_initial_question(self) -> str:
+    def get_initial_question(self) -> tuple[str, MessageIntent]:
         """첫 번째 수정 질문을 반환합니다."""
-        return "여기서 틀린 부분 있어? 🤔"
-    
- 
+        return "여기서 틀린 부분 있어? 🤔", MessageIntent.PromptIssueExist

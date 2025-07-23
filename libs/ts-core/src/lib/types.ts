@@ -179,4 +179,7 @@ export enum MessageIntent {
   Disagree = "disagree",
   PromptTextInput = "prompt_text_input",
   PromptOpenEndedAnswer = "prompt_open_ended_answer",
+  PromptIssueExist = "prompt_issue_exist",
+  StartComicGenerationToken = "start_comic_generation_token",
+  TransitionToTitle="transition_to_title"
 }

@@ -144,7 +144,6 @@ export function AgentIntroScreen() {
     );
   } else {
 
-    console.log(dyad)
     const isFirstVisit = dyad!.journal_entries?.length <= 1;
     const childJosa = getKoreanJosa(dyad!.child_name);
     const agentJosa = getKoreanJosa(dyad!.agents?.[0]?.agent_name || '친구');

@@ -12,11 +12,10 @@ import { useSession } from '../hooks/useSession';
 import { VoiceRecordingStatus } from './VoiceRecordingStatus';
 import { ChatButtons } from './ChatButtons';
 import { ChatText } from './ChatText';
+import { MessageIntent } from '@autiverse-monorepo/ts-core';
 
 interface ChatInputProps {
   journalEntryId: string;
-  inputText: string;
-  setInputText: (text: string) => void;
   sendMessage: (message: string, audioFilename?: string) => void;
   isLoading: boolean;
   comicGenerationStatus: any;
@@ -28,8 +27,6 @@ interface ChatInputProps {
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   journalEntryId,
-  inputText,
-  setInputText,
   sendMessage,
   isLoading,
   comicGenerationStatus,
@@ -76,9 +73,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   // TTS 상태 구독
   useEffect(() => {
-
-    console.log("isSpeaking", isSpeaking)
-    console.log("isLoading", isLoading)
       
       // TTS가 완료되면 바로 음성 녹음 모드로 전환
       if (previousIsSpeaking === true && !isSpeaking && !isLoading) {
@@ -90,38 +84,30 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         }
         
         const lastMessage = messages?.filter(m => !m.isUser).pop();
-        const isCompletionMessage = lastMessage?.text?.includes('다음 버튼을 눌러줘!');
+        const isCompletionMessage = lastMessage?.intent === MessageIntent.PromptNext;
         
         // 채팅으로 입력하라는 메시지인지 확인 (title stage에서 2번 이상 거부했을 때)
-        const isChatInputMessage = lastMessage?.text?.includes('채팅으로 쳐서 정확하게 알려줘!');
+        const isChatInputMessage = lastMessage?.intent === MessageIntent.PromptTextInput;
         
         // 버튼이 표시될 조건인지 확인
         const shouldShowButtons = (() => {
-          if (currentStage === 'revision_1') {
-            return (lastMessage?.text?.includes('다 맞게 들었을까?') || 
-                    lastMessage?.text?.includes('아직도 틀린 부분 있어?') ||
-                    lastMessage?.text?.includes('이제 다 맞을까?'));
+          if (currentStage === 'revision_1' || currentStage === 'revision_2') {
+            return lastMessage?.intent === MessageIntent.PromptIssueExist || lastMessage?.intent === MessageIntent.PromptOpenEndedAnswer;
           }
-          if (currentStage === 'revision_2') {
-            return (lastMessage?.text?.includes('수정하거나 추가하고 싶은 부분 있어?') || 
-                    lastMessage?.text?.includes('더 추가하거나 바꿀 곳 있어?'));
+          else if (currentStage === 'comic_context') {
+            return lastMessage?.intent === MessageIntent.PromptEmotion;
           }
-          if (currentStage === 'comic_context') {
-            return lastMessage?.text?.includes('기분이 어땠어?') || lastMessage?.text?.includes('기분이었어?') || lastMessage?.text?.includes('몇가지 확인해줄래??');
-          }
-          if (currentStage === 'title') {
-            return (lastMessage?.text?.includes('어때?') ||
-                    lastMessage?.text?.includes('이걸로 할까?'));
+          else if (currentStage === 'title') {
+            return lastMessage?.intent === MessageIntent.PromptConfirm || lastMessage?.intent === MessageIntent.InitialTitleConfirm || lastMessage?.intent === MessageIntent.CustomTitleConfirm;
           }
 
           return false;
         })();
         
         // 만화 생성 완료 메시지인지 확인 (별도 조건)
-        const isComicCompletionMessage = lastMessage?.text?.includes('다행이다') || 
-                                        lastMessage?.text?.includes('채울 수 있을 것 같아');
+        const isComicCompletionMessage = lastBotMessage?.intent === MessageIntent.StartComicGenerationToken;
         // 완료 메시지가 아니고 버튼이 표시되지 않으며, 만화 생성 완료 메시지도 아니고, farewell 이후도 아니고, 채팅 입력 메시지도 아니고, 제목 단계 전환 메시지도 아니고, sessionId가 존재할 때만 음성 녹음 시작
-        const isTitleTransitionMessage = lastMessage?.text?.includes('그럼 이제 일기 제목을 정하러 가볼까?');
+        const isTitleTransitionMessage = lastMessage?.intent === MessageIntent.TransitionToTitle;
         
         if (canRecord && !isCompletionMessage && !shouldShowButtons && !isComicCompletionMessage && !isAfterFarewell && !isChatInputMessage && !isTitleTransitionMessage) {
           setIsVoiceCompleted(false); // 다음 음성 녹음 시작 전에 완료 상태 초기화
@@ -129,6 +115,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         }
       }
   }, [previousIsSpeaking, isSpeaking, canRecord, isLoading, messages, currentStage, continueExisting, isInitialLoad]);
+ 
   
   // TTS 또는 로딩 중일 때 비활성화, 또는 ChatInput이 비활성화 상태일 때
   const isDisabled = isLoading || isSpeaking || comicGenerationStatus.status === 'generating' || !isInputActive || isVoiceRecording;
@@ -140,8 +127,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             return (lastBotMessage?.text?.includes('다 맞게 들었을까?') || 
                     lastBotMessage?.text?.includes('아직도 틀린 부분 있어?') ||
                     lastBotMessage?.text?.includes('이제 다 맞을까?')) && 
-                   !isDisabled && 
-                   inputText.trim() === '';
+                   !isDisabled
         }
         
         // revision_2에서 수정 관련 질문들일 때만 버튼 표시
@@ -149,28 +135,24 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             return (lastBotMessage?.text?.includes('수정하거나 추가하고 싶은 부분 있어?') || 
                     lastBotMessage?.text?.includes('더 추가하거나 바꿀 곳 있어?') ||
                     lastBotMessage?.text?.includes('일기 제목')) && 
-                   !isDisabled && 
-                   inputText.trim() === '';
+                   !isDisabled
         }
         
         // comic_context에서 "몇가지 확인해줄래??" 멘트가 포함된 질문일 때 버튼 표시
         if (currentStage === 'comic_context') {
             return lastBotMessage?.text?.includes('몇가지 확인해줄래??') && 
-                   !isDisabled && 
-                   inputText.trim() === '';
+                   !isDisabled
         }
         
         // title stage에서 제목 정하기 관련 버튼 표시
         if (currentStage === 'title') {
-            return (lastBotMessage?.text?.includes('어때?') || 
-                    lastBotMessage?.text?.includes('이걸로 할까?')) && 
-                   !isDisabled && 
-                   inputText.trim() === '';
+            return (lastBotMessage?.intent === MessageIntent.PromptConfirm || lastBotMessage?.intent === MessageIntent.InitialTitleConfirm || lastBotMessage?.intent === MessageIntent.CustomTitleConfirm) && 
+                   !isDisabled
         }
         
         // completion message 뒤에 나오는 "그럼 이제 일기 제목을 정하러 가볼까?" 메시지일 때 버튼 표시
-        if (lastBotMessage?.text?.includes('그럼 이제 일기 제목을 정하러 가볼까?')) {
-            return !isDisabled && inputText.trim() === '';
+        if (lastBotMessage?.intent === MessageIntent.TransitionToTitle) {
+            return !isDisabled
         }
         
         return false;
@@ -179,9 +161,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const showEmotionButtons = (() => {
     // comic_context에서 "기분이 어땠어?" 질문일 때 감정 버튼 표시
     if (currentStage === 'comic_context') {
-      return (lastBotMessage?.text?.includes('기분이 어땠어?') || lastBotMessage?.text?.includes('기분이었어?')) && 
-             !isDisabled && 
-             inputText.trim() === '';
+      return lastBotMessage?.intent === MessageIntent.PromptEmotion && 
+             !isDisabled
     }
     
     return false;
@@ -190,9 +171,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const showNextButton = (() => {
     // title stage에서 제목 정하기 완료 시 다음 버튼 표시
     if (currentStage === 'title') {
-      return lastBotMessage?.text?.includes('다음 버튼을 눌러줘!') && 
-             !isDisabled && 
-             inputText.trim() === '';
+      return lastBotMessage?.intent === MessageIntent.PromptNext && 
+             !isDisabled
     }
     
     return false;
@@ -226,7 +206,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
     
     // completion message 뒤에 나오는 "그럼 이제 일기 제목을 정하러 가볼까?" 메시지일 때
-    if (lastBotMessage?.text?.includes('그럼 이제 일기 제목을 정하러 가볼까?')) {
+    if (lastBotMessage?.intent === MessageIntent.TransitionToTitle) {
       return { left: t('ChatInput.ButtonLabels.LetsDoIt'), right: t('ChatInput.ButtonLabels.Good') };
     }
     
@@ -343,6 +323,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
+
+  const showButtons = showYesNoButtons || showEmotionButtons || showNextButton;
+
   return (
     <View className="p-6 border-t-2 border-gray-200 bg-white">
       {/* 음성 녹음 상태 표시 */}
@@ -367,14 +350,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {(() => {
         // 채팅으로 입력하라는 메시지인지 확인 (title stage에서 2번 이상 거부했을 때)
         const lastMessage = messages?.filter(m => !m.isUser).pop();
-        const isChatInputMessage = lastMessage?.text?.includes('채팅으로 쳐서 정확하게 알려줘!');
+        const isChatInputMessage = lastMessage?.intent === MessageIntent.PromptTextInput;
         
         // 채팅 입력 메시지이거나 음성 녹음이 완료되지 않았을 때 ChatText 표시
         if (isChatInputMessage || !isVoiceCompleted) {
           return (
             <ChatText
-              inputText={inputText}
-              setInputText={setInputText}
               sendMessage={sendMessage}
               isDisabled={isDisabled}
               isVoiceMode={isVoiceMode}

@@ -13,11 +13,12 @@ import { useChatbot } from '../hooks/useChatbot';
 import PraiseSection from '../components/sections/PraiseSection';
 import FarewellSection from '../components/sections/FarewellSection';
 import { ChatStage } from '../components/stages';
-import { ChatMessage, MessageIntent } from '@autiverse-monorepo/ts-core';
+import { ChatMessage, JournalingSessionInfo, MessageIntent } from '@autiverse-monorepo/ts-core';
 import { useSpeech } from '../utils';
 import { useDyad } from '../../../api/dyad';
 import { useJournalingStore } from '../store';
 import { useSession } from '../hooks/useSession';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const JournalingScreen = () => {
   const router = useRouter();
@@ -42,7 +43,6 @@ export const JournalingScreen = () => {
     resetForNewSession,
     transitionToPraiseSection,
     transitionToFarewellSection,
-    prepareForMessageSend,
   } = useJournalingStore();
 
   // Chatbot 훅 사용
@@ -56,7 +56,8 @@ export const JournalingScreen = () => {
 
   const currentStage = sessionInfo?.stage;
 
-  console.log("journalId: ", journalEntryId, "sessionInfo: ", sessionInfo)
+  const queryClient = useQueryClient();
+
 
   // 칭찬 섹션 완료 콜백
   const handlePraiseComplete = () => {
@@ -154,6 +155,9 @@ export const JournalingScreen = () => {
   }, [sessionInfo]);
   
   const sendMessage = async (messageText: string, audioFilename?: string) => {
+
+    setIsLoading(true);
+
     if (!journalEntryId || !messageText.trim()) return;
 
     // "다음" 버튼 클릭 시 백엔드에 메시지 전송 후 칭찬 섹션으로 넘어가기
@@ -173,12 +177,14 @@ export const JournalingScreen = () => {
       
       // 칭찬 섹션으로 넘어가기
       transitionToPraiseSection();
+      setIsLoading(false);
       return;
     }
 
     // TTS 상태 확인 - TTS가 진행 중이면 메시지 전송 차단
     if (isSpeaking) {
       console.log('TTS is currently active, blocking message send');
+      setIsLoading(false);
       return;
     }
 
@@ -190,7 +196,6 @@ export const JournalingScreen = () => {
     };
 
     addMockMessages(journalEntryId, [userMessage]);
-    prepareForMessageSend();
 
     // Revision_1에서 다음 단계로 넘어가는 기준이 달성될 때 고정 메시지를 먼저 추가
     if (currentStage === 'revision_1' && 
@@ -265,11 +270,17 @@ export const JournalingScreen = () => {
         if (data.auto_comic_generation && !isComicCompleted) {
           console.log('Auto comic generation detected, immediately setting next stage...');
           
-          //TODO 즉시 다음 단계로 stage 설정 (깜빡임 방지)
+          //즉시 다음 단계로 stage 설정 (깜빡임 방지)
           if (data.stage === 'revision_1') {
-            //setCurrentStage('comic_context');
+            queryClient.setQueryData(['session', journalEntryId], (old: JournalingSessionInfo) => (old ? {
+              ...old,
+              stage: 'comic_context'
+            } : undefined));
           } else if (data.stage === 'comic_context') {
-            //setCurrentStage('revision_2');
+            queryClient.setQueryData(['session', journalEntryId], (old: JournalingSessionInfo) => (old ? {
+              ...old,
+              stage: 'revision_2'
+            } : undefined));
           }
           
           // 만화 생성 상태 모니터링 시작

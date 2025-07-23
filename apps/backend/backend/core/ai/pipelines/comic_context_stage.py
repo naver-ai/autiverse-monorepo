@@ -110,7 +110,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
 8. If the user asks a question that should be asked to adults or unrelated to the conversation topic, then you can say, "I don't know," and go back to the conversation topic.
 """
         
-    def start_context_analysis(self) -> str:
+    def start_context_analysis(self) -> tuple[str, MessageIntent]:
         """만화 컨텍스트 분석 시작"""
         try:
             # Journal entry stage 업데이트
@@ -122,19 +122,20 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             )
             
             # 첫 번째 분석 질문 생성
-            initial_question = self._generate_first_question()
+            initial_question, intent = self._generate_first_question()
             
             create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
-                initial_question, MessageRole.Assistant, JournalEntryStage.ComicContext
+                initial_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
+                intent=intent
             )
             
-            return initial_question
+            return initial_question, intent
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in start_context_analysis: {e}")
             raise
     
-    def process_message(self, user_message: str, audio_filename: str = None) -> str:
+    def process_message(self, user_message: str, audio_filename: str = None) -> tuple[str, MessageIntent]:
         """사용자 메시지 처리"""
         print(f"[DEBUG] comic_context: process_message called with user_message='{user_message}'")
         try:
@@ -169,18 +170,19 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             # 완료 상태 확인
             if self.is_complete():
                 # 만화 생성 시작 신호 반환 (실제 만화 생성은 controller에서 처리)
-                return "COMIC_GENERATION_START"
+                return "내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~", MessageIntent.StartComicGenerationToken
             
             # 다음 질문 생성
-            next_question = self._get_next_question()
+            next_question, intent = self._get_next_question()
             
             # 봇 응답 저장
             create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
-                next_question, MessageRole.Assistant, JournalEntryStage.ComicContext
+                next_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
+                intent=intent
             )
             
-            return next_question
+            return next_question, intent
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in process_message: {e}")
             import traceback
@@ -711,11 +713,11 @@ answer: "{answer}"
         except json.JSONDecodeError:
             print("Failed to parse reconstruction response")
     
-    def _get_next_question(self) -> str:
+    def _get_next_question(self) -> tuple[str, MessageIntent]:
         """다음 질문 생성"""
         try:
             if not self.story_analysis:
-                return "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래??"
+                return "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래??", MessageIntent.PromptConfirm
             
             # Content 이슈만 확인 (Flow, Order는 _reconstruct_panel에서 처리)
             content_issues = self.story_analysis.get("content", {})
@@ -746,7 +748,7 @@ answer: "{answer}"
             if not has_real_issues:
                 # comic_context 완료 시 다음 단계로 넘어감
                 update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Revision2)
-                return "완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔"
+                return "완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔", MessageIntent.PromptIssueExist
             
             # DB에서 ComicContext stage의 모든 메시지를 conversation_history로 가져오기
             messages = get_messages_by_journal_entry_and_stage(self.db, self.journal_entry_id, JournalEntryStage.ComicContext)
@@ -999,21 +1001,20 @@ Please generate a question that addresses the FIRST missing information gap."""
 
                 result = response.choices[0].message.content
                 question_data = json.loads(result)
-                return question_data["question"]
+                return question_data["question"], None
                 
             except Exception as e:
                 print(f"[DEBUG] comic_context: Error generating question: {e}")
-                return "다음에 대해 말해줘!"
+                return "다음에 대해 말해줘!", None
             
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in _get_next_question: {e}")
-            return "다음에 대해 말해줘!"
+            return "다음에 대해 말해줘!", None
     
-    def _generate_first_question(self) -> str:
+    def _generate_first_question(self) -> tuple[str, MessageIntent]:
         """첫 번째 질문 생성"""
         try:
-            question = self._get_next_question()
-            return question
+            return self._get_next_question()
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in _generate_first_question: {e}")
             raise
