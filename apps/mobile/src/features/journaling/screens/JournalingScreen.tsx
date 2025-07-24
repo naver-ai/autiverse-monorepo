@@ -196,11 +196,6 @@ export const JournalingScreen = () => {
           console.log('Skipping session info load - comic generation in progress or completed');
         }
         
-        // React Query가 자동으로 만화 생성 상태를 폴링하므로 수동 호출 불필요
-        if (data.stage === 'comic_context' || data.stage === 'revision_2') {
-          console.log('Comic generation stage detected:', data.stage);
-        }
-        
         // auto_comic_generation 플래그 확인
         console.log('Response data:', data);
         console.log(data.intent == MessageIntent.StartComicGeneration)

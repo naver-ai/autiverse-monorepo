@@ -81,13 +81,13 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     // 버튼 내용 결정
     const getButtonTexts = () : {left: {label: string, intent: MessageIntent}, right: {label: string, intent: MessageIntent}} => {
       if (currentStage === 'revision_1') {
-        if (lastBotMessage?.text?.includes('다 맞게 들었을까?')) {
+        if (lastBotMessage?.intent === MessageIntent.PromptConfirm) {
           // 첫 번째 질문
           return {
             left: {label: t('ChatInput.ButtonLabels.Wrong'), intent: MessageIntent.AnswerNegative},
             right: {label: t('ChatInput.ButtonLabels.AllCorrect'), intent: MessageIntent.AnswerPositive},
           };
-        } else if (
+        } /*else if (
           lastBotMessage?.text?.includes('아직도 틀린 부분 있어?') ||
           lastBotMessage?.text?.includes('이제 다 맞을까?')
         ) {
@@ -96,9 +96,9 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
             left: {label: t('ChatInput.ButtonLabels.StillWrong'), intent: MessageIntent.AnswerNegative},
             right: {label: t('ChatInput.ButtonLabels.Enough'), intent: MessageIntent.AnswerPositive},
           };
-        }
+        }*/ //TODO 두 번째 컨펌 핸들링 잘 할 방법 고민
       } else if (currentStage === 'revision_2') {
-        if (lastBotMessage?.text?.includes('일기 제목')) {
+        if (lastBotMessage?.intent === MessageIntent.TransitionToTitle) {
           return {
             left: {label: t('ChatInput.ButtonLabels.LetsDoIt'), intent: MessageIntent.AnswerPositive},
             right: {label: t('ChatInput.ButtonLabels.Good'), intent: MessageIntent.AnswerPositive},
@@ -114,13 +114,13 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
           right: {label: t('ChatInput.ButtonLabels.GotIt'), intent: MessageIntent.AnswerPositive},
         };
       } else if (currentStage === 'title') {
-        if (lastBotMessage?.text?.includes('어때?')) {
+        if (lastBotMessage?.intent === MessageIntent.InitialTitleConfirm) {
           // 첫 번째 제목 제안
           return {
             left: {label: t('ChatInput.ButtonLabels.NotGood'), intent: MessageIntent.AnswerNegative},
             right: {label: t('ChatInput.ButtonLabels.Good3'), intent: MessageIntent.AnswerPositive},
           };
-        } else if (lastBotMessage?.text?.includes('이걸로 할까?')) {
+        } else if (lastBotMessage?.intent === MessageIntent.CustomTitleConfirm) {
           // 커스텀 제목 확인
           return {
             left: {label: t('ChatInput.ButtonLabels.NoOther'), intent: MessageIntent.AnswerNegative},
