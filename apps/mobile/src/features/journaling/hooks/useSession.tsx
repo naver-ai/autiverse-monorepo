@@ -18,7 +18,6 @@ export function useSession({sessionId}: {sessionId: string}) {
         sessionInfo: data,
         isSessionInfoLoading: isLoading,
         sessionInfoLoadError: error,
-        refetchSessionInfo: refetch,
         invalidateSessionInfo: useCallback(() => queryClient.invalidateQueries({queryKey: ['session', sessionId]}), [sessionId])
     }
 }

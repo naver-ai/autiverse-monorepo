@@ -15,7 +15,6 @@ import { JournalingSessionInfo } from '@autiverse-monorepo/ts-core';
 
 export const useComicGeneration = (
   journalEntryId: string | null,
-  onGenerationComplete?: (comicData: any) => void,
 ) => {
   const { jwt } = useAuth();
 
@@ -119,10 +118,6 @@ export const useComicGeneration = (
               },
             );
             if (event.event == WebsocketEvent.ComicGenerationCompleted) {
-              onGenerationComplete?.(event.data.comic_data);
-              queryClient.invalidateQueries({
-                queryKey: ['session', journalEntryId],
-              });
               queryClient.setQueryData(
                 ['session', journalEntryId],
                 (old: JournalingSessionInfo | undefined) => {
@@ -135,13 +130,16 @@ export const useComicGeneration = (
                   return old;
                 },
               );
+              queryClient.invalidateQueries({
+                queryKey: ['session', journalEntryId],
+              });
             }
           }
           break;
       }
     });
     return () => subscription.unsubscribe();
-  }, [eventSubject$, queryClient, journalEntryId, onGenerationComplete]);
+  }, [eventSubject$, queryClient, journalEntryId]);
 
   return {
     // 상태

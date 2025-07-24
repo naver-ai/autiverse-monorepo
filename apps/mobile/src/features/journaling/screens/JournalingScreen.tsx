@@ -42,7 +42,7 @@ export const JournalingScreen = () => {
     addMockMessages
   } = useChatbot();
 
-  const {sessionInfo, isSessionInfoLoading, sessionInfoLoadError, refetchSessionInfo, invalidateSessionInfo} = useSession({sessionId: journalEntryId});
+  const {sessionInfo, invalidateSessionInfo} = useSession({sessionId: journalEntryId});
 
   const currentStage = sessionInfo?.stage;
 
@@ -52,9 +52,7 @@ export const JournalingScreen = () => {
   const { 
     status: comicGenerationStatus, 
     startGeneration, 
-    isLoading: isComicGenerating,
-    startError: comicGenerationError 
-  } = useComicGeneration(journalEntryId || null, refetchSessionInfo);
+  } = useComicGeneration(journalEntryId || null);
 
   // 프로그레스바 애니메이션
   const progressAnimation = useRef(new Animated.Value(0)).current;
@@ -193,7 +191,7 @@ export const JournalingScreen = () => {
         // 세션 정보에서 최신 패널 데이터 가져오기 (만화 생성이 진행 중이지 않을 때만)
         if (comicGenerationStatus.status !== 'generating') {
           console.log('Loading session info after message sent...');
-          await invalidateSessionInfo();
+          //await invalidateSessionInfo();
         } else {
           console.log('Skipping session info load - comic generation in progress or completed');
         }
