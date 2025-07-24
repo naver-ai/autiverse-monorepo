@@ -135,7 +135,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             print(f"[DEBUG] comic_context: Error in start_context_analysis: {e}")
             raise
     
-    def process_message(self, user_message: str, audio_filename: str = None) -> tuple[str, MessageIntent]:
+    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> tuple[str, MessageIntent]:
         """사용자 메시지 처리"""
         print(f"[DEBUG] comic_context: process_message called with user_message='{user_message}'")
         try:
@@ -146,7 +146,8 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
                 user_message, MessageRole.User, JournalEntryStage.ComicContext,
-                audio_filename=audio_filename
+                audio_filename=audio_filename,
+                intent=intent
             )
             
             # 첫 번째 메시지인 경우 분석 수행
@@ -173,16 +174,16 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                 return "내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~", MessageIntent.StartComicGeneration
             
             # 다음 질문 생성
-            next_question, intent = self._get_next_question()
+            next_question, next_intent = self._get_next_question()
             
             # 봇 응답 저장
             create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
                 next_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
-                intent=intent
+                intent=next_intent
             )
             
-            return next_question, intent
+            return next_question, next_intent
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in process_message: {e}")
             import traceback

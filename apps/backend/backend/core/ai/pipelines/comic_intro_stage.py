@@ -203,7 +203,7 @@ class ComicIntroStage:
         
         return initial_message
     
-    def process_message(self, user_message: str, audio_filename: str = None) -> str:
+    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> tuple[str, MessageIntent | None]:
         """사용자 메시지 처리"""
         # 현재 interaction turn 가져오기
         interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Intro)
@@ -212,19 +212,21 @@ class ComicIntroStage:
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             user_message, MessageRole.User, JournalEntryStage.Intro,
+            intent=intent,
             audio_filename=audio_filename
         )
         
         # 봇 응답 생성
-        bot_response = self._generate_response(user_message)
+        bot_response, response_intent = self._generate_response(user_message, intent)
         
         # 봇 응답 저장
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            bot_response, MessageRole.Assistant, JournalEntryStage.Intro
+            bot_response, MessageRole.Assistant, JournalEntryStage.Intro,
+            intent=response_intent
         )
         
-        return bot_response
+        return bot_response, response_intent
     
     def analyze_events(self) -> Dict[str, Any]:
         """이벤트 분석"""
@@ -434,7 +436,7 @@ CONVERSATION:
         else:
             return "오늘 뭐했어? 😊"
     
-    def _generate_response(self, user_message: str) -> str:
+    def _generate_response(self, user_message: str, intent: MessageIntent | None = None) -> str:
         """사용자 메시지에 대한 응답 생성"""
         client = openai.OpenAI()
         
@@ -537,7 +539,7 @@ Recent conversation:
             max_tokens=150
         )
 
-        return response.choices[0].message.content
+        return response.choices[0].message.content, None
     
     def _get_or_create_interaction_turn(self, stage: JournalEntryStage) -> Any:
         """현재 단계의 interaction turn 가져오기 또는 생성"""

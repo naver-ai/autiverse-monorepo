@@ -175,11 +175,15 @@ export enum MessageIntent {
   PromptNext = "prompt_next",
   PromptConfirm = "prompt_confirm",
   PromptEmotion = "prompt_emotion",
-  Agree = "agree",
-  Disagree = "disagree",
+  
   PromptTextInput = "prompt_text_input",
   PromptOpenEndedAnswer = "prompt_open_ended_answer",
   PromptIssueExist = "prompt_issue_exist",
   StartComicGeneration = "start_comic_generation",
-  TransitionToTitle="transition_to_title"
+  TransitionToTitle="transition_to_title",
+
+  AnswerPositive = "answer_positive",
+  AnswerNegative = "answer_negative",
+  AnswerNext = "answer_next",
+  AnswerEmotion = "answer_emotion"
 }

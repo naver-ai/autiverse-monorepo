@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { styleTemplates } from '../../../styles';
 import { UserButtonMode } from '../types';
+import { MessageIntent } from '@autiverse-monorepo/ts-core';
 
 interface ChatButtonsProps {
   buttonMode: UserButtonMode|null;
-  buttonTexts: { left: string; right: string };
+  buttonTexts: { left: {label: string, intent: MessageIntent}; right: {label: string, intent: MessageIntent} };
   isDisabled: boolean;
-  sendMessage: (message: string, audioFilename?: string) => void;
+  sendMessage: (message: string, intent?: MessageIntent, audioFilename?: string) => void;
   onButtonsVisibilityChange: (hasButtons: boolean) => void;
 }
 
@@ -52,7 +53,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
 
   const handleEmotionComplete = () => {
     if (selectedEmotions.length > 0 && !isDisabled) {
-      sendMessage(selectedEmotions.join(', '));
+      sendMessage(selectedEmotions.join(', '), MessageIntent.AnswerEmotion);
       setSelectedEmotions([]);
     }
   };
@@ -72,7 +73,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
             className={`flex-1 px-6 py-4 rounded-xl justify-center ${
               isDisabled ? 'bg-gray-400' : 'bg-gray-500'
             }`}
-            onPress={() => sendMessage(buttonTexts.left)}
+            onPress={() => sendMessage(buttonTexts.left.label, buttonTexts.left.intent)}
             disabled={isDisabled}
             style={{
               backgroundColor: isDisabled ? '#9CA3AF' : '#6c757d',
@@ -84,13 +85,13 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
               elevation: 3,
             }}
           >
-            <Text className="text-white text-xl text-center" style={styleTemplates.withBoldFont}>{buttonTexts.left}</Text>
+            <Text className="text-white text-xl text-center" style={styleTemplates.withBoldFont}>{buttonTexts.left.label}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             className={`flex-1 px-6 py-4 rounded-xl justify-center ${
               isDisabled ? 'bg-gray-400' : 'bg-blue-500'
             }`}
-            onPress={() => sendMessage(buttonTexts.right)}
+            onPress={() => sendMessage(buttonTexts.right.label, buttonTexts.right.intent)}
             disabled={isDisabled}
             style={{
               backgroundColor: isDisabled ? '#9CA3AF' : '#4A90E2',
@@ -102,7 +103,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
               elevation: 3,
             }}
           >
-            <Text className="text-white text-xl text-center" style={styleTemplates.withBoldFont}>{buttonTexts.right}</Text>
+            <Text className="text-white text-xl text-center" style={styleTemplates.withBoldFont}>{buttonTexts.right.label}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -181,7 +182,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
             className={`px-6 py-4 rounded-xl justify-center ${
               isDisabled ? 'bg-gray-400' : 'bg-blue-500'
             }`}
-            onPress={() => sendMessage('다음')}
+            onPress={() => sendMessage('다음', MessageIntent.AnswerNext)}
             disabled={isDisabled}
             style={{
               backgroundColor: isDisabled ? '#9CA3AF' : '#4A90E2',

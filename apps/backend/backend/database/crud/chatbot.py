@@ -194,7 +194,7 @@ def get_latest_interaction_turn(db: Session, journal_entry_id: str) -> Optional[
 def create_message(db: Session, journal_entry_id: str, interaction_turn_id: str, content: str, role: MessageRole, 
                    stage: JournalEntryStage = None, 
                    metadata_json: Dict[str, Any] = None, 
-                   intent: MessageIntent = None,
+                   intent: MessageIntent | None = None,
                    audio_filename: str = None) -> Message:
     """새로운 message 생성"""
     # stage가 제공되지 않은 경우 interaction turn에서 가져오기

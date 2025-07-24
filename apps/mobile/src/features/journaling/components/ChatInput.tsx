@@ -21,7 +21,7 @@ import { ComicGenerationStatus } from '../api';
 
 interface ChatInputProps {
   journalEntryId: string;
-  sendMessage: (message: string, audioFilename?: string) => void;
+  sendMessage: (message: string, intent?: MessageIntent, audioFilename?: string) => void;
   isLoading: boolean;
   comicGenerationStatus: ComicGenerationStatus;
   isInputActive?: boolean;
@@ -79,13 +79,13 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       isVoiceRecording;
 
     // 버튼 내용 결정
-    const getButtonTexts = () => {
+    const getButtonTexts = () : {left: {label: string, intent: MessageIntent}, right: {label: string, intent: MessageIntent}} => {
       if (currentStage === 'revision_1') {
         if (lastBotMessage?.text?.includes('다 맞게 들었을까?')) {
           // 첫 번째 질문
           return {
-            left: t('ChatInput.ButtonLabels.Wrong'),
-            right: t('ChatInput.ButtonLabels.AllCorrect'),
+            left: {label: t('ChatInput.ButtonLabels.Wrong'), intent: MessageIntent.AnswerNegative},
+            right: {label: t('ChatInput.ButtonLabels.AllCorrect'), intent: MessageIntent.AnswerPositive},
           };
         } else if (
           lastBotMessage?.text?.includes('아직도 틀린 부분 있어?') ||
@@ -93,38 +93,38 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
         ) {
           // 수정 후 질문
           return {
-            left: t('ChatInput.ButtonLabels.StillWrong'),
-            right: t('ChatInput.ButtonLabels.Enough'),
+            left: {label: t('ChatInput.ButtonLabels.StillWrong'), intent: MessageIntent.AnswerNegative},
+            right: {label: t('ChatInput.ButtonLabels.Enough'), intent: MessageIntent.AnswerPositive},
           };
         }
       } else if (currentStage === 'revision_2') {
         if (lastBotMessage?.text?.includes('일기 제목')) {
           return {
-            left: t('ChatInput.ButtonLabels.LetsDoIt'),
-            right: t('ChatInput.ButtonLabels.Good'),
+            left: {label: t('ChatInput.ButtonLabels.LetsDoIt'), intent: MessageIntent.AnswerPositive},
+            right: {label: t('ChatInput.ButtonLabels.Good'), intent: MessageIntent.AnswerPositive},
           };
         }
         return {
-          left: t('ChatInput.ButtonLabels.Have'),
-          right: t('ChatInput.ButtonLabels.DontHave'),
+          left: {label: t('ChatInput.ButtonLabels.Have'), intent: MessageIntent.AnswerNegative},
+          right: {label: t('ChatInput.ButtonLabels.DontHave'), intent: MessageIntent.AnswerPositive},
         };
       } else if (currentStage === 'comic_context') {
         return {
-          left: t('ChatInput.ButtonLabels.Good2'),
-          right: t('ChatInput.ButtonLabels.GotIt'),
+          left: {label: t('ChatInput.ButtonLabels.Good2'), intent: MessageIntent.AnswerPositive},
+          right: {label: t('ChatInput.ButtonLabels.GotIt'), intent: MessageIntent.AnswerPositive},
         };
       } else if (currentStage === 'title') {
         if (lastBotMessage?.text?.includes('어때?')) {
           // 첫 번째 제목 제안
           return {
-            left: t('ChatInput.ButtonLabels.NotGood'),
-            right: t('ChatInput.ButtonLabels.Good3'),
+            left: {label: t('ChatInput.ButtonLabels.NotGood'), intent: MessageIntent.AnswerNegative},
+            right: {label: t('ChatInput.ButtonLabels.Good3'), intent: MessageIntent.AnswerPositive},
           };
         } else if (lastBotMessage?.text?.includes('이걸로 할까?')) {
           // 커스텀 제목 확인
           return {
-            left: t('ChatInput.ButtonLabels.NoOther'),
-            right: t('ChatInput.ButtonLabels.YesGood'),
+            left: {label: t('ChatInput.ButtonLabels.NoOther'), intent: MessageIntent.AnswerNegative},
+            right: {label: t('ChatInput.ButtonLabels.YesGood'), intent: MessageIntent.AnswerPositive},
           };
         }
       }
@@ -132,14 +132,14 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       // completion message 뒤에 나오는 "그럼 이제 일기 제목을 정하러 가볼까?" 메시지일 때
       if (lastBotMessage?.intent === MessageIntent.TransitionToTitle) {
         return {
-          left: t('ChatInput.ButtonLabels.LetsDoIt'),
-          right: t('ChatInput.ButtonLabels.Good'),
+          left: {label: t('ChatInput.ButtonLabels.LetsDoIt'), intent: MessageIntent.AnswerPositive},
+          right: {label: t('ChatInput.ButtonLabels.Good'), intent: MessageIntent.AnswerPositive},
         };
       }
 
       return {
-        left: t('ChatInput.ButtonLabels.Yes'),
-        right: t('ChatInput.ButtonLabels.No'),
+        left: {label: t('ChatInput.ButtonLabels.Yes'), intent: MessageIntent.AnswerPositive},
+        right: {label: t('ChatInput.ButtonLabels.No'), intent: MessageIntent.AnswerNegative},
       };
     };
 
@@ -225,7 +225,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
             }
 
             // 변환된 텍스트를 메시지로 전송 (audio_filename 포함)
-            sendMessage(transcribedText, audioFilename);
+            sendMessage(transcribedText, undefined, audioFilename);
           } else {
             // 빈 문자열이 반환된 경우 (음성이 감지되지 않음)
             Alert.alert(

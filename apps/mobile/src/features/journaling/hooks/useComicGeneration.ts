@@ -65,6 +65,8 @@ export const useComicGeneration = (
   // 만화 생성 시작 함수
   const startGeneration = useCallback(
     (panelContents: Record<string, string>) => {
+
+      console.log("Start comic generation....", panelContents)
       if (!journalEntryId) {
         console.error('journalEntryId is required to start comic generation');
         return;

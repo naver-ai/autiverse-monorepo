@@ -236,11 +236,14 @@ class MessageIntent(StrEnum):
     PromptOpenEndedAnswer="prompt_open_ended_answer" # 채팅으로 쳐서 정확하게 알려줘!, etc
     PromptTextInput="prompt_text_input"
     PromptEmotion="prompt_emotion"
-    Agree="agree"
-    Disagree="disagree"
     StartComicGeneration="start_comic_generation"
     TransitionToTitle="transition_to_title"
     Error = "error"
+
+    AnswerPositive="answer_positive"
+    AnswerNegative="answer_negative"
+    AnswerEmotion="answer_emotion"
+    AnswerNext="answer_next"
 
 class Message(SQLModel, IdTimestampMixin, JournalEntryIdMixin, InteractionTurnIdMixin, table=True):
     model_config = ConfigDict(use_enum_values=True)

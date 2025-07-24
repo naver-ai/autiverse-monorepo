@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { ChatbotResponse, ChatMessage, JournalingSessionInfo, NetworkHelper } from '@autiverse-monorepo/ts-core';
+import { ChatbotResponse, ChatMessage, JournalingSessionInfo, MessageIntent, NetworkHelper } from '@autiverse-monorepo/ts-core';
 import { useAuthStore } from '../../auth/store';
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
@@ -30,10 +30,10 @@ const createNewSessionWithSuggestionsAPI = async (jwt: string): Promise<ChatbotR
   return response.data;
 }
 
-const sendMessageAPI = async (jwt: string, journalEntryId: string, message: string, audioFilename?: string): Promise<ChatbotResponse> => {
+const sendMessageAPI = async (jwt: string, journalEntryId: string, message: string, intent?: MessageIntent, audioFilename?: string): Promise<ChatbotResponse> => {
   const response = await NetworkHelper.axiosClient.post(
     NetworkHelper.ENDPOINTS.APP.CHATBOT.SEND,
-    { journal_entry_id: journalEntryId, message: message, audio_filename: audioFilename },
+    { journal_entry_id: journalEntryId, message: message, intent: intent, audio_filename: audioFilename },
     { headers: await NetworkHelper.getHeaders(jwt) }
   )
 
@@ -98,7 +98,7 @@ export const useChatbot = (afterStart?: (data: ChatbotResponse, withSuggestion: 
   }
 
   const sendMessageMutation = useMutation({
-    mutationFn: (args: {journalEntryId: string, message: string, audioFilename?: string}) => sendMessageAPI(jwt!!, args.journalEntryId, args.message, args.audioFilename),
+    mutationFn: (args: {journalEntryId: string, message: string, intent?: MessageIntent, audioFilename?: string}) => sendMessageAPI(jwt!!, args.journalEntryId, args.message, args.intent, args.audioFilename),
     onSuccess: (data) => {
       console.log('Successfully sent message:', data);
 

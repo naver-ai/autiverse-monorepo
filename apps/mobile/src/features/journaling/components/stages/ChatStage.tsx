@@ -18,7 +18,7 @@ import { ComicGenerationStatus } from '../../api';
 interface ChatStageProps {
   comicGenerationStatus: ComicGenerationStatus;
   progressAnimation: Animated.Value;
-  sendMessage: (message: string) => void;
+  sendMessage: (message: string, intent?: MessageIntent, audioFilename?: string) => void;
   agentName: string;
   agentConfig?: any;
   onTTSComplete?: () => void;

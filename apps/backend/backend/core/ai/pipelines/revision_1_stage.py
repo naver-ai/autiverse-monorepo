@@ -66,7 +66,7 @@ class Revision1Stage:
         
         return initial_question, MessageIntent.PromptConfirm
     
-    def process_message(self, user_message: str, audio_filename: str = None) -> str:
+    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> str:
         """사용자 메시지 처리"""
         # 현재 interaction turn 가져오기
         interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Revision1)
@@ -75,11 +75,12 @@ class Revision1Stage:
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             user_message, MessageRole.User, JournalEntryStage.Revision1,
-            audio_filename=audio_filename
+            audio_filename=audio_filename,
+            intent=intent
         )
         
         # 봇 응답 생성
-        bot_response, intent = self._generate_response(user_message)
+        bot_response, intent = self._generate_response(user_message, intent)
         
         # 봇 응답 저장
         create_message(
@@ -90,12 +91,12 @@ class Revision1Stage:
         
         return bot_response, intent
     
-    def _generate_response(self, user_message: str) -> tuple[str, MessageIntent]:
+    def _generate_response(self, user_message: str, intent: MessageIntent | None = None) -> tuple[str, MessageIntent]:
         """사용자 메시지에 대한 응답 생성"""
         
         # "네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까?" 질문에 대한 답변 처리
         if self._is_correction_confirmation_question():
-            if self._is_negative_response(user_message):
+            if intent == MessageIntent.AnswerNegative or self._is_negative_response(user_message):
                 # 수정할 부분이 있다면 revision_count 증가하고 수정 요청
                 new_count = self.revision_count + 1
                 self._update_revision_count(new_count)
@@ -106,7 +107,7 @@ class Revision1Stage:
                     return "아앗;; 이제 마지막 기회야! 지금 틀린 부분이 있다면 다 말해줘~ 😅", MessageIntent.PromptOpenEndedAnswer
                 else:
                     return "아앗;; 어디가 어떻게 틀렸어? 😅", MessageIntent.PromptOpenEndedAnswer
-            elif self._is_positive_response(user_message):
+            elif intent == MessageIntent.AnswerPositive or self._is_positive_response(user_message):
                 # 수정 완료, 만화 생성 시작 메시지 전송
                 return "다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~", MessageIntent.StartComicGeneration
             else:
@@ -114,7 +115,7 @@ class Revision1Stage:
         
         # 질문에 대한 답변 처리
         if self._is_question_response():
-            if self._is_negative_response(user_message):
+            if intent == MessageIntent.AnswerNegative or self._is_negative_response(user_message):
                 # 수정할 부분이 있다면 revision_count 증가하고 수정 요청
                 new_count = self.revision_count + 1
                 self._update_revision_count(new_count)
@@ -125,7 +126,7 @@ class Revision1Stage:
                     return "아앗;; 이제 마지막 기회야! 지금 틀린 부분이 있다면 다 말해줘~ 😅", MessageIntent.PromptOpenEndedAnswer
                 else:
                     return "아앗;; 어디가 어떻게 틀렸어? 😅", MessageIntent.PromptOpenEndedAnswer
-            elif self._is_positive_response(user_message):
+            elif intent == MessageIntent.AnswerPositive or self._is_positive_response(user_message):
                 # 수정할 부분이 없다면 comic_intro를 revision_1에 저장하고 만화 생성 시작 메시지 전송
                 journal = get_journal(self.db, self.journal_entry_id)
                 if journal and journal.comic_intro:

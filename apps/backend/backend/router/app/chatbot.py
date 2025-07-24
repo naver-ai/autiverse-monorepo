@@ -29,6 +29,7 @@ class StartChatbotRequest(BaseModel):
 class SendMessageRequest(BaseModel):
     journal_entry_id: str
     message: str
+    intent: Optional[MessageIntent] = None
     audio_filename: Optional[str] = None
 
 class ChatbotResponse(BaseModel):
@@ -116,6 +117,7 @@ async def send_message(
         result = await controller.send_message(
             journal_entry_id=request.journal_entry_id,
             message=request.message,
+            intent=request.intent,
             audio_filename=request.audio_filename
         )
         

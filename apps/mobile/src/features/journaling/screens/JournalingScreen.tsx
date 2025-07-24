@@ -91,7 +91,7 @@ export const JournalingScreen = () => {
       : undefined;
   }, [sessionInfo]);
   
-  const sendMessage = async (messageText: string, audioFilename?: string) => {
+  const sendMessage = async (messageText: string, intent?: MessageIntent, audioFilename?: string) => {
 
     setIsLoading(true);
 
@@ -99,12 +99,12 @@ export const JournalingScreen = () => {
 
     // "다음" 버튼 클릭 시 백엔드에 메시지 전송 후 칭찬 섹션으로 넘어가기
     console.log("lastBotMessage: ", lastBotMessage, "messageText: ", messageText)
-    if (messageText === t('Journaling.Messages.NextButton') && lastBotMessage?.intent === MessageIntent.PromptNext) {
+    if (intent == MessageIntent.AnswerNext) {
       console.log('Next button clicked, sending message to backend and showing praise section...');
       
       // 백엔드에 '다음' 메시지 전송
       try {
-        const data = await sendMessageFromHook({journalEntryId, message: messageText, audioFilename});
+        const data = await sendMessageFromHook({journalEntryId, message: messageText, intent, audioFilename});
         if (data) {
           console.log('Next button message sent to backend:', data);
         }
@@ -136,8 +136,8 @@ export const JournalingScreen = () => {
 
     // Revision_1에서 다음 단계로 넘어가는 기준이 달성될 때 고정 메시지를 먼저 추가
     if (currentStage === 'revision_1' && 
-        ((messageText === t('Journaling.UserResponses.No')[0] || messageText === t('Journaling.UserResponses.No')[1]) || 
-         (messageText === t('Journaling.UserResponses.Yes')[0] || messageText === t('Journaling.UserResponses.Yes')[1]))) {
+        ((intent === MessageIntent.AnswerNegative) || 
+         (intent === MessageIntent.AnswerPositive))) {
       
       // 고정 메시지를 즉시 추가
       const fixedMessage: ChatMessage = {
@@ -150,7 +150,7 @@ export const JournalingScreen = () => {
     }
 
     try {
-      const data = await sendMessageFromHook({journalEntryId, message: messageText, audioFilename});
+      const data = await sendMessageFromHook({journalEntryId, message: messageText, intent, audioFilename});
       if (data) {
         const botMessage: ChatMessage = {
           id: (Date.now() + 2).toString(),
@@ -169,7 +169,7 @@ export const JournalingScreen = () => {
         else if (data.stage === 'comic_context') {
           console.log('Comic context message detected, adding immediately...');
           addMockMessages(journalEntryId, [botMessage]);
-        } else if (data.stage === 'revision_2' && data.response.includes('완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔')) {
+        } else if (data.stage === 'revision_2' && data.intent === MessageIntent.PromptIssueExist) {
           // Revision_2에서 만화 생성이 시작될 때 고정 메시지 추가
           console.log('Revision_2 comic generation detected, adding fixed message...');
           
@@ -248,7 +248,7 @@ export const JournalingScreen = () => {
                 
               }
             } catch (error) {
-              console.error('Failed to start auto comic generation:', error);
+              console.error('Failed to start comic generation:', error);
             }
         }
       }

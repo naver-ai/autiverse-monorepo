@@ -68,7 +68,7 @@ class TitleStage:
             print(f"[DEBUG] title_stage: Error in start_title_selection: {e}")
             raise
     
-    def process_message(self, user_message: str, audio_filename: str = None) -> str:
+    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> tuple[str, MessageIntent | None]:
         """사용자 메시지 처리"""
         
         try:
@@ -79,7 +79,8 @@ class TitleStage:
             create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
                 user_message, MessageRole.User, JournalEntryStage.Title,
-                audio_filename=audio_filename
+                audio_filename=audio_filename,
+                intent=intent
             )
             
             child_name = self._get_child_name()
@@ -102,7 +103,7 @@ class TitleStage:
             # 마지막 메시지에 따라 처리
             if last_assistant_message.intent == MessageIntent.InitialTitleConfirm:
                 # 첫 번째 제목 제안에 대한 피드백
-                response, intent = self.title_generator.process_title_feedback(user_message, "", child_name)
+                response, response_intent = self.title_generator.process_title_feedback(user_message, "", child_name)
                 
             elif last_assistant_message.intent == MessageIntent.CustomTitleConfirm:
                 # 커스텀 제목 확인에 대한 피드백
@@ -115,26 +116,26 @@ class TitleStage:
                     if message.role == MessageRole.User and message.content == "아니, 다른 걸로":
                         reject_count += 1
                 
-                response, intent = self.title_generator.process_custom_title_feedback(user_message, custom_title, child_name, reject_count)
+                response, response_intent = self.title_generator.process_custom_title_feedback(user_message, custom_title, child_name, reject_count)
                 
             elif ("그럼 어떤 제목으로 하고 싶어?" in last_assistant_message) or ("채팅으로 쳐서 정확하게 알려줘!" in last_assistant_message):
                 # 커스텀 제목 입력
                 self._save_title(user_message.strip())
-                response, intent, metadata = self.title_generator.confirm_custom_title(user_message.strip(), child_name)
+                response, response_intent, metadata = self.title_generator.confirm_custom_title(user_message.strip(), child_name)
             else:
                 # 기본 응답 (예상치 못한 상황)
                 response = ""
-                intent = None
+                response_intent = None
 
             # 봇 응답 저장
             create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
                 response, MessageRole.Assistant, JournalEntryStage.Title,
                 metadata_json=metadata,
-                intent=intent
+                intent=response_intent
             )
             
-            return response
+            return response, response_intent
             
         except Exception as e:
             print(f"[DEBUG] title_stage: Error in process_message: {e}")
