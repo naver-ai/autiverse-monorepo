@@ -10,8 +10,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useComicGeneration } from '../hooks/useComicGeneration';
 import { useChatbot } from '../hooks/useChatbot';
-import PraiseSection from '../components/sections/PraiseSection';
-import FarewellSection from '../components/sections/FarewellSection';
 import { ChatStage } from '../components/stages';
 import { ChatMessage, JournalingSessionInfo, MessageIntent } from '@autiverse-monorepo/ts-core';
 import { useSpeech } from '../utils';
@@ -24,9 +22,7 @@ export const JournalingScreen = () => {
   const router = useRouter();
   const { t } = useTranslation();
 
-  const {journalEntryId, stage, continueExistingStr}: {journalEntryId: string, stage: string, continueExistingStr: string} = useLocalSearchParams();
-
-  const continueExisting = continueExistingStr === 'true';
+  const {journalEntryId, stage}: {journalEntryId: string, stage: string} = useLocalSearchParams();
 
   const {dyad, agentName, agentConfig, childName} = useDyad();
 
@@ -35,14 +31,8 @@ export const JournalingScreen = () => {
   // Store 사용
   const {
     setIsLoading,
-    showPraiseSection,
-    showFarewellSection,
     setIsInputActive,
-    setIsAfterFarewell,
     resetAll,
-    resetForNewSession,
-    transitionToPraiseSection,
-    transitionToFarewellSection,
   } = useJournalingStore();
 
   // Chatbot 훅 사용
@@ -57,34 +47,6 @@ export const JournalingScreen = () => {
   const currentStage = sessionInfo?.stage;
 
   const queryClient = useQueryClient();
-
-
-  // 칭찬 섹션 완료 콜백
-  const handlePraiseComplete = () => {
-    console.log('Praise section completed');
-    transitionToFarewellSection();
-  };
-
-  // 인사말 섹션 완료 콜백 (intro 화면으로 돌아가기)
-  const handleFarewellComplete = useCallback(() => {
-    console.log('Farewell section completed, navigating to intro');
-    
-    // Farewell 이후 플래그 설정
-    setIsAfterFarewell(true);
-    
-    // 모든 상태 초기화
-    resetForNewSession();
-    
-    // TTS 정지
-    stopSpeech();
-    
-    // Home 화면으로 돌아가기
-    if (router) {
-      router.replace('/(app)/home');
-    } else {
-      console.log('Router is null or undefined');
-    }
-  }, [setIsAfterFarewell, resetForNewSession, router]);
 
   // 만화 생성 훅 (React Query 기반) - 통합
   const { 
@@ -153,7 +115,7 @@ export const JournalingScreen = () => {
       }
       
       // 칭찬 섹션으로 넘어가기
-      transitionToPraiseSection();
+      router.replace({pathname: '/(app)/ending', params: {journalEntryId}});
       setIsLoading(false);
       return;
     }
@@ -330,27 +292,6 @@ export const JournalingScreen = () => {
     );
   };
 
-  // 인사말 섹션이 표시되어야 하는 경우
-  if (showFarewellSection) {
-    return (
-      <FarewellSection 
-        childName={childName || t('Journaling.Common.DefaultChildName')} 
-        onComplete={handleFarewellComplete}
-      />
-    );
-  }
-
-  // 칭찬 섹션이 표시되어야 하는 경우
-  if (showPraiseSection) {
-    return (
-      <PraiseSection 
-        childName={childName || t('Journaling.Common.DefaultChildName')}
-        agentConfig={agentConfig}
-        onComplete={handlePraiseComplete}
-      />
-    );
-  }
-
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1 }} 
@@ -371,7 +312,6 @@ export const JournalingScreen = () => {
               }
             }}
             onEndSession={handleEndSession}
-            continueExisting={continueExisting}
           />
       </View>
     </KeyboardAvoidingView>

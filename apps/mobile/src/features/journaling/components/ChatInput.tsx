@@ -1,5 +1,4 @@
 import React, {
-  useEffect,
   useState,
   forwardRef,
   useImperativeHandle,
@@ -12,7 +11,6 @@ import { transcribeAudio } from '../utils/voiceUtils';
 import { useDyad } from '../../../api/dyad';
 import { uploadAudioFile } from '../api';
 import { useAuth } from '../../auth/hooks';
-import { usePrevious } from '@uidotdev/usehooks';
 import { useSession } from '../hooks/useSession';
 import { VoiceRecordingStatus } from './VoiceRecordingStatus';
 import { ChatButtons } from './ChatButtons';
@@ -28,8 +26,6 @@ interface ChatInputProps {
   comicGenerationStatus: ComicGenerationStatus;
   isInputActive?: boolean;
   agentName: string;
-  isAfterFarewell?: boolean;
-  continueExisting?: boolean;
   userButtonMode: UserButtonMode|null;
 }
 
@@ -47,8 +43,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       comicGenerationStatus,
       isInputActive = true,
       agentName,
-      isAfterFarewell = false,
-      continueExisting = false,
       userButtonMode,
     },
     ref,

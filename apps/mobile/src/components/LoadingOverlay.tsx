@@ -4,7 +4,7 @@ import { styleTemplates } from "../styles"
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withRepeat, withSequence, Easing } from "react-native-reanimated"
 import { useEffect } from "react"
 
-export const LoadingOverlay = ({message, isLoading}: {message: string, isLoading: boolean}) => {
+export const LoadingOverlay = ({message, isLoading}: {message?: string, isLoading: boolean}) => {
     const progress = useSharedValue(0)
     const rotation = useSharedValue(0)
 
@@ -43,11 +43,15 @@ export const LoadingOverlay = ({message, isLoading}: {message: string, isLoading
             className="absolute inset-0 top-0 left-0 right-0 bottom-0 bg-white/50 flex items-center justify-center z-10"
             pointerEvents={isLoading ? "auto" : "none"}
         >
-            <View className="flex flex-row items-center gap-2 bg-white px-5 py-3 rounded-xl shadow-lg shadow-slate-500/50 border-2 border-slate-300">
+            <View className="flex flex-row items-center gap-2 bg-white px-5 py-3 rounded-xl border-2 border-slate-300">
                 <Animated.View style={starAnimatedStyle}>
                     <RewardStarImage width={24} height={24} fill="#757575"/>
                 </Animated.View>
-                <Text className="text-2xl" style={styleTemplates.withSemiboldFont}>{message}</Text>
+                {
+                    message ? (
+                        <Text className="text-2xl" style={styleTemplates.withSemiboldFont}>{message}</Text>
+                    ) : null
+                }
             </View>
         </Animated.View>
     )

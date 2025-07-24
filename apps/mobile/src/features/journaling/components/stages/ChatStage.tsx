@@ -24,7 +24,6 @@ interface ChatStageProps {
   onTTSComplete?: () => void;
   sessionId: string;
   onEndSession?: () => void;
-  continueExisting?: boolean;
 }
 
 export const ChatStage: React.FC<ChatStageProps> = ({
@@ -36,13 +35,11 @@ export const ChatStage: React.FC<ChatStageProps> = ({
   onTTSComplete,
   sessionId,
   onEndSession,
-  continueExisting = false
 }) => {
   const { t } = useTranslation();
   const {
     isLoading,
     isInputActive,
-    isAfterFarewell
   } = useJournalingStore();
 
 
@@ -249,8 +246,6 @@ export const ChatStage: React.FC<ChatStageProps> = ({
             comicGenerationStatus={comicGenerationStatus}
             isInputActive={isInputActive}
             agentName={agentName}
-            isAfterFarewell={isAfterFarewell}
-            continueExisting={continueExisting}
             userButtonMode={userButtonMode}
           />
         </View>

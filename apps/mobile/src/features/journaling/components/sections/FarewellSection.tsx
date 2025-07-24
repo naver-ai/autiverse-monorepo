@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { View, Text, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -9,11 +9,12 @@ import { useSpeech } from '../../utils';
 import { getTTSOptionsFromAgentConfig } from '../../utils/speechUtils';
 import { useDyad } from '../../../../api/dyad';
 
-const { width, height } = Dimensions.get('window');
-
 interface FarewellSectionProps {
   childName: string;
-  onComplete?: () => void;
+}
+
+export interface FarewellSectionRef {
+  runAnimation: (onComplete?: () => void) => void;
 }
 
 // 한글 조사 처리 함수 (종성에 따라 '아'/'야' 선택)
@@ -35,74 +36,73 @@ const getKoreanJosa = (name: string): string => {
   return '야';
 };
 
-export default function FarewellSection({ childName, onComplete }: FarewellSectionProps) {
-  const { t } = useTranslation();
-  const [hasCompleted, setHasCompleted] = useState(false);
-  const [hasSpoken, setHasSpoken] = useState(false);
-  const {startSpeech, stopSpeech} = useSpeech();
-  const { agentConfig } = useDyad();
+const FarewellSection = forwardRef<FarewellSectionRef, FarewellSectionProps>(
+  ({ childName }, ref) => {
+    const { t } = useTranslation();
+    const {startSpeech, stopSpeech} = useSpeech();
+    const { agentConfig } = useDyad();
 
-  const childJosa = getKoreanJosa(childName);
-  const farewellMessage = useMemo(() => {
-    return format(t('Journaling.FarewellSection.MessageTemplate'), { 
-      child_name: childName, 
-      child_josa: childJosa 
-    });
-  }, [t, childName, childJosa]);
-
-  const memoizedOnComplete = useMemo(() => onComplete, [onComplete]);
-
-  // TTS 시작
-  useEffect(() => {
-    if (!hasSpoken && agentConfig) {
-      startSpeech(farewellMessage, {
-        ...getTTSOptionsFromAgentConfig(agentConfig),
-        onDone: () => {
-          setHasSpoken(true);
-          // TTS 완료 후 0.5초 뒤에 완료 콜백 호출
-          setTimeout(() => {
-            if (!hasCompleted) {
-              setHasCompleted(true);
-              memoizedOnComplete?.();
-            }
-          }, 500);
-        },
-        onError: (error) => {
-          setHasSpoken(true);
-          // 에러 발생 시에도 5초 후 완료
-          setTimeout(() => {
-            if (!hasCompleted) {
-              setHasCompleted(true);
-              memoizedOnComplete?.();
-            }
-          }, 5000);
-        }
+    const childJosa = getKoreanJosa(childName);
+    const farewellMessage = useMemo(() => {
+      return format(t('Journaling.FarewellSection.MessageTemplate'), { 
+        child_name: childName, 
+        child_josa: childJosa 
       });
-    } else if (!hasSpoken && !agentConfig) {
-      console.log('FarewellSection: Waiting for agentConfig to be available');
-    } else {
-      console.log('FarewellSection: TTS already spoken, skipping');
-    }
-  }, [hasSpoken, hasCompleted, memoizedOnComplete, farewellMessage, agentConfig]);
+    }, [t, childName, childJosa]);
 
-  return (
-    <SafeAreaView className="flex-1 bg-slate-50">
-      <View className="flex-1 px-6">
-        {/* 중앙 인사말 영역 */}
-        <View className="flex-1 items-center justify-center">
-          <View className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-3xl p-10 w-full max-w-lg border border-pink-100">
-            <Text className="text-3xl text-gray-800 leading-relaxed text-center mb-8" style={styleTemplates.withBoldFont}>
-            {farewellMessage}
-            </Text>
-            
-            <View className="items-center">
-              <Text className="text-8xl text-center mb-6" style={styleTemplates.withBoldFont}>
-                👋
+    // TTS 시작
+    const runAnimation = useCallback((onCompleteHandler?: () => void) => {
+      if (agentConfig) {
+        startSpeech(farewellMessage, {
+          ...getTTSOptionsFromAgentConfig(agentConfig),
+          onDone: () => {
+            // TTS 완료 후 0.5초 뒤에 완료 콜백 호출
+            setTimeout(() => {
+              onCompleteHandler?.();
+            }, 500);
+          },
+          onError: (error) => {
+            // 에러 발생 시에도 5초 후 완료
+            setTimeout(() => {
+              onCompleteHandler?.();
+            }, 5000);
+          }
+        });
+      }
+    }, [farewellMessage, agentConfig, startSpeech]);
+
+    // Expose imperative methods via ref
+    useImperativeHandle(
+      ref,
+      () => ({
+        runAnimation,
+      }),
+      [runAnimation],
+    );
+
+    return (
+      <SafeAreaView className="flex-1 bg-slate-50">
+        <View className="flex-1 px-6">
+          {/* 중앙 인사말 영역 */}
+          <View className="flex-1 items-center justify-center">
+            <View className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-3xl p-10 w-full max-w-lg border border-pink-100">
+              <Text className="text-3xl text-gray-800 leading-relaxed text-center mb-8" style={styleTemplates.withBoldFont}>
+              {farewellMessage}
               </Text>
+              
+              <View className="items-center">
+                <Text className="text-8xl text-center mb-6" style={styleTemplates.withBoldFont}>
+                  👋
+                </Text>
+              </View>
             </View>
           </View>
         </View>
-      </View>
-    </SafeAreaView>
-  );
-} 
+      </SafeAreaView>
+    );
+  }
+);
+
+FarewellSection.displayName = 'FarewellSection';
+
+export default FarewellSection; 

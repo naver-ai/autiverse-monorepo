@@ -22,6 +22,7 @@ export default function AppLayout() {
       <Stack.Screen name="create-comic" options={{ headerShown: false }} />
       <Stack.Screen name="gallery" options={{ headerShown: false }} />
       <Stack.Screen name="comic-detail" options={{ headerShown: false }} />
+      <Stack.Screen name="ending" options={{ headerShown: false }} />
     </Stack>
   );
 }
