@@ -37,6 +37,7 @@ export function useDyad() {
 
     return {
         dyad,
+        locale: dyad?.locale,
         agentName: dyad?.agents?.[0]?.agent_name,
         agentConfig: dyad?.agents?.[0]?.agent_config,
         childName: dyad?.child_name,

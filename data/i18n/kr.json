@@ -46,8 +46,8 @@
             "NoPeopleInPlace": "이 장소에는 등록된 사람이 없습니다"
         },
         "AgentIntro": {
-            "FirstVisitGreetingTemplate": "안녕, {child_name}{child_josa}. 나는 2주간 너와 함께 그림 일기를 쓸 {agent_name}{agent_josa}. 만나서 반가워!",
-            "ReturnVisitGreetingTemplate": "안녕, {child_name}{child_josa}. 또 만나니 너무 좋다.",
+            "FirstVisitGreetingTemplate": "안녕, {child_name}. 나는 2주간 너와 함께 그림 일기를 쓸 {agent_name}. 만나서 반가워!",
+            "ReturnVisitGreetingTemplate": "안녕, {child_name}. 또 만나니 너무 좋다.",
             "Loading": "로딩 중...",
             "DataLoadError": "데이터를 불러올 수 없습니다."
         },
@@ -74,12 +74,12 @@
         "VoiceRecording": {
             "CleanupError": "음성 녹음 정리 중 오류:"
         },
-        "DefaultTitle": "그림 일기",
+        "DefaultTitleTemplate": "{child_name}와 {agent_name}가 함께 쓴 그림일기",
         "FarewellSection": {
-            "MessageTemplate": "{child_name}{child_josa}, 우리 다음에 또 만나서 재미있게 그림 일기 써보자. 안녕~"
+            "MessageTemplate": "{child_name}, 우리 다음에 또 만나서 재미있게 그림 일기 써보자. 안녕~"
         },
         "PraiseSection": {
-            "FirstMessageTemplate": "우리 {child_name}{child_josa} 오늘 그림 일기 쓰는 모습 만점!!",
+            "FirstMessageTemplate": "우리 {child_name} 오늘 그림 일기 쓰는 모습 만점!!",
             "SecondMessage": "오늘 있었던 일 잘 떠올리고, 질문에 답변 잘해주고, 내가 그림 그리는 거 기다려줘서 고마워~",
             "StampMessage": "우리 아래 스탬프 팡팡팡 터트리면서 마무리해보자~"
         },
