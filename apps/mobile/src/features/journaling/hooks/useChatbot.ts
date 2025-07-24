@@ -107,7 +107,10 @@ export const useChatbot = (afterStart?: (data: ChatbotResponse, withSuggestion: 
           return {
             ...oldData,
             stage: data.stage,
-            focusedPanel: data.focusedPanel || oldData.focusedPanel
+            focusedPanel: data.focusedPanel || oldData.focusedPanel,
+            events: data.data?.events || oldData.events,
+            summary: data.data?.summary || oldData.summary,
+            panels: data.data?.panels || oldData.panels,
           };
         }else return oldData;
       });

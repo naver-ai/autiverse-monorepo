@@ -167,6 +167,7 @@ export interface ChatbotResponse {
   focusedPanel?: string | null;
   intent?: MessageIntent | null;
   metadata?: Record<string, any> | null;
+  data?: Record<string, any> | null;
 }
 
 export enum MessageIntent {

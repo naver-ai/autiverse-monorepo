@@ -222,7 +222,7 @@ export const JournalingScreen = () => {
                 // 패널 내용을 빈 객체로 시작 (실제로는 서버에서 자동 생성)
                 startGeneration({});
               }
-              
+              /*
               // auto-comic-generation API 호출
               const autoData = await startAutoComicGenerationFromHook(journalEntryId);
               if (autoData) {
@@ -241,7 +241,7 @@ export const JournalingScreen = () => {
                 
                 addMockMessages(journalEntryId, [autoBotMessage]);
                 
-              }
+              }*/
             } catch (error) {
               console.error('Failed to start comic generation:', error);
             }
