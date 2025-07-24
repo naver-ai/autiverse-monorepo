@@ -240,6 +240,7 @@ class MessageIntent(StrEnum):
     Disagree="disagree"
     StartComicGeneration="start_comic_generation"
     TransitionToTitle="transition_to_title"
+    Error = "error"
 
 class Message(SQLModel, IdTimestampMixin, JournalEntryIdMixin, InteractionTurnIdMixin, table=True):
     model_config = ConfigDict(use_enum_values=True)

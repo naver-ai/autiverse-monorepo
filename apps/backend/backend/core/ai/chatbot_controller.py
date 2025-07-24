@@ -452,15 +452,17 @@ class ChatbotController:
             
             # revision_2로 전환
             revision2_stage = Revision2Stage(self.db, journal_entry_id)
-            revision2_response = revision2_stage.start_revision()
+            revision2_response, intent = revision2_stage.start_revision()
             
             return {
                 "response": revision2_response,
+                "intent": intent,
                 "stage": "revision_2"
             }
         else:
             return {
                 "response": "만화 생성을 시작할 수 없습니다.",
+                "intent": MessageIntent.Error,
                 "stage": "error"
             }
     

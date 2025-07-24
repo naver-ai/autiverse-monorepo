@@ -19,12 +19,13 @@ import { ChatButtons } from './ChatButtons';
 import { ChatText } from './ChatText';
 import { MessageIntent } from '@autiverse-monorepo/ts-core';
 import { UserButtonMode } from '../types';
+import { ComicGenerationStatus } from '../api';
 
 interface ChatInputProps {
   journalEntryId: string;
   sendMessage: (message: string, audioFilename?: string) => void;
   isLoading: boolean;
-  comicGenerationStatus: any;
+  comicGenerationStatus: ComicGenerationStatus;
   isInputActive?: boolean;
   agentName: string;
   isAfterFarewell?: boolean;

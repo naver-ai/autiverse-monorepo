@@ -40,7 +40,7 @@ async def generate_comic_with_progress(journal_entry_id: str, panel_contents: Di
     db = next(get_session())
     try:
         # 초기 상태 설정
-        await update_comic_status(db, journal_entry_id, ComicStatus.Generating0)
+        await update_comic_status(db, journal_entry_id, ComicStatus.Generating0, None)
         
         # 실제 만화 생성 과정과 연동된 progress_callback 정의
         async def progress_callback(progress: int, message: str):
@@ -56,7 +56,7 @@ async def generate_comic_with_progress(journal_entry_id: str, panel_contents: Di
                 status = ComicStatus.Generating4
             print(f"[DEBUG] Progress: {progress}% - {message}")
 
-            await update_comic_status(db, journal_entry_id, status)
+            await update_comic_status(db, journal_entry_id, status, None)
         
         # 실제 만화 생성 (progress_callback과 함께)
         generator = ComicGridGenerator()
@@ -66,7 +66,7 @@ async def generate_comic_with_progress(journal_entry_id: str, panel_contents: Di
         print(f"[DEBUG] Comic data: {comic_data}")
         
         # 완료 상태 설정
-        await update_comic_status(db, journal_entry_id, ComicStatus.Completed)
+        await update_comic_status(db, journal_entry_id, ComicStatus.Completed, comic_data)
         
         print(f"[DEBUG] Status updated to completed for {journal_entry_id}")
         
@@ -95,7 +95,7 @@ async def generate_comic_with_progress(journal_entry_id: str, panel_contents: Di
         
     except Exception as e:
         # 에러 상태 설정
-        await update_comic_status(db, journal_entry_id, ComicStatus.Error)
+        await update_comic_status(db, journal_entry_id, ComicStatus.Error, None)
         print(f"[ERROR] Comic generation failed for {journal_entry_id}: {e}")
     finally:
         db.close()
@@ -157,7 +157,7 @@ async def cancel_comic_generation(journal_entry_id: str):
     """만화 생성 취소"""
     db = next(get_session())
     try:
-        await update_comic_status(db, journal_entry_id, ComicStatus.Cancelled)
+        await update_comic_status(db, journal_entry_id, ComicStatus.Cancelled, None)
         return {"message": "만화 생성이 취소되었습니다."}
     finally:
         db.close() 

@@ -1105,11 +1105,11 @@ Please generate a question that addresses the FIRST missing information gap."""
                     elif progress <= 90:
                         status = ComicStatus.Generating4
 
-                    await update_comic_status(self.db, self.journal_entry_id, status)
+                    await update_comic_status(self.db, self.journal_entry_id, status, None)
                     print(f"[DEBUG] Progress: {progress}% - {message}")
                 
                 # 초기 상태 설정
-                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Generating0)
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Generating0, None)
                 
                 # 만화 생성 시작
                 generator = ComicGridGenerator()
@@ -1119,7 +1119,7 @@ Please generate a question that addresses the FIRST missing information gap."""
                 print(f"[DEBUG] comic_context: Comic data: {comic_data}")
                 
                 # 완료 상태 설정
-                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Completed)
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Completed, comic_data)
                 
                 # 데이터베이스에 저장
                 update_comic_data(self.db, self.journal_entry_id, comic_data)
@@ -1128,7 +1128,7 @@ Please generate a question that addresses the FIRST missing information gap."""
                 
             except Exception as e:
                 print(f"[DEBUG] comic_context: Error in comic generation: {e}")
-                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Error)
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Error, None)
                 import traceback
                 traceback.print_exc()
             

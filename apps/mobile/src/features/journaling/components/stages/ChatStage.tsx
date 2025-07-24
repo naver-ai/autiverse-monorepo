@@ -13,9 +13,10 @@ import { ChatInput, ChatInputRef } from '../ChatInput';
 import { useSession } from '../../hooks/useSession';
 import { UserButtonMode } from '../../types';
 import { MessageIntent } from '@autiverse-monorepo/ts-core';
+import { ComicGenerationStatus } from '../../api';
 
 interface ChatStageProps {
-  comicGenerationStatus: any;
+  comicGenerationStatus: ComicGenerationStatus;
   progressAnimation: Animated.Value;
   sendMessage: (message: string) => void;
   agentName: string;

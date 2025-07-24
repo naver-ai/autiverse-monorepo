@@ -260,7 +260,6 @@ export const JournalingScreen = () => {
           }
           
           // 만화 생성 상태 모니터링 시작
-          setTimeout(async () => {
             try {
               // 만화 생성 시작 (프로그레스바와 연결됨)
               if (journalEntryId) {
@@ -291,7 +290,6 @@ export const JournalingScreen = () => {
             } catch (error) {
               console.error('Failed to start auto comic generation:', error);
             }
-          }, 500);
         }
       }
     } catch (error) {

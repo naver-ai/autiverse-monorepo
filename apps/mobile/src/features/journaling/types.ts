@@ -6,5 +6,7 @@ export enum UserButtonMode {
 
 export enum WebsocketEvent{
     ComicGenerationProgress = "comic_generation_progress",
-    ComicGenerationCompleted = "comic_generation_completed"
+    ComicGenerationCompleted = "comic_generation_completed",
+    ComicGenerationStarted = "comic_generation_started",
+    ComicGenerationError = "comic_generation_error",
 }

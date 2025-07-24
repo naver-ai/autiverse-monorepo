@@ -251,6 +251,7 @@ def start_auto_comic_generation(
             auto_comic_generation=result.get("auto_comic_generation")
         )
     except ValueError as e:
+        print(f"[DEBUG] ValueError: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 
@@ -323,6 +324,7 @@ def get_gallery(
             "comics": gallery_items
         }
     except Exception as e:
+        print(f"[DEBUG] Gallry loading exception: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 
 
 @router.post("/upload-audio")

@@ -127,7 +127,7 @@ def get_comic(db: Session, journal_entry_id: str) -> Optional[Comic]:
     """comic 조회"""
     return db.query(Comic).filter(Comic.journal_entry_id == journal_entry_id).first()
 
-async def update_comic_status(db: Session, journal_entry_id: str, status: ComicStatus):
+async def update_comic_status(db: Session, journal_entry_id: str, status: ComicStatus, comic_data: dict | None = None):
     """만화 생성 상태 업데이트"""
     comic = db.query(Comic).filter(Comic.journal_entry_id == journal_entry_id).first()
     if comic:
@@ -136,13 +136,13 @@ async def update_comic_status(db: Session, journal_entry_id: str, status: ComicS
         print(f"[DEBUG] Comic status updated to {status} for {journal_entry_id}")
 
         if status == ComicStatus.Error:
-            await emit_comic_generation_error(comic.dyad_id, journal_entry_id, comic)    
+            await emit_comic_generation_error(comic.dyad_id, journal_entry_id, comic_data)    
 
         if status == ComicStatus.Generating0:
-            await emit_comic_generation_started(comic.dyad_id, journal_entry_id, comic)
-        await emit_comic_generation_progress(comic.dyad_id, journal_entry_id, comic)
+            await emit_comic_generation_started(comic.dyad_id, journal_entry_id, comic_data)
+        await emit_comic_generation_progress(comic.dyad_id, journal_entry_id, status, comic_data)
         if status == ComicStatus.Completed:
-            await emit_comic_generation_completed(comic.dyad_id, journal_entry_id, comic)
+            await emit_comic_generation_completed(comic.dyad_id, journal_entry_id, comic_data)
 
 def get_comic_status(db: Session, journal_entry_id: str) -> Optional[str]:
     """comic 생성 상태 조회 (통합)"""

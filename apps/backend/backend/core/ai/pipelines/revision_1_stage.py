@@ -335,10 +335,10 @@ User's correction request: {correction}
                         status = ComicStatus.Generating4
                     print(f"[DEBUG] Progress: {progress}% - {message}")
 
-                    await update_comic_status(self.db, self.journal_entry_id, status)
+                    await update_comic_status(self.db, self.journal_entry_id, status, None)
                 
                 # 초기 상태 설정
-                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Generating0)
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Generating0, None)
                 
                 # 만화 생성 시작
                 generator = ComicGridGenerator()
@@ -348,7 +348,7 @@ User's correction request: {correction}
                 print(f"[DEBUG] revision_1: Comic data: {comic_data}")
                 
                 # 완료 상태 설정
-                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Completed)
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Completed, comic_data)
                 
                 # 데이터베이스에 저장
                 update_comic_data(self.db, self.journal_entry_id, **comic_data)
@@ -357,7 +357,7 @@ User's correction request: {correction}
                 
             except Exception as e:
                 print(f"[DEBUG] revision_1: Error in comic generation: {e}")
-                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Error)
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Error, None)
                 import traceback
                 traceback.print_exc()
             
