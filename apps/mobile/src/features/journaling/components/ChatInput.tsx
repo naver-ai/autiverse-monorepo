@@ -302,7 +302,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
         {/* 음성 녹음 상태 표시 */}
         <VoiceRecordingStatus
           agentName={agentName}
-          isVoiceMode={isVoiceRecording}
           onComplete={completeVoiceRecording}
         />
 

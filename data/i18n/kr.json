@@ -130,7 +130,8 @@
             "CompleteError": "음성 변환 중 오류가 발생했습니다.",
             "DetectionFailed": "나한테 잘 안 들렸어! 다시 한 번 말해줘~",
             "DetectionFailedTitle": "음성 감지 실패",
-            "Confirm": "확인"
+            "Confirm": "확인",
+            "ListeningTextTemplate": "{agentName}가 듣는 중..."
         }
     }
 } 

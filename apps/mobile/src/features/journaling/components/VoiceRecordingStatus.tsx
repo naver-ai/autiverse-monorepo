@@ -1,49 +1,33 @@
-import React, { useEffect, useRef, useState, memo } from 'react';
-import { View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
+import React, { useEffect, useRef, useState, memo, useMemo } from 'react';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { styleTemplates } from '../../../styles';
 import { useVoiceRecorderState, useSpeechState } from '../utils';
 import { useTranslation } from 'react-i18next';
+import format from 'string-format';
+import { escapeJongseong } from '@autiverse-monorepo/ts-core';
 
-// 한국어 조사 선택 함수
-const getKoreanParticle = (name: string): string => {
-  if (!name) return '가';
-  
-  // 받침이 있는지 확인 (한글 유니코드 범위: 44032-55203)
-  const lastChar = name.charAt(name.length - 1);
-  const lastCharCode = lastChar.charCodeAt(0);
-  
-  // 한글이 아니거나 받침이 없는 경우
-  if (lastCharCode < 44032 || lastCharCode > 55203) {
-    return '가';
-  }
-  
-  // 받침 계산: (유니코드 - 44032) % 28
-  const baseCode = lastCharCode - 44032;
-  const finalConsonant = baseCode % 28;
-  
-  // 받침이 있으면 '이가', 없으면 '가'
-  return finalConsonant > 0 ? '이가' : '가';
-};
+import Reanimated, { Easing, FadeIn, FadeOut } from 'react-native-reanimated';
 
 export const VoiceRecordingStatus = memo(({
   agentName,
-  isVoiceMode,
   onComplete
 }: {
   agentName: string;
   isVoiceMode?: boolean;
   onComplete: () => void;
 }) => {
-  const voiceMode = isVoiceMode ?? false;
+
   const {isRecording} = useVoiceRecorderState()
-  const {isSpeaking} = useSpeechState()
 
   const pulseAnimation = useRef(new Animated.Value(1)).current;
 
   const bounceAnimation = useRef(new Animated.Value(1)).current;
-  console.log('voiceRecording: ', isRecording, "isSpeaking: ", isSpeaking)
 
   const {t} = useTranslation();
+  const listeningText = useMemo(()=>{
+    return format(t('ChatInput.VoiceRecording.ListeningTextTemplate'), { agentName: escapeJongseong(agentName)});
+  }, [t, agentName]);
+
 
   // 음성 녹음 애니메이션
   useEffect(() => {
@@ -89,19 +73,13 @@ export const VoiceRecordingStatus = memo(({
   }, [isRecording]);
 
   // TTS나 음성 녹음이 활성화되지 않았으면 아무것도 표시하지 않음
-  if (!isSpeaking && !isRecording) {
+  if (!isRecording) {
     return null;
   }
 
-  return (
-    <View className={`flex-row items-center justify-between p-4 rounded-xl mb-4 ${
-      voiceMode && isRecording 
-        ? 'bg-blue-50 border-2 border-blue-200' 
-        : 'bg-white border-2 border-gray-200'
-    }`} style={{ minHeight: 110 }}>
-      <View className="flex-row items-center flex-1">
-        {isRecording ? (
-          <View className="flex-row items-center mr-3">
+  return (isRecording && <Reanimated.View entering={FadeIn.duration(300).easing(Easing.out(Easing.cubic))} exiting={FadeOut.duration(200).easing(Easing.out(Easing.cubic))} 
+          className={"flex-row items-center justify-between p-4 rounded-xl mb-4 bg-white border-2 border-gray-200 min-h-[110px]"}>
+      <View className="flex-row items-center flex-1"><View className="flex-row items-center mr-3">
             <Animated.View
               style={{
                 width: 16,
@@ -113,23 +91,14 @@ export const VoiceRecordingStatus = memo(({
               }}
             />
           </View>
-        ) : (
-          <View className="w-4 h-4 bg-gray-400 rounded-full mr-3" />
-        )}
         <Text className={`text-xl ${
-          isRecording 
-            ? 'text-blue-800' 
-            : 'text-gray-600'
+          'text-blue-800' 
         }`} style={styleTemplates.withBoldFont}>
-          {`${agentName}${getKoreanParticle(agentName)} ${
-            isRecording ? '듣는 중...' : '말하는 중...'
-          }`}
+          {listeningText}
         </Text>
       </View>
       
-      {/* 완료 버튼은 음성 녹음 중일 때만 표시 */}
-      {isRecording && (
-        <Animated.View
+      <Animated.View
           style={{
             transform: [{ scale: bounceAnimation }],
           }}
@@ -150,10 +119,5 @@ export const VoiceRecordingStatus = memo(({
           </Text>
         </TouchableOpacity>
         </Animated.View>
-      )}
-      
-      {/* 말하는 중일 때는 빈 공간으로 높이 맞춤 */}
-      {!isRecording && <View style={{ width: 90, height: 90 }} />}
-    </View>
-  );
+    </Reanimated.View>)
 })

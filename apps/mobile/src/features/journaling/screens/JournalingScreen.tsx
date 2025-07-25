@@ -6,13 +6,13 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useComicGeneration } from '../hooks/useComicGeneration';
 import { useChatbot } from '../hooks/useChatbot';
 import { ChatStage } from '../components/stages';
 import { ChatMessage, JournalEntryStage, MessageIntent } from '@autiverse-monorepo/ts-core';
-import { useSpeech } from '../utils';
+import { useSpeech, useVoiceRecorderState } from '../utils';
 import { useDyad } from '../../../api/dyad';
 import { useJournalingStore } from '../store';
 import { useSession } from '../hooks/useSession';
@@ -29,6 +29,10 @@ export const JournalingScreen = () => {
 
   const {stopSpeech, isSpeaking} = useSpeech()
 
+  const {reset: resetVoiceRecorderState} = useVoiceRecorderState();
+  useEffect(()=>{
+    resetVoiceRecorderState();
+  }, [resetVoiceRecorderState]);
   // Store 사용
   const {
     setIsSendingMessage,
