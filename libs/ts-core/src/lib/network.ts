@@ -71,9 +71,9 @@ export class NetworkHelper {
         GALLERY: '/api/v1/app/chatbot/gallery',
       },
       COMIC_GENERATION: {
-        START: '/api/v1/app/comic-generation/start',
-        getStatusEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/status/${journalEntryId}`,
-        getCancelEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/cancel/${journalEntryId}`,
+        getStartEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/${journalEntryId}/start`,
+        getStatusEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/${journalEntryId}/status`,
+        getCancelEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/${journalEntryId}/cancel`,
       },
       SPEECH: { 
         CLOVA: '/api/v1/app/speech/clova',

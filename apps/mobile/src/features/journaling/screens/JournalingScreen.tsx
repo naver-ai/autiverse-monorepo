@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useComicGeneration } from '../hooks/useComicGeneration';
 import { useChatbot } from '../hooks/useChatbot';
 import { ChatStage } from '../components/stages';
-import { ChatMessage, JournalingSessionInfo, MessageIntent } from '@autiverse-monorepo/ts-core';
+import { ChatMessage, JournalEntryStage, JournalingSessionInfo, MessageIntent } from '@autiverse-monorepo/ts-core';
 import { useSpeech } from '../utils';
 import { useDyad } from '../../../api/dyad';
 import { useJournalingStore } from '../store';
@@ -99,7 +99,7 @@ export const JournalingScreen = () => {
 
     // "다음" 버튼 클릭 시 백엔드에 메시지 전송 후 칭찬 섹션으로 넘어가기
     console.log("lastBotMessage: ", lastBotMessage, "messageText: ", messageText)
-    if (intent == MessageIntent.AnswerNext) {
+    if (currentStage === JournalEntryStage.Revision2 && intent == MessageIntent.AnswerNext) {
       console.log('Next button clicked, sending message to backend and showing praise section...');
       
       // 백엔드에 '다음' 메시지 전송
@@ -138,6 +138,8 @@ export const JournalingScreen = () => {
     if (currentStage === 'revision_1' && 
         ((intent === MessageIntent.AnswerNegative) || 
          (intent === MessageIntent.AnswerPositive))) {
+
+          console.log("Revision_1에서 다음 단계로 넘어가는 기준이 달성될 때 고정 메시지를 먼저 추가 - ", t('Journaling.Messages.Revision1Confirmation'))
       
       // 고정 메시지를 즉시 추가
       const fixedMessage: ChatMessage = {
@@ -168,6 +170,7 @@ export const JournalingScreen = () => {
         // comic_context 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 다행이다~ 메시지가 제거됨)
         else if (data.stage === 'comic_context') {
           console.log('Comic context message detected, adding immediately...');
+          
           addMockMessages(journalEntryId, [botMessage]);
         } else if (data.stage === 'revision_2' && data.intent === MessageIntent.PromptIssueExist) {
           // Revision_2에서 만화 생성이 시작될 때 고정 메시지 추가
@@ -195,6 +198,9 @@ export const JournalingScreen = () => {
         } else {
           console.log('Skipping session info load - comic generation in progress or completed');
         }
+
+
+        setIsLoading(false); // 로딩 상태 초기화 미리
         
         // auto_comic_generation 플래그 확인
         console.log('Response data:', data);
@@ -219,8 +225,7 @@ export const JournalingScreen = () => {
               // 만화 생성 시작 (프로그레스바와 연결됨)
               if (journalEntryId) {
                 console.log('Starting comic generation with progress tracking...');
-                // 패널 내용을 빈 객체로 시작 (실제로는 서버에서 자동 생성)
-                startGeneration({});
+                startGeneration();
               }
               /*
               // auto-comic-generation API 호출

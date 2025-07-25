@@ -37,7 +37,6 @@ class ChatbotResponse(BaseModel):
     response: str
     stage: str
     data: Optional[Dict[str, Any]] = None
-    auto_comic_generation: Optional[bool] = None
     intent: Optional[MessageIntent] = None
     metadata: Optional[Dict[str, Any]] = None
 
@@ -73,8 +72,7 @@ def start_chatbot(
             journal_entry_id=result["journal_entry_id"],
             response=result["response"],
             stage=result["stage"],
-            data=result.get("data"),
-            auto_comic_generation=result.get("auto_comic_generation")
+            data=result.get("data")
         )
     except ValueError as e:
         print(f"[DEBUG] ValueError: {str(e)}")
@@ -98,8 +96,7 @@ def start_chatbot_with_suggestion(
             journal_entry_id=result["journal_entry_id"],
             response=result["response"],
             stage=result["stage"],
-            data=result.get("data"),
-            auto_comic_generation=result.get("auto_comic_generation")
+            data=result.get("data")
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -127,8 +124,7 @@ async def send_message(
             stage=result["stage"],
             data=result.get("data"),
             intent=result.get("intent"),
-            metadata=result.get("metadata"),
-            auto_comic_generation=result.get("auto_comic_generation")
+            metadata=result.get("metadata")
         )
     except ValueError as e:
         print("value error: ", e)
@@ -164,8 +160,7 @@ def reset_session(
         return ChatbotResponse(
             journal_entry_id=journal_entry_id,
             response=result["response"],
-            stage=result["stage"],
-            auto_comic_generation=result.get("auto_comic_generation")
+            stage=result["stage"]
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -249,8 +244,7 @@ def start_auto_comic_generation(
             journal_entry_id=journal_entry_id,
             response=result["response"],
             stage=result["stage"],
-            data=result.get("data"),
-            auto_comic_generation=result.get("auto_comic_generation")
+            data=result.get("data")
         )
     except ValueError as e:
         print(f"[DEBUG] ValueError: {str(e)}")

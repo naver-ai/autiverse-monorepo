@@ -7,7 +7,7 @@ from backend.database.crud.chatbot import *
 from backend.database.crud.chatbot import update_journal_entry_stage, update_comic_panels, update_comic_data, update_comic_status
 from backend.database.crud.chatbot import get_messages_by_journal_entry_and_stage
 from backend.database.models import JournalEntryStage, MessageRole
-
+from backend.utils.i18n import t
 
 from sqlmodel import Session
 import json
@@ -42,19 +42,21 @@ class ComicContextStage:
         
         print(f"[DEBUG] comic_context: initialized with child_name={self.child_name}, agent_name={self.agent_name}")
     
+    def _get_dyad(self) -> Dyad:
+        """dyad 정보를 가져오기"""
+        from backend.database.crud.chatbot import get_journal_entry
+        journal_entry = get_journal_entry(self.db, self.journal_entry_id)
+        return journal_entry.dyad if journal_entry and journal_entry.dyad else None
+
     def _get_dyad_info(self) -> tuple[str, int, str, str, list[str]]:
         """dyad 정보를 한 번에 가져오기 (child_name, child_age, child_gender, agent_name, agent_interests)"""
-        from backend.database.crud.chatbot import get_journal_entry
-        
-        journal_entry = get_journal_entry(self.db, self.journal_entry_id)
-        if not journal_entry or not journal_entry.dyad:
+        dyad = self._get_dyad()
+        if not dyad:
             return "사용자", 15, "male", "도도", ["Dinosaurs", "Counting things", "Talking to himself"]
         
-        dyad = journal_entry.dyad
         child_name = dyad.child_name or "사용자"
         child_age = dyad.child_age or 15
         child_gender = dyad.child_gender or "male"
-        
         # agent 정보 가져오기
         agent_name = "도도"  # fallback
         agent_interests = ["Dinosaurs", "Counting things", "Talking to himself"]  # fallback
@@ -171,7 +173,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             # 완료 상태 확인
             if self.is_complete():
                 # 만화 생성 시작 신호 반환 (실제 만화 생성은 controller에서 처리)
-                return "내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~", MessageIntent.StartComicGeneration
+                return t('Journaling.Messages.Revision1Confirmation', self._get_dyad().locale), MessageIntent.StartComicGeneration
             
             # 다음 질문 생성
             next_question, next_intent = self._get_next_question()
@@ -1073,7 +1075,7 @@ Please generate a question that addresses the FIRST missing information gap."""
         
         return is_complete
     
-    async def _generate_final_comic_panels(self) -> None:
+    async def _generate_final_comic_panels(self) -> dict | None:
         """comic_context 완료 시 최종 만화 패널 생성 및 Comic 테이블에 저장"""
         try:
             # comic_context 데이터 가져오기
@@ -1126,6 +1128,8 @@ Please generate a question that addresses the FIRST missing information gap."""
                 update_comic_data(self.db, self.journal_entry_id, comic_data)
                 
                 print(f"[DEBUG] comic_context: Status updated to completed for {self.journal_entry_id}")
+                
+                return comic_data
                 
             except Exception as e:
                 print(f"[DEBUG] comic_context: Error in comic generation: {e}")

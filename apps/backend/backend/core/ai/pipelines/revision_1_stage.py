@@ -5,8 +5,9 @@ from backend.database.crud.chatbot import (
     update_journal_data, create_interaction_turn, create_message,
     get_messages_by_journal_entry, update_comic_data, update_comic_status
 )
-from backend.database.models import JournalEntryStage, MessageRole, MessageIntent, ComicStatus
+from backend.database.models import JournalEntryStage, MessageRole, MessageIntent, ComicStatus, Dyad
 from sqlalchemy.orm import Session
+from backend.utils.i18n import t
 
 
 class Revision1Stage:
@@ -17,6 +18,15 @@ class Revision1Stage:
         # Journal에서 revision_count 가져오기
         self.revision_count = self._get_revision_count()
         self.max_revisions = 2
+
+    def _get_dyad(self) -> Dyad:
+        """dyad 정보를 가져오기"""
+        from backend.database.crud.chatbot import get_journal_entry
+
+        print("Get dyad of journal entry: ", self.journal_entry_id)
+
+        journal_entry = get_journal_entry(self.db, self.journal_entry_id)
+        return journal_entry.dyad if journal_entry and journal_entry.dyad else None
     
     def _get_child_name(self) -> str:
         """dyad의 child_name을 가져오기"""
@@ -109,7 +119,7 @@ class Revision1Stage:
                     return "아앗;; 어디가 어떻게 틀렸어? 😅", MessageIntent.PromptOpenEndedAnswer
             elif intent == MessageIntent.AnswerPositive or self._is_positive_response(user_message):
                 # 수정 완료, 만화 생성 시작 메시지 전송
-                return "다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~", MessageIntent.StartComicGeneration
+                return t('Journaling.Messages.Revision1Confirmation', self._get_dyad().locale), MessageIntent.StartComicGeneration
             else:
                 return "응 아니 중에 골라줘! 😅", MessageIntent.PromptConfirm
         
@@ -134,7 +144,7 @@ class Revision1Stage:
                         self.db, self.journal_entry_id,
                         revision_1=journal.comic_intro
                     )
-                return "다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~", MessageIntent.StartComicGeneration
+                return t('Journaling.Messages.Revision1Confirmation', self._get_dyad().locale), MessageIntent.StartComicGeneration
             else:
                 return "응 아니 중에 골라줘! 😅", MessageIntent.PromptConfirm
         else:
@@ -303,7 +313,7 @@ User's correction request: {correction}
         else:
             return create_interaction_turn(self.db, self.journal_entry_id, stage)
 
-    async def _generate_comic_panels(self) -> None:
+    async def _generate_comic_panels(self) -> dict | None:
         """revision_1 완료 시 만화 패널 생성 및 Comic 테이블에 저장"""
         try:
             journal = get_journal(self.db, self.journal_entry_id)
@@ -352,10 +362,13 @@ User's correction request: {correction}
                 await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Completed, comic_data)
                 
                 # 데이터베이스에 저장
-                update_comic_data(self.db, self.journal_entry_id, **comic_data)
+                update_comic_data(self.db, self.journal_entry_id, comic_data)
+                
                 
                 print(f"[DEBUG] revision_1: Status updated to completed for {self.journal_entry_id}")
                 
+                return comic_data
+            
             except Exception as e:
                 print(f"[DEBUG] revision_1: Error in comic generation: {e}")
                 await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Error, None)

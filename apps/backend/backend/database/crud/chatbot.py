@@ -162,13 +162,22 @@ def update_comic_panels(db: Session, journal_entry_id: str, is_first_generation:
         db.refresh(comic)
     return comic
 
-def update_comic_data(db: Session, journal_entry_id: str, **kwargs) -> Optional[Comic]:
+def update_comic_data(db: Session, journal_entry_id: str, comic_data: dict) -> Optional[Comic]:
     """comic 데이터 업데이트 (더 유연한 방식)"""
     comic = get_comic(db, journal_entry_id)
     if comic:
-        for key, value in kwargs.items():
-            if hasattr(comic, key):
-                setattr(comic, key, value)
+        if comic.first_panel1 is None:
+            # 첫 번째 만화로 저장
+            comic.first_panel1 = comic_data.get("panel1")
+            comic.first_panel2 = comic_data.get("panel2")
+            comic.first_panel3 = comic_data.get("panel3")
+            comic.first_panel4 = comic_data.get("panel4")
+        else:
+            # 두 번째 만화로 저장
+            comic.second_panel1 = comic_data.get("panel1")
+            comic.second_panel2 = comic_data.get("panel2")
+            comic.second_panel3 = comic_data.get("panel3")
+            comic.second_panel4 = comic_data.get("panel4")
         db.commit()
         db.refresh(comic)
     return comic

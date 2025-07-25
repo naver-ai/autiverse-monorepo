@@ -145,7 +145,7 @@ export interface ComicData {
 // Backend API response types
 export interface JournalingSessionInfo {
   journal_entry_id: string;
-  stage: string;
+  stage: JournalEntryStage;
   status: string;
   location?: string | null;
   people?: string[] | null;
@@ -163,7 +163,6 @@ export interface ChatbotResponse {
   journal_entry_id: string;
   response: string;
   stage: string;
-  auto_comic_generation?: any;
   focusedPanel?: string | null;
   intent?: MessageIntent | null;
   metadata?: Record<string, any> | null;

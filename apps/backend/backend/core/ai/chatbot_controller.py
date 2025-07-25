@@ -158,18 +158,7 @@ class ChatbotController:
         revision_stage = Revision1Stage(self.db, journal_entry_id)
         response, response_intent = revision_stage.process_message(message, intent, audio_filename)
         
-        # 만화 생성 시작 신호인지 확인
-        auto_comic_generation = response_intent == MessageIntent.StartComicGeneration
-        if auto_comic_generation:
-            # 만화 생성 시작 (프론트엔드에서 모니터링할 수 있도록)
-            print("Start comic generation in revision_1 stage")
-            await revision_stage._generate_comic_panels()
-
         
-        print("auto_comic_generation (rev1): ", auto_comic_generation)
-        
-        # 만화 생성 완료 신호인지 확인
-
         # 완료되었는지 확인
         if "다행이다" in response:
             print("다행이다 in response. Move to comic_context stage.")
@@ -183,7 +172,6 @@ class ChatbotController:
             return {
                 "response": response,
                 "intent": response_intent,
-                "auto_comic_generation": auto_comic_generation,
                 "stage": "revision_1"
             }
     
@@ -192,31 +180,24 @@ class ChatbotController:
         context_stage = ComicContextStage(self.db, journal_entry_id)
         response, response_intent = context_stage.process_message(message, intent, audio_filename)
         
-        auto_comic_generation = response_intent == MessageIntent.StartComicGeneration
-        focused_panel = None
-        # 만화 생성 시작 신호인 경우
-        if auto_comic_generation:
-            await context_stage._generate_final_comic_panels()
-        else:
-            # focusedPanel 설정 로직 추가
-            if context_stage.story_analysis:
-                # story_analysis에서 첫 번째로 누락된 정보가 있는 패널 찾기
-                content_issues = context_stage.story_analysis.get("content", {})
-                panels = ["A", "B", "C", "D"] # Assuming these are the panel keys
-                panel_mapping = {"A": "panel1", "B": "panel2", "C": "panel3", "D": "panel4"}
-                for panel in panels:
-                    if content_issues.get(panel) and content_issues[panel]:  # 해당 패널에 누락된 정보가 있으면
-                        # A -> panel1, B -> panel2, C -> panel3                   panel_mapping = {"A": "panel1,B": "panel2,C": "panel3,                    focused_panel = panel_mapping[panel]
-                        break
+        # focusedPanel 설정 로직 추가
+        if context_stage.story_analysis:
+            # story_analysis에서 첫 번째로 누락된 정보가 있는 패널 찾기
+            content_issues = context_stage.story_analysis.get("content", {})
+            panels = ["A", "B", "C", "D"] # Assuming these are the panel keys
+            panel_mapping = {"A": "panel1", "B": "panel2", "C": "panel3", "D": "panel4"}
+            for panel in panels:
+                if content_issues.get(panel) and content_issues[panel]:  # 해당 패널에 누락된 정보가 있으면
+                    # A -> panel1, B -> panel2, C -> panel3                   
+                    panel_mapping = {"A": "panel1", "B": "panel2", "C": "panel3"}
+                    focused_panel = panel_mapping[panel]
+                    break
 
-        print("auto_comic_generation (comic_context): ", auto_comic_generation)
-        
         return {
             "response": response,
             "intent": response_intent,
             "stage": "comic_context",
-            "focusedPanel": focused_panel,
-            "auto_comic_generation": auto_comic_generation
+            "focusedPanel": focused_panel
         }
     
     async def _handle_revision_2_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:

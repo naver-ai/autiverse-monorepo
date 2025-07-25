@@ -11,7 +11,7 @@ class ComicGridGenerator:
         )
 
     async def generate_comic_grids(self, panel_contents: Dict[str, str], progress_callback=None) -> Dict[str, Any]:
-        """동기적으로 만화 그리드 생성"""
+        """비동기적으로 만화 그리드 생성"""
         try:
             # FourSceneComic 인스턴스 생성
             comic_generator = FourSceneComic(panel_contents)

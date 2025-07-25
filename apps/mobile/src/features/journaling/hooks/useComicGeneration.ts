@@ -3,7 +3,6 @@ import {
   startComicGenerationAPI,
   getComicGenerationStatusAPI,
   cancelComicGenerationAPI,
-  ComicGenerationRequest,
   ComicGenerationStatus,
 } from '../api';
 import { useCallback, useEffect, useRef } from 'react';
@@ -22,8 +21,8 @@ export const useComicGeneration = (
 
   // 만화 생성 시작 mutation
   const startGenerationMutation = useMutation({
-    mutationFn: (request: ComicGenerationRequest) =>
-      startComicGenerationAPI(jwt!!, request),
+    mutationFn: () =>
+      startComicGenerationAPI(jwt!!, journalEntryId!!),
     onSuccess: () => {
       console.log('Comic generation started successfully');
       // 상태 쿼리를 무효화하여 즉시 상태를 다시 가져오도록 함
@@ -64,20 +63,14 @@ export const useComicGeneration = (
 
   // 만화 생성 시작 함수
   const startGeneration = useCallback(
-    (panelContents: Record<string, string>) => {
+    () => {
 
-      console.log("Start comic generation....", panelContents)
+      console.log("Start comic generation....")
       if (!journalEntryId) {
         console.error('journalEntryId is required to start comic generation');
         return;
       }
-
-      const request: ComicGenerationRequest = {
-        journal_entry_id: journalEntryId,
-        panel_contents: panelContents,
-      };
-
-      startGenerationMutation.mutate(request);
+      startGenerationMutation.mutate();
     },
     [journalEntryId, startGenerationMutation],
   );
