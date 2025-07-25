@@ -93,9 +93,11 @@
         "WaitMessage": "잠시만 기다려주세요..."
     },
     "Chat": {
-        "VoiceModePlaceholder": "채팅으로 하려면 여기를 클릭하세요",
-        "SendButton": "전송",
-        "SubmittingMessage": "메시지 전송 중...",
+        "Placeholder": "대화 내용을 입력해줘.",
+        "ChatButton": "길게 눌러서 채팅으로 입력하기",
+        "SendButton": "보내기",
+        "VoiceCompleteButton": "다 말했어",
+        "SubmittingMessage": "메시지 보내는 중...",
         "LoadingMessage": "답변을 생각중이야..."
     },
     "ChatStage": {

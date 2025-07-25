@@ -6,10 +6,10 @@ import { useSpeech } from '../utils';
 import { getTTSOptionsFromAgentConfig } from '../utils/speechUtils';
 import { AgentImage } from './AgentImage';
 import { useSession } from '../hooks/useSession';
+import { useJournalingStore } from '../store';
 
 interface ChatMessageProps {
   journalEntryId: string;
-  isLoading: boolean;
   agentName: string;
   agentConfig?: any;
   onTTSComplete?: () => void;
@@ -22,11 +22,12 @@ const removeEmojis = (text: string): string => {
 
 export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   journalEntryId,
-  isLoading,
   agentName,
   agentConfig,
   onTTSComplete
 }) => {
+
+  const {isSendingMessage} = useJournalingStore();
 
   const {startSpeech} = useSpeech()
 
@@ -37,7 +38,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
 
   // 새로운 봇 메시지가 올 때 자동으로 음성 재생
   useEffect(() => {
-    if (lastBotMessage && lastBotMessage.text && !isLoading) {
+    if (lastBotMessage && lastBotMessage.text && !isSendingMessage) {
       // 완료 메시지는 TabletComicChatbotScreen에서 처리하므로 여기서는 건너뛰기
       if (lastBotMessage.text.includes('우와~ 이렇게 멋진 그림 일기 완성이라니!')) {
         console.log('Completion message detected in ChatMessage, skipping TTS...');
@@ -68,7 +69,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         });
       }
     }
-  }, [lastBotMessage?.id, isLoading]);
+  }, [lastBotMessage?.id, isSendingMessage]);
   
   if (!sessionInfo || sessionInfo.messages?.length === 0) {
     return (
@@ -80,7 +81,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     );
   }
   
-  if (isLoading) {
+  if (isSendingMessage) {
     return (
       <View className="items-start">
         <View className="flex-row items-start">

@@ -137,14 +137,16 @@ async def update_comic_status(db: Session, journal_entry_id: str, status: ComicS
 
         if status == ComicStatus.Error:
             await emit_comic_generation_error(comic.dyad_id, journal_entry_id, comic_data)    
-
-        if status == ComicStatus.Generating0:
+        elif status == ComicStatus.Generating0:
             await emit_comic_generation_started(comic.dyad_id, journal_entry_id, comic_data)
-        await emit_comic_generation_progress(comic.dyad_id, journal_entry_id, status, comic_data)
-        if status == ComicStatus.Completed:
+        elif status == ComicStatus.Completed:
             await emit_comic_generation_completed(comic.dyad_id, journal_entry_id, comic_data, chatbot_response)
+        else:
+            await emit_comic_generation_progress(comic.dyad_id, journal_entry_id, status, comic_data) 
+        
+        
 
-def get_comic_status(db: Session, journal_entry_id: str) -> Optional[str]:
+def get_comic_status(db: Session, journal_entry_id: str) -> Optional[ComicStatus]:
     """comic 생성 상태 조회 (통합)"""
     comic = get_comic(db, journal_entry_id)
     return comic.status if comic else None

@@ -3,12 +3,13 @@ import React, {
   forwardRef,
   useImperativeHandle,
   useEffect,
+  useCallback,
 } from 'react';
 import { View, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSpeechState } from '../utils/speechUtils';
 import { useVoiceRecorder } from '../utils';
-import { transcribeAudio } from '../utils/voiceUtils';
+import { transcribeAudio } from '../utils/voiceRecordingUtils';
 import { useDyad } from '../../../api/dyad';
 import { uploadAudioFile } from '../api';
 import { useAuth } from '../../auth/hooks';
@@ -19,11 +20,13 @@ import { ChatText } from './ChatText';
 import { MessageIntent } from '@autiverse-monorepo/ts-core';
 import { UserButtonMode } from '../types';
 import { ComicGenerationStatus } from '../api';
+import { TailwindButton } from '../../../components/TailwindButton';
+import { ChatTextInputModal } from './ChatTextInputModal';
+import { useJournalingStore } from '../store';
 
 interface ChatInputProps {
   journalEntryId: string;
   sendMessage: (message: string, intent?: MessageIntent, audioFilename?: string) => void;
-  isLoading: boolean;
   comicGenerationStatus: ComicGenerationStatus;
   isInputActive?: boolean;
   agentName: string;
@@ -40,7 +43,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     {
       journalEntryId,
       sendMessage,
-      isLoading,
       comicGenerationStatus,
       isInputActive = true,
       agentName,
@@ -55,6 +57,8 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     const [isVoiceMode, setIsVoiceMode] = useState<boolean>(false);
     const [hasButtons, setHasButtons] = useState<boolean>(false);
     const [isVoiceCompleted, setIsVoiceCompleted] = useState<boolean>(false);
+
+    const {isSendingMessage} = useJournalingStore();
 
     const {
       isRecording: isVoiceRecording,
@@ -74,7 +78,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
 
     // TTS 또는 로딩 중일 때 비활성화, 또는 ChatInput이 비활성화 상태일 때
     const isDisabled =
-      isLoading ||
+      isSendingMessage ||
       isSpeaking ||
       comicGenerationStatus.status === 'generating' ||
       !isInputActive ||
@@ -264,14 +268,23 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       [startVoiceRecording, completeVoiceRecording],
     );
 
-    const handleInputFocus = async () => {
+    const [isTextInputModalVisible, setIsTextInputModalVisible] = useState(false);
+
+    const onPressChatButton = useCallback(async ()=>{
+      console.log("Pressing chat button...", isVoiceMode, isVoiceRecording);
       if (isVoiceMode) {
         setIsVoiceMode(false);
-        if (isVoiceRecording) {
-          await stopRecording();
-        }
       }
-    };
+
+      if (isVoiceRecording) {
+        console.log("Stopping voice recording...");
+        await stopRecording();
+        setIsVoiceMode(false);
+        setIsVoiceCompleted(false);
+      }
+
+      setIsTextInputModalVisible(true);
+    }, [isVoiceMode, isVoiceRecording, stopRecording])
 
     useEffect(() => {
       return () => {
@@ -279,7 +292,12 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       }
     }, []);
 
-    return (
+
+    const lastMessage = messages?.filter((m) => !m.isUser).pop();
+    const isChatInputMessage =
+      lastMessage?.intent === MessageIntent.PromptTextInput;
+
+    return <>
       <View className="p-6 border-t-2 border-gray-200 bg-white">
         {/* 음성 녹음 상태 표시 */}
         <VoiceRecordingStatus
@@ -297,28 +315,16 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
           onButtonsVisibilityChange={setHasButtons}
         />
 
-        {/* 입력 필드 */}
-        {(() => {
-          // 채팅으로 입력하라는 메시지인지 확인 (title stage에서 2번 이상 거부했을 때)
-          const lastMessage = messages?.filter((m) => !m.isUser).pop();
-          const isChatInputMessage =
-            lastMessage?.intent === MessageIntent.PromptTextInput;
-
-          // 채팅 입력 메시지이거나 음성 녹음이 완료되지 않았을 때 ChatText 표시
-          if (isChatInputMessage || !isVoiceCompleted) {
-            return (
-              <ChatText
-                sendMessage={sendMessage}
-                isDisabled={isDisabled}
-                isVoiceMode={isVoiceMode}
-                onFocus={handleInputFocus}
-                showButtons={userButtonMode !== null}
-              />
-            );
-          }
-          return null;
-        })()}
+        {/* 채팅 입력 버튼 */}
+        {
+          isChatInputMessage || !isVoiceCompleted ? <TailwindButton title={t('Chat.ChatButton')} 
+              disabledTitleClassName='text-gray-300' buttonStyleClassName='bg-slate-100' roundedClassName='rounded-xl' shadowClassName='shadow-none'
+              disabled={!isInputActive || isSendingMessage}
+              onLongPress={onPressChatButton}
+              /> : null
+        }
       </View>
-    );
+      <ChatTextInputModal onSubmitText={sendMessage} visible={isTextInputModalVisible} onClose={()=>{setIsTextInputModalVisible(false)}}/>
+      </>
   },
 );

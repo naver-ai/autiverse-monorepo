@@ -38,7 +38,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
 }) => {
   const { t } = useTranslation();
   const {
-    isLoading,
+    isSendingMessage,
     isInputActive,
   } = useJournalingStore();
 
@@ -60,6 +60,8 @@ export const ChatStage: React.FC<ChatStageProps> = ({
     // MessageIntent 기반으로 버튼 모드 결정
     switch (lastBotMessage.intent) {
       case MessageIntent.PromptConfirm:
+        return UserButtonMode.YES_NO_BUTTON;
+      case MessageIntent.PromptIssueExist:
         return UserButtonMode.YES_NO_BUTTON;
       case MessageIntent.PromptEmotion:
         return UserButtonMode.EMOTION_BUTTON;
@@ -230,7 +232,6 @@ export const ChatStage: React.FC<ChatStageProps> = ({
           <View className="flex-1 p-3 bg-gray-50">
             <ChatMessageComponent
               journalEntryId={sessionId}
-              isLoading={isLoading}
               agentName={agentName}
               agentConfig={agentConfig}
               onTTSComplete={handleOnTTSComplete}
@@ -242,7 +243,6 @@ export const ChatStage: React.FC<ChatStageProps> = ({
             ref={chatInputRef}
             journalEntryId={sessionId}
             sendMessage={sendMessage}
-            isLoading={isLoading}
             comicGenerationStatus={comicGenerationStatus}
             isInputActive={isInputActive}
             agentName={agentName}

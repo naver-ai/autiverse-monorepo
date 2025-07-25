@@ -1,10 +1,12 @@
 import { Pressable, StyleSheet } from "react-native";
-import Reanimated, { Easing, Extrapolation, interpolate, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Reanimated, { Easing, Extrapolation, interpolate, interpolateColor, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { twMerge } from "tailwind-merge";
 import { useEffect } from "react";
+import { usePrevious } from "@uidotdev/usehooks";
+import { Portal } from "react-native-paper";
 
 export const Modal = (props: {
-    onPop: ()=>void,
+    onPop?: ()=>void,
     panelClassName?: string
     backgroundClassName?: string,
     dismissOnPressOutside?: boolean,
@@ -16,10 +18,10 @@ export const Modal = (props: {
 
     useEffect(() => {
         if(props.visible){
-            appearAnimProgress.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) });
-        }else{
-            appearAnimProgress.value = withTiming(0, { duration: 200, easing: Easing.out(Easing.cubic) });
-        }
+                appearAnimProgress.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) });
+            }else{
+                appearAnimProgress.value = withTiming(0, { duration: 200, easing: Easing.out(Easing.cubic) });
+            }
     }, [props.visible]);
 
     const backgroundStyle = useAnimatedStyle(() => {
@@ -34,7 +36,7 @@ export const Modal = (props: {
         }
     })
 
-    return <Reanimated.View 
+    return <Portal><Reanimated.View 
                 pointerEvents={props.visible ? "auto" : "none"}
                 className={twMerge("z-50 absolute inset-0 items-center justify-center bg-slate-800/30", props.backgroundClassName)}
                 style={backgroundStyle}
@@ -42,11 +44,12 @@ export const Modal = (props: {
         {
             props.dismissOnPressOutside !== false ? <Pressable accessible={false} style={StyleSheet.absoluteFillObject} onPress={props.onPop}/> : null
         }
-        <Reanimated.View style={panelStyle}
-            id={"frame"} className={twMerge("bg-white max-w-[50vw] min-w-[30vw] px-1 pt-1 rounded-t-2xl", props.panelClassName)}>
-            {
-                props.children
-            }
+            <Reanimated.View style={panelStyle}
+                id={"frame"} className={twMerge("bg-white max-w-[50vw] min-w-[30vw] px-1 pt-1 rounded-t-2xl", props.panelClassName)}>
+                {
+                    props.children
+                }
+            </Reanimated.View>
         </Reanimated.View>
-        </Reanimated.View>
+    </Portal>
 }

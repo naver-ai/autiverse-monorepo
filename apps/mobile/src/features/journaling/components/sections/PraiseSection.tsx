@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 // @ts-ignore
@@ -9,10 +9,7 @@ import { useSpeech } from '../../utils';
 import { getTTSOptionsFromAgentConfig } from '../../utils/speechUtils';
 import { AgentImage } from '../AgentImage';
 import { useDyad } from '../../../../api/dyad';
-import { UserLocale } from '@autiverse-monorepo/ts-core';
-import { appendJosa } from '@autiverse-monorepo/ts-core';
-
-const { width, height } = Dimensions.get('window');
+import { UserLocale, appendJosa } from '@autiverse-monorepo/ts-core';
 
 interface PraiseSectionProps {
   childName?: string; // 아이 이름
@@ -24,11 +21,9 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
   const [showStamp, setShowStamp] = useState(false);
   const [stampScale] = useState(new Animated.Value(0));
   const [hasCompleted, setHasCompleted] = useState(false);
-  const [hasSpoken, setHasSpoken] = useState(false);
   const [poppedStamps, setPoppedStamps] = useState<boolean[]>([false, false, false]);
   const {startSpeech, stopSpeech} = useSpeech()
   // 단계별 메시지 상태
-  const [currentStage, setCurrentStage] = useState(0); // 0: 첫번째 메시지, 1: 두번째 메시지, 2: 스탬프 메시지
   const [showFirstMessage, setShowFirstMessage] = useState(false);
   const [showSecondMessage, setShowSecondMessage] = useState(false);
   const [showStampMessage, setShowStampMessage] = useState(false);

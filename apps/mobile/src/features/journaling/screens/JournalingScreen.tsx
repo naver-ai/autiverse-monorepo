@@ -11,12 +11,13 @@ import { useTranslation } from 'react-i18next';
 import { useComicGeneration } from '../hooks/useComicGeneration';
 import { useChatbot } from '../hooks/useChatbot';
 import { ChatStage } from '../components/stages';
-import { ChatMessage, JournalEntryStage, JournalingSessionInfo, MessageIntent } from '@autiverse-monorepo/ts-core';
+import { ChatMessage, JournalEntryStage, MessageIntent } from '@autiverse-monorepo/ts-core';
 import { useSpeech } from '../utils';
 import { useDyad } from '../../../api/dyad';
 import { useJournalingStore } from '../store';
 import { useSession } from '../hooks/useSession';
 import { useQueryClient } from '@tanstack/react-query';
+import { Portal } from 'react-native-paper';
 
 export const JournalingScreen = () => {
   const router = useRouter();
@@ -30,7 +31,7 @@ export const JournalingScreen = () => {
 
   // Store 사용
   const {
-    setIsLoading,
+    setIsSendingMessage,
     setIsInputActive,
     resetAll,
   } = useJournalingStore();
@@ -42,7 +43,7 @@ export const JournalingScreen = () => {
     addMockMessages
   } = useChatbot();
 
-  const {sessionInfo, invalidateSessionInfo} = useSession({sessionId: journalEntryId});
+  const {sessionInfo} = useSession({sessionId: journalEntryId});
 
   const currentStage = sessionInfo?.stage;
 
@@ -93,7 +94,7 @@ export const JournalingScreen = () => {
   
   const sendMessage = async (messageText: string, intent?: MessageIntent, audioFilename?: string) => {
 
-    setIsLoading(true);
+    setIsSendingMessage(true);
 
     if (!journalEntryId || !messageText.trim()) return;
 
@@ -114,14 +115,14 @@ export const JournalingScreen = () => {
       
       // 칭찬 섹션으로 넘어가기
       router.replace({pathname: '/(app)/ending', params: {journalEntryId}});
-      setIsLoading(false);
+      setIsSendingMessage(false);
       return;
     }
 
     // TTS 상태 확인 - TTS가 진행 중이면 메시지 전송 차단
     if (isSpeaking) {
       console.log('TTS is currently active, blocking message send');
-      setIsLoading(false);
+      setIsSendingMessage(false);
       return;
     }
 
@@ -149,12 +150,6 @@ export const JournalingScreen = () => {
         // 완료 메시지 감지 (다음 버튼을 눌러야 넘어감)
         if (data.intent === MessageIntent.PromptNext) {
           addMockMessages(journalEntryId, [botMessage]);
-        }
-        // comic_context 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 다행이다~ 메시지가 제거됨)
-        else if (data.stage === 'comic_context') {
-          console.log('Comic context message detected, adding immediately...');
-          
-          addMockMessages(journalEntryId, [botMessage]);
         } else if (data.stage === 'revision_2' && data.intent === MessageIntent.PromptIssueExist) {
           // Revision_2에서 만화 생성이 시작될 때 고정 메시지 추가
           console.log('Revision_2 comic generation detected, adding fixed message...');
@@ -174,13 +169,13 @@ export const JournalingScreen = () => {
           addMockMessages(journalEntryId, [botMessage]);
         }
 
-        setIsLoading(false); // 로딩 상태 초기화 미리
+        setIsSendingMessage(false); // 로딩 상태 초기화 미리
         
         // auto_comic_generation 플래그 확인
         console.log('Response data:', data);
         console.log(data.intent == MessageIntent.StartComicGeneration)
         if (data.intent == MessageIntent.StartComicGeneration) {
-          
+          /*
           //즉시 다음 단계로 stage 설정 (깜빡임 방지)
           if (data.stage === 'revision_1') {
             queryClient.setQueryData(['session', journalEntryId], (old: JournalingSessionInfo) => (old ? {
@@ -192,7 +187,7 @@ export const JournalingScreen = () => {
               ...old,
               stage: 'revision_2'
             } : undefined));
-          }
+          }*/
           
           // 만화 생성 상태 모니터링 시작
             try {
@@ -210,7 +205,7 @@ export const JournalingScreen = () => {
       console.error('Failed to send message:', error);
       Alert.alert('오류', t('Journaling.Errors.MessageSendError'));
     } finally {
-      setIsLoading(false);
+      setIsSendingMessage(false);
     }
   };
 
@@ -245,11 +240,8 @@ export const JournalingScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View className="flex-1 bg-gray-100">
+    <Portal.Host>
+    <KeyboardAvoidingView className='flex-1 bg-gray-100' behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ChatStage
             comicGenerationStatus={comicGenerationStatus}
             progressAnimation={progressAnimation}
@@ -265,7 +257,6 @@ export const JournalingScreen = () => {
             }}
             onEndSession={handleEndSession}
           />
-      </View>
-    </KeyboardAvoidingView>
+    </KeyboardAvoidingView></Portal.Host>
   );
 };

@@ -2,13 +2,13 @@ import { create } from 'zustand';
 
 interface JournalingState {
   // 기본 상태
-  isLoading: boolean;
+  isSendingMessage: boolean;
   
   // 입력 관련 상태
   isInputActive: boolean;
   
   // Actions - 실제 사용되는 것들만 유지
-  setIsLoading: (loading: boolean) => void;
+  setIsSendingMessage: (loading: boolean) => void;
   setIsInputActive: (active: boolean) => void;
   
   // 복합 actions
@@ -18,20 +18,20 @@ interface JournalingState {
 
 export const useJournalingStore = create<JournalingState>((set, get) => ({
   // 초기 상태
-  isLoading: false,
+  isSendingMessage: false,
 
   isInputActive: false,
 
-  setIsLoading: (isLoading) => set({ isLoading }),
+  setIsSendingMessage: (isLoading) => set({ isSendingMessage: isLoading }),
   setIsInputActive: (isInputActive) => set({ isInputActive }),
   
   resetAll: () => set({
-    isLoading: false,
+    isSendingMessage: false,
     isInputActive: false,
   }),
   
   resetForNewSession: () => set({
-    isLoading: false,
+    isSendingMessage: false,
     isInputActive: false,
   })
 }));

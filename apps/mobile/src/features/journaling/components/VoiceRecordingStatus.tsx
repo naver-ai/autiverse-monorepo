@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, memo } from 'react';
 import { View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
 import { styleTemplates } from '../../../styles';
 import { useVoiceRecorderState, useSpeechState } from '../utils';
+import { useTranslation } from 'react-i18next';
 
 // 한국어 조사 선택 함수
 const getKoreanParticle = (name: string): string => {
@@ -41,6 +42,8 @@ export const VoiceRecordingStatus = memo(({
 
   const bounceAnimation = useRef(new Animated.Value(1)).current;
   console.log('voiceRecording: ', isRecording, "isSpeaking: ", isSpeaking)
+
+  const {t} = useTranslation();
 
   // 음성 녹음 애니메이션
   useEffect(() => {
@@ -133,10 +136,8 @@ export const VoiceRecordingStatus = memo(({
         >
         <TouchableOpacity
           onPress={onComplete}
-            className="bg-green-500 rounded-lg items-center justify-center"
+            className="bg-green-500 rounded-lg items-center justify-center p-10"
           style={{
-              width: 90, // 정사각형 크기 (기존의 약 2배)
-              height: 90,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.1,
@@ -144,8 +145,8 @@ export const VoiceRecordingStatus = memo(({
             elevation: 3,
           }}
         >
-            <Text className="text-white text-2xl" style={styleTemplates.withBoldFont}>
-            완료
+            <Text className="text-white text-xl" style={styleTemplates.withBoldFont}>
+              {t('Chat.VoiceCompleteButton')}
           </Text>
         </TouchableOpacity>
         </Animated.View>
