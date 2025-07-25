@@ -5,17 +5,21 @@ from backend.database.models import MessageIntent
 from backend.utils.environment import get_env_variable, EnvironmentVariables
 import json
 import openai
+from backend.utils.korean import escape_jongseong
 
 class TitleGenerator:
     def __init__(self):
         self.client = openai.OpenAI()
     
     def generate_title(self, journal_data: Dict[str, Any], child_name: str) -> str:
+
+        child_name_escaped = escape_jongseong(child_name)
+
         """만화 내용을 바탕으로 제목 생성"""
         try:
             # journal_data가 비어있으면 기본 제목 반환
             if not journal_data:
-                return f"{child_name}의 그림 일기"
+                return f"{child_name_escaped}의 그림 일기"
             
             # 제목 생성 프롬프트
             system_prompt = """You are an expert at generating titles for children's picture diaries.
@@ -56,19 +60,21 @@ Based on the above content, please generate a korean title that {child_name} wou
             result = response.choices[0].message.content
             try:
                 parsed_result = json.loads(result)
-                return parsed_result.get("title", f"{child_name}의 그림 일기")
+                return parsed_result.get("title", f"{child_name_escaped}의 그림 일기")
             except json.JSONDecodeError:
                 # JSON 파싱 실패 시 직접 반환
-                return result.strip() if result else f"{child_name}의 그림 일기"
+                return result.strip() if result else f"{child_name_escaped}의 그림 일기"
                 
         except Exception as e:
             print(f"Error generating title: {e}")
             return f"{child_name}의 그림 일기"
     
     def process_title_feedback(self, user_feedback: str, current_title: str, child_name: str) -> tuple[str, MessageIntent | None]:
+
+        child_name_escaped = escape_jongseong(child_name)
         """사용자 피드백에 따른 응답 생성"""
         if user_feedback in ["좋아", "좋아요", "좋다", "괜찮아"]:
-            return f"유후~ {child_name}이 마음에 드는 제목이라 너무 좋다! 완성된 일기 다 확인했으면 다음 버튼을 눌러줘!", MessageIntent.PromptNext
+            return f"유후~ {child_name_escaped}의 마음에 드는 제목이라 너무 좋다! 완성된 일기 다 확인했으면 다음 버튼을 눌러줘!", MessageIntent.PromptNext
         else:
             return "그럼 어떤 제목으로 하고 싶어?", MessageIntent.PromptOpenEndedAnswer
     
@@ -83,6 +89,6 @@ Based on the above content, please generate a korean title that {child_name} wou
         else:
             # 2번 이상 클릭했을 때 다른 응답
             if reject_count >= 2:
-                return "내가 잘 못 들어서 미안해.. 어떤 제목으로 하고 싶은지 채팅으로 쳐서 정확하게 알려줘! 😢", MessageIntent.PromptTextInput
+                return "내가 잘못 들어서 미안해.. 어떤 제목으로 하고 싶은지 채팅으로 쳐서 정확하게 알려줘! 😢", MessageIntent.PromptTextInput
             else:
                 return "그럼 어떤 제목으로 하고 싶어?", MessageIntent.PromptOpenEndedAnswer
