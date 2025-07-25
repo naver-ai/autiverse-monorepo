@@ -113,6 +113,10 @@ export const useComicGeneration = (
               },
             );
             if (event.event == WebsocketEvent.ComicGenerationCompleted) {
+
+
+              
+
               queryClient.setQueryData(
                 ['session', journalEntryId],
                 (old: JournalingSessionInfo | undefined) => {
@@ -120,6 +124,14 @@ export const useComicGeneration = (
                     return {
                       ...old,
                       panels: event.data.comic_data,
+                      messages: event.data.chatbot_response ? (old.messages.length > 0 ? [...old.messages || [], {
+                        id: (Date.now() + 2).toString(),
+                        text: event.data.chatbot_response.response,
+                        isUser: false,
+                        timestamp: new Date(),
+                        intent: event.data.chatbot_response.intent,
+                        metadata: event.data.chatbot_response.metadata,
+                      }] : old.messages) : old.messages,
                     };
                   }
                   return old;

@@ -230,28 +230,6 @@ def delete_session(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.post("/auto-comic-generation/{journal_entry_id}", response_model=ChatbotResponse)
-def start_auto_comic_generation(
-    journal_entry_id: str,
-    db: Session = Depends(get_session)
-):
-    """자동 만화 생성 시작"""
-    try:
-        controller = ChatbotController(db)
-        result = controller.start_auto_comic_generation(journal_entry_id)
-        
-        return ChatbotResponse(
-            journal_entry_id=journal_entry_id,
-            response=result["response"],
-            stage=result["stage"],
-            data=result.get("data")
-        )
-    except ValueError as e:
-        print(f"[DEBUG] ValueError: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 
-
 @router.get("/gallery")
 def get_gallery(
     dyad: Annotated[Dyad, Depends(get_signed_in_dyad)],

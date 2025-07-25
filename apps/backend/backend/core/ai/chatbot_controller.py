@@ -409,47 +409,6 @@ class ChatbotController:
             except Exception as e:
                 print(f"[DEBUG] {stage_name}: Error checking comic generation status: {e}")
                 time.sleep(wait_interval)
-
-    def start_auto_comic_generation(self, journal_entry_id: str) -> Dict[str, Any]:
-        """자동 만화 생성 시작"""
-        journal_entry = get_journal_entry(self.db, journal_entry_id)
-        if not journal_entry:
-            raise ValueError("Journal entry not found")
-        
-        current_stage = journal_entry.stage
-        
-        if current_stage == JournalEntryStage.Revision1:
-            # 만화 생성 완료 대기
-            self._wait_for_comic_generation(journal_entry_id, "revision_1")
-            
-            # comic_context로 전환
-            context_stage = ComicContextStage(self.db, journal_entry_id)
-            context_response, intent = context_stage.start_context_analysis()
-            
-            return {
-                "response": context_response,
-                "intent": intent,
-                "stage": "comic_context"
-            }
-        elif current_stage == JournalEntryStage.ComicContext:
-            # 만화 생성 완료 대기
-            self._wait_for_comic_generation(journal_entry_id, "comic_context")
-            
-            # revision_2로 전환
-            revision2_stage = Revision2Stage(self.db, journal_entry_id)
-            revision2_response, intent = revision2_stage.start_revision()
-            
-            return {
-                "response": revision2_response,
-                "intent": intent,
-                "stage": "revision_2"
-            }
-        else:
-            return {
-                "response": "만화 생성을 시작할 수 없습니다.",
-                "intent": MessageIntent.Error,
-                "stage": "error"
-            }
     
     def _get_focused_panel(self, journal_entry_id: str, stage) -> str:
         """현재 질문하고 있는 패널을 찾아서 focusedPanel로 설정"""

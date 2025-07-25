@@ -2,6 +2,7 @@ import React, {
   useState,
   forwardRef,
   useImperativeHandle,
+  useEffect,
 } from 'react';
 import { View, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +61,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       canRecord,
       startRecording,
       stopRecording,
+      clearRecording,
     } = useVoiceRecorder();
 
     const { isSpeaking } = useSpeechState();
@@ -270,6 +272,12 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
         }
       }
     };
+
+    useEffect(() => {
+      return () => {
+        clearRecording();
+      }
+    }, []);
 
     return (
       <View className="p-6 border-t-2 border-gray-200 bg-white">

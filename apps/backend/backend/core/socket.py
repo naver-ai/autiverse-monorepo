@@ -95,8 +95,8 @@ async def emit_to_dyad(dyad_id: str, event: str, data: Any):
 async def emit_comic_generation_progress(dyad_id: str, journal_entry_id: str, status: ComicStatus, comic_data: dict | None = None):
     await emit_to_dyad(dyad_id, "comic_generation_progress", {"journal_entry_id": journal_entry_id, "status": status, "comic_data": comic_data})
 
-async def emit_comic_generation_completed(dyad_id: str, journal_entry_id: str, comic_data: dict | None = None):
-    await emit_to_dyad(dyad_id, "comic_generation_completed", {"journal_entry_id": journal_entry_id, "status": ComicStatus.Completed, "comic_data": comic_data})
+async def emit_comic_generation_completed(dyad_id: str, journal_entry_id: str, comic_data: dict | None = None, chatbot_response: dict | None = None):
+    await emit_to_dyad(dyad_id, "comic_generation_completed", {"journal_entry_id": journal_entry_id, "status": ComicStatus.Completed, "comic_data": comic_data, "chatbot_response": chatbot_response})
 
 async def emit_comic_generation_started(dyad_id: str, journal_entry_id: str, comic_data: dict | None = None):
     await emit_to_dyad(dyad_id, "comic_generation_started", {"journal_entry_id": journal_entry_id, "status": ComicStatus.Generating0, "comic_data": comic_data})

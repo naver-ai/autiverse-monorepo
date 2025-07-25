@@ -8,7 +8,7 @@ from backend.database.crud.chatbot import update_journal_entry_stage, update_com
 from backend.database.crud.chatbot import get_messages_by_journal_entry_and_stage
 from backend.database.models import JournalEntryStage, MessageRole
 from backend.utils.i18n import t
-
+from backend.core.ai.pipelines.revision_2_stage import Revision2Stage
 from sqlmodel import Session
 import json
 import openai
@@ -1117,15 +1117,28 @@ Please generate a question that addresses the FIRST missing information gap."""
                 # 만화 생성 시작
                 generator = ComicGridGenerator()
                 comic_data = await generator.generate_comic_grids(panel_contents, progress_callback)
+
+                # 데이터베이스에 저장
+                update_comic_data(self.db, self.journal_entry_id, comic_data)
                 
                 print(f"[DEBUG] comic_context: Comic generation completed for {self.journal_entry_id}")
                 print(f"[DEBUG] comic_context: Comic data: {comic_data}")
+
+                #Auto comic generation에서 하던대로 새 메시지 업데이트
+
+                # revision_2로 전환
+                revision2_stage = Revision2Stage(self.db, self.journal_entry_id)
+                revision2_response, intent = revision2_stage.start_revision()
+                
+                response = {
+                    "response": revision2_response,
+                    "intent": intent,
+                    "stage": "revision_2"
+                }
                 
                 # 완료 상태 설정
-                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Completed, comic_data)
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Completed, comic_data, response)
                 
-                # 데이터베이스에 저장
-                update_comic_data(self.db, self.journal_entry_id, comic_data)
                 
                 print(f"[DEBUG] comic_context: Status updated to completed for {self.journal_entry_id}")
                 

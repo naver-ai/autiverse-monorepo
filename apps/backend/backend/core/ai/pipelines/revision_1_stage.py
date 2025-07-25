@@ -5,6 +5,7 @@ from backend.database.crud.chatbot import (
     update_journal_data, create_interaction_turn, create_message,
     get_messages_by_journal_entry, update_comic_data, update_comic_status
 )
+from backend.core.ai.pipelines.comic_context_stage import ComicContextStage
 from backend.database.models import JournalEntryStage, MessageRole, MessageIntent, ComicStatus, Dyad
 from sqlalchemy.orm import Session
 from backend.utils.i18n import t
@@ -354,18 +355,27 @@ User's correction request: {correction}
                 # 만화 생성 시작
                 generator = ComicGridGenerator()
                 comic_data = await generator.generate_comic_grids(panel_contents, progress_callback)
-                
-                print(f"[DEBUG] revision_1: Comic generation completed for {self.journal_entry_id}")
-                print(f"[DEBUG] revision_1: Comic data: {comic_data}")
-                
-                # 완료 상태 설정
-                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Completed, comic_data)
-                
+
                 # 데이터베이스에 저장
                 update_comic_data(self.db, self.journal_entry_id, comic_data)
                 
+                print(f"[DEBUG] revision_1: Comic generation completed for {self.journal_entry_id}")
+                print(f"[DEBUG] revision_1: Comic data: {comic_data}")
+
+                # Auto comic generation에서 하던대로 새 메시지 업데이트
+                # comic_context로 전환
+                context_stage = ComicContextStage(self.db, self.journal_entry_id)
+                context_response, intent = context_stage.start_context_analysis()
                 
-                print(f"[DEBUG] revision_1: Status updated to completed for {self.journal_entry_id}")
+                response = {
+                    "journal_entry_id": self.journal_entry_id,
+                    "response": context_response,
+                    "intent": intent,
+                    "stage": "comic_context"
+                }
+                
+                # 완료 상태 설정
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Completed, comic_data, response)
                 
                 return comic_data
             

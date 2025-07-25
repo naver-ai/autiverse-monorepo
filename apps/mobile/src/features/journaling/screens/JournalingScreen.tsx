@@ -227,26 +227,6 @@ export const JournalingScreen = () => {
                 console.log('Starting comic generation with progress tracking...');
                 startGeneration();
               }
-              /*
-              // auto-comic-generation API 호출
-              const autoData = await startAutoComicGenerationFromHook(journalEntryId);
-              if (autoData) {
-                
-                console.log('Auto comic generation response:', autoData);
-                console.log('Auto comic generation stage:', autoData.stage);
-                
-                // stage는 이미 위에서 설정했으므로 여기서는 설정하지 않음
-                
-                const autoBotMessage: ChatMessage = {
-                  id: (Date.now() + 3).toString(),
-                  text: autoData.response,
-                  isUser: false,
-                  timestamp: new Date(),
-                };
-                
-                addMockMessages(journalEntryId, [autoBotMessage]);
-                
-              }*/
             } catch (error) {
               console.error('Failed to start comic generation:', error);
             }
