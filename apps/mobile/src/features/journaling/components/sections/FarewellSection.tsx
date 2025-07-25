@@ -12,6 +12,8 @@ import { appendJosa, UserLocale } from '@autiverse-monorepo/ts-core';
 
 interface FarewellSectionProps {
   childName: string;
+  agentConfig?: any;
+  locale: UserLocale;
 }
 
 export interface FarewellSectionRef {
@@ -19,10 +21,9 @@ export interface FarewellSectionRef {
 }
 
 const FarewellSection = forwardRef<FarewellSectionRef, FarewellSectionProps>(
-  ({ childName }, ref) => {
+  ({ childName, agentConfig, locale }, ref) => {
     const { t } = useTranslation();
     const {startSpeech, stopSpeech} = useSpeech();
-    const { agentConfig, locale } = useDyad();
 
     const farewellMessage = useMemo(() => {
       return format(t('Journaling.FarewellSection.MessageTemplate'), { 
@@ -32,23 +33,21 @@ const FarewellSection = forwardRef<FarewellSectionRef, FarewellSectionProps>(
 
     // TTS 시작
     const runAnimation = useCallback((onCompleteHandler?: () => void) => {
-      if (agentConfig) {
-        startSpeech(farewellMessage, {
-          ...getTTSOptionsFromAgentConfig(agentConfig),
-          onDone: () => {
-            // TTS 완료 후 0.5초 뒤에 완료 콜백 호출
-            setTimeout(() => {
-              onCompleteHandler?.();
-            }, 500);
-          },
-          onError: (error) => {
-            // 에러 발생 시에도 5초 후 완료
-            setTimeout(() => {
-              onCompleteHandler?.();
-            }, 5000);
-          }
-        });
-      }
+      startSpeech(farewellMessage, {
+        ...getTTSOptionsFromAgentConfig(agentConfig),
+        onDone: () => {
+          // TTS 완료 후 0.5초 뒤에 완료 콜백 호출
+          setTimeout(() => {
+            onCompleteHandler?.();
+          }, 500);
+        },
+        onError: (error) => {
+          // 에러 발생 시에도 5초 후 완료
+          setTimeout(() => {
+            onCompleteHandler?.();
+          }, 5000);
+        }
+      });
     }, [farewellMessage, agentConfig, startSpeech]);
 
     // Expose imperative methods via ref

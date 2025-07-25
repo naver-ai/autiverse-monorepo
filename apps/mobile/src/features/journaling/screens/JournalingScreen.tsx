@@ -99,7 +99,7 @@ export const JournalingScreen = () => {
 
     // "다음" 버튼 클릭 시 백엔드에 메시지 전송 후 칭찬 섹션으로 넘어가기
     console.log("lastBotMessage: ", lastBotMessage, "messageText: ", messageText)
-    if (currentStage === JournalEntryStage.Revision2 && intent == MessageIntent.AnswerNext) {
+    if (currentStage === JournalEntryStage.Title && intent == MessageIntent.AnswerNext) {
       console.log('Next button clicked, sending message to backend and showing praise section...');
       
       // 백엔드에 '다음' 메시지 전송
@@ -133,23 +133,6 @@ export const JournalingScreen = () => {
     };
 
     addMockMessages(journalEntryId, [userMessage]);
-
-    // Revision_1에서 다음 단계로 넘어가는 기준이 달성될 때 고정 메시지를 먼저 추가
-    if (currentStage === 'revision_1' && 
-        ((intent === MessageIntent.AnswerNegative) || 
-         (intent === MessageIntent.AnswerPositive))) {
-
-          console.log("Revision_1에서 다음 단계로 넘어가는 기준이 달성될 때 고정 메시지를 먼저 추가 - ", t('Journaling.Messages.Revision1Confirmation'))
-      
-      // 고정 메시지를 즉시 추가
-      const fixedMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        text: t('Journaling.Messages.Revision1Confirmation'),
-        isUser: false,
-        timestamp: new Date(),
-      };
-      addMockMessages(journalEntryId, [fixedMessage]);
-    }
 
     try {
       const data = await sendMessageFromHook({journalEntryId, message: messageText, intent, audioFilename});
@@ -190,15 +173,6 @@ export const JournalingScreen = () => {
           // 다른 메시지들은 바로 표시
           addMockMessages(journalEntryId, [botMessage]);
         }
-        
-        // 세션 정보에서 최신 패널 데이터 가져오기 (만화 생성이 진행 중이지 않을 때만)
-        if (comicGenerationStatus.status !== 'generating') {
-          console.log('Loading session info after message sent...');
-          //await invalidateSessionInfo();
-        } else {
-          console.log('Skipping session info load - comic generation in progress or completed');
-        }
-
 
         setIsLoading(false); // 로딩 상태 초기화 미리
         

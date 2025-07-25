@@ -166,9 +166,7 @@ class Revision1Stage:
             # 현재 사용자 메시지가 저장되기 전의 마지막 봇 메시지를 찾기 위해 -2 인덱스 사용
             for i in range(len(messages) - 1, -1, -1):
                 if messages[i].role == MessageRole.Assistant:
-                    last_bot_message = messages[i].content
-                    result = "네가 말해준 내용대로 바꿔봤어" in last_bot_message
-                    return result
+                    return messages[i].intent == MessageIntent.PromptIssueExist
             return False
         return False
     
@@ -179,16 +177,7 @@ class Revision1Stage:
             # 현재 사용자 메시지가 저장되기 전의 마지막 봇 메시지를 찾기 위해 -2 인덱스 사용
             for i in range(len(messages) - 1, -1, -1):
                 if messages[i].role == MessageRole.Assistant:
-                    
-                    last_bot_message = messages[i].content
-                    # 질문인지 확인
-                    question_keywords = [
-                        "다 맞게 들었을까?",
-                        "아직도 틀린 부분 있어?",
-                        "이제 다 맞을까?"
-                    ]
-                    result = any(keyword in last_bot_message for keyword in question_keywords)
-                    return result
+                    return messages[i].intent == MessageIntent.PromptConfirm
             return False
         return False
     
@@ -318,6 +307,8 @@ User's correction request: {correction}
         """revision_1 완료 시 만화 패널 생성 및 Comic 테이블에 저장"""
         try:
             journal = get_journal(self.db, self.journal_entry_id)
+
+            print(f"[DEBUG] revision_1: Journal: {journal}")
             if not journal or not journal.revision_1:
                 return
             
@@ -328,6 +319,8 @@ User's correction request: {correction}
                 "panel3": journal.revision_1.get("panel3", "") if journal.revision_1.get("panel3") != "null" else "",
                 "panel4": journal.revision_1.get("panel4", "") if journal.revision_1.get("panel4") != "null" else ""
             }
+
+            print(f"[DEBUG] revision_1: Comic panels: {panel_contents}")
             
             # 직접 ComicGridGenerator 호출
             try:

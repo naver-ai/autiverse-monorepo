@@ -28,8 +28,8 @@ export const useSpeechState = create<SpeechStore>((set) => ({
 
 // 기본 TTS 설정 (fallback)
 export const FALLBACK_TTS_OPTIONS = {
-  voice: 'nsabina',
-  speed: 0.8,
+  voice: 'vyuna',
+  speed: 1.0,
   pitch: 1.2,
   volume: 1.0,
 } as const;

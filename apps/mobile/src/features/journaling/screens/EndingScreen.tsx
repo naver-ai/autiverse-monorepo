@@ -23,7 +23,15 @@ export const EndingScreen = () => {
   // 인사말 섹션 완료 콜백 (intro 화면으로 돌아가기)
   const handleFarewellComplete = useCallback(() => {
     // Home 화면으로 돌아가기
-    router.replace('/(app)/home');
+    if(router.canDismiss()){
+      router.dismissAll();
+    } else if(router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace({
+        pathname: '/(app)/home',
+      });
+    }
   }, [router]);
 
 
@@ -43,7 +51,7 @@ export const EndingScreen = () => {
             dyad ? (mode == 'praise' ? (
                 <PraiseSection childName={dyad?.child_name} onComplete={() => setMode('farewell')} />
             ) : (
-                <FarewellSection ref={farewellSectionRef} childName={dyad?.child_name} />
+                dyad && <FarewellSection ref={farewellSectionRef} childName={dyad?.child_name} agentConfig={dyad?.agents[0]?.agent_config} locale={dyad?.locale} />
             )) : null
         }
         <LoadingOverlay isLoading={isDyadLoading} />

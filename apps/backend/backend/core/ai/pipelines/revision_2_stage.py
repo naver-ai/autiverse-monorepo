@@ -184,7 +184,7 @@ class Revision2Stage:
             # 구체적인 수정 내용이 들어온 경우
             try:
                 self._apply_user_correction(user_message)
-                return "네가 말해준 내용대로 바꿔봤어. 더 추가하거나 바꿀 곳 있어? 🤔", MessageIntent.PromptOpenEndedAnswer
+                return "네가 말해준 내용대로 바꿔봤어. 더 추가하거나 바꿀 곳 있어? 🤔", MessageIntent.PromptConfirm
             except Exception as e:
                 print(f"[DEBUG] revision_2: Error applying user correction: {e}")
                 return "수정하는데 문제가 생겼어. 다시 말해줘! 😅", MessageIntent.PromptOpenEndedAnswer

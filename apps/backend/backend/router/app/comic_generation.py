@@ -41,6 +41,7 @@ async def generate_comic_with_progress(journal_entry_id: str):
         await update_comic_status(db, journal_entry_id, ComicStatus.Generating0, None)
 
         journal_entry = get_journal_entry(db, journal_entry_id)
+        print(f"[DEBUG] Comic generation in stage: {journal_entry.stage}")
         if journal_entry.stage == JournalEntryStage.Revision1:
             stage = Revision1Stage(db, journal_entry_id)
             comic_data = await stage._generate_comic_panels()

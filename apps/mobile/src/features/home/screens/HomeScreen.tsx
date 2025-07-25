@@ -31,7 +31,6 @@ export default function HomeScreen() {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const buttonScaleAnim = useRef(new Animated.Value(1)).current;
   const [showContinueModal, setShowContinueModal] = useState(false);
-  const [isButtonPressed, setIsButtonPressed] = useState(false);
 
   useEffect(() => {
     
@@ -199,14 +198,16 @@ export default function HomeScreen() {
             <View className="flex flex-row gap-4 justify-center">
               <TailwindButton
                 onPress={handleContinue}
-                buttonStyleClassName="bg-blue-500 rounded-2xl py-4"
+                roundedClassName="rounded-2xl"
+                buttonStyleClassName="bg-blue-500 py-4"
                 title={t('Home.ContinueModal.Continue')}
                 titleClassName="text-white text-center text-2xl"
               />
               
               <TailwindButton
                 onPress={handleStartNew}
-                buttonStyleClassName="bg-gray-200 rounded-2xl py-4"
+                roundedClassName="rounded-2xl"
+                buttonStyleClassName="bg-gray-200 py-4"
                 title={t('Home.ContinueModal.StartNew')}
                 titleClassName="text-gray-700 text-center text-2xl"
               />
