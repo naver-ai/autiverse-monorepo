@@ -108,7 +108,7 @@ class Revision2Stage:
         
         return initial_question, MessageIntent.PromptIssueExist
     
-    def process_message(self, user_message: str, audio_filename: str = None) -> tuple[str, MessageIntent]:
+    def process_message(self, user_message: str, audio_filename: str = None) -> Message:
         """사용자 메시지 처리"""
         # 현재 interaction turn 가져오기
         interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Revision2)
@@ -124,13 +124,13 @@ class Revision2Stage:
         bot_response, intent = self._generate_response(user_message)
         
         # 봇 응답 저장
-        create_message(
+        message = create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             bot_response, MessageRole.Assistant, JournalEntryStage.Revision2,
             intent=intent
         )
         
-        return bot_response, intent
+        return message
     
     def _generate_response(self, user_message: str) -> tuple[str, MessageIntent]:
         """사용자 메시지에 대한 응답 생성"""

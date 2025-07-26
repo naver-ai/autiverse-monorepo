@@ -34,6 +34,7 @@ class SendMessageRequest(BaseModel):
 
 class ChatbotResponse(BaseModel):
     journal_entry_id: str
+    message_id: Optional[str] = None # If message_id is not provided, it means the message is not actual message stored in DB.
     response: str
     stage: str
     data: Optional[Dict[str, Any]] = None
@@ -120,6 +121,7 @@ async def send_message(
         
         return ChatbotResponse(
             journal_entry_id=request.journal_entry_id,
+            message_id=result["message_id"],
             response=result["response"],
             stage=result["stage"],
             data=result.get("data"),

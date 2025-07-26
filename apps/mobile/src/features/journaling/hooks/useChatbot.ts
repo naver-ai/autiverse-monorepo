@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { ChatbotResponse, ChatMessage, JournalingSessionInfo, MessageIntent, NetworkHelper } from '@autiverse-monorepo/ts-core';
 import { useAuthStore } from '../../auth/store';
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { nanoid } from 'nanoid';  
 
 const createNewSessionAPI = async (jwt: string, location?: string, people?: Array<string>): Promise<ChatbotResponse> => {
 
@@ -37,15 +38,6 @@ const sendMessageAPI = async (jwt: string, journalEntryId: string, message: stri
     { headers: await NetworkHelper.getHeaders(jwt) }
   )
 
-  return response.data;
-}
-
-const startAutoComicGenerationAPI = async (jwt: string, journalEntryId: string): Promise<ChatbotResponse> => {
-  const response = await NetworkHelper.axiosClient.post(
-    NetworkHelper.ENDPOINTS.APP.CHATBOT.getAutoComicGenerationEndpoint(journalEntryId),
-    null,
-    { headers: await NetworkHelper.getHeaders(jwt) }
-  )
   return response.data;
 }
 
@@ -111,16 +103,16 @@ export const useChatbot = (afterStart?: (data: ChatbotResponse, withSuggestion: 
             events: data.data?.events || oldData.events,
             summary: data.data?.summary || oldData.summary,
             panels: data.data?.panels || oldData.panels,
+            messages: [...oldData.messages, {
+              id: data.message_id || nanoid(),
+              text: data.response,
+              isUser: false,
+              intent: data.intent,
+              metadata: data.metadata
+            }]
           };
         }else return oldData;
       });
-    }
-  })
-
-  const startAutoComicGenerationMutation = useMutation({
-    mutationFn: (journalEntryId: string) => startAutoComicGenerationAPI(jwt!!, journalEntryId),
-    onSuccess: (data) => {
-      console.log('Successfully started auto comic generation:', data);
     }
   })
 
@@ -133,8 +125,5 @@ export const useChatbot = (afterStart?: (data: ChatbotResponse, withSuggestion: 
     isSendingMessage: sendMessageMutation.isPending,
     sendMessageError: sendMessageMutation.error,
     addMockMessages,
-    startAutoComicGeneration: startAutoComicGenerationMutation.mutateAsync,
-    isStartingAutoComicGeneration: startAutoComicGenerationMutation.isPending,
-    startAutoComicGenerationError: startAutoComicGenerationMutation.error,
   };
 }; 

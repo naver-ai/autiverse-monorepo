@@ -137,7 +137,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             print(f"[DEBUG] comic_context: Error in start_context_analysis: {e}")
             raise
     
-    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> tuple[str, MessageIntent]:
+    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message:
         """사용자 메시지 처리"""
         print(f"[DEBUG] comic_context: process_message called with user_message='{user_message}'")
         try:
@@ -179,13 +179,13 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             next_question, next_intent = self._get_next_question()
             
             # 봇 응답 저장
-            create_message(
+            message = create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
                 next_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
                 intent=next_intent
             )
             
-            return next_question, next_intent
+            return message
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in process_message: {e}")
             import traceback

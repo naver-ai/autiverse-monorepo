@@ -118,7 +118,7 @@ class ComicIntroStage:
             return journal_entry.dyad.child_gender
         return "male"  # fallback
     
-    def start_conversation(self, location: str = None, people: List[str] = None) -> str:
+    def start_conversation(self, location: str = None, people: List[str] = None) -> Message:
         """대화 시작"""
         # Journal entry stage 업데이트
         update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Intro)
@@ -139,14 +139,14 @@ class ComicIntroStage:
         
         # 초기 메시지 생성
         initial_message = self._generate_intro_message(location, people)
-        create_message(
+        message = create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             initial_message, MessageRole.Assistant, JournalEntryStage.Intro
         )
         
-        return initial_message
+        return message
     
-    def start_conversation_with_suggestion(self) -> str:
+    def start_conversation_with_suggestion(self) -> Message:
         """대화 시작 (뭘 쓸지 모르겠네 버튼용)"""
         # Journal entry stage 업데이트
         update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Intro)
@@ -177,14 +177,14 @@ class ComicIntroStage:
         
         # 초기 메시지 생성 (suggestion 모드)
         initial_message = self._generate_suggestion_message()
-        create_message(
+        message = create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             initial_message, MessageRole.Assistant, JournalEntryStage.Intro
         )
         
-        return initial_message
+        return message
     
-    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> tuple[str, MessageIntent | None]:
+    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message:
         """사용자 메시지 처리"""
         # 현재 interaction turn 가져오기
         interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Intro)
@@ -201,13 +201,13 @@ class ComicIntroStage:
         bot_response, response_intent = self._generate_response(user_message, intent)
         
         # 봇 응답 저장
-        create_message(
+        message = create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             bot_response, MessageRole.Assistant, JournalEntryStage.Intro,
             intent=response_intent
         )
         
-        return bot_response, response_intent
+        return message
     
     def analyze_events(self) -> Dict[str, Any]:
         """이벤트 분석"""

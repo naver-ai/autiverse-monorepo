@@ -23,7 +23,7 @@ class TitleStage:
             return journal_entry.dyad.child_name or "친구"
         return "친구"
     
-    def start_title_selection(self) -> tuple[str, MessageIntent | None, dict | None]:
+    def start_title_selection(self) -> Message:
         """제목 선택 시작"""
         try:
             # Journal entry stage 업데이트
@@ -62,13 +62,13 @@ class TitleStage:
                 intent=MessageIntent.InitialTitleConfirm
             )
             
-            return initial_question, new_message.intent, new_message.metadata_json
+            return new_message
             
         except Exception as e:
             print(f"[DEBUG] title_stage: Error in start_title_selection: {e}")
             raise
     
-    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> tuple[str, MessageIntent | None]:
+    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message | None:
         """사용자 메시지 처리"""
         
         try:
@@ -128,20 +128,20 @@ class TitleStage:
                 response_intent = None
 
             # 봇 응답 저장
-            create_message(
+            message = create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
                 response, MessageRole.Assistant, JournalEntryStage.Title,
                 metadata_json=metadata,
                 intent=response_intent
             )
             
-            return response, response_intent
+            return message
             
         except Exception as e:
             print(f"[DEBUG] title_stage: Error in process_message: {e}")
             import traceback
             traceback.print_exc()
-            return ""
+            return None
     
     def _save_title(self, title: str) -> None:
         """제목을 데이터베이스에 저장"""

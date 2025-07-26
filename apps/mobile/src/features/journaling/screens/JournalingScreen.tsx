@@ -43,7 +43,6 @@ export const JournalingScreen = () => {
   // Chatbot 훅 사용
   const {
     sendMessage: sendMessageFromHook,
-    startAutoComicGeneration: startAutoComicGenerationFromHook,
     addMockMessages
   } = useChatbot();
 
@@ -142,6 +141,8 @@ export const JournalingScreen = () => {
     try {
       const data = await sendMessageFromHook({journalEntryId, message: messageText, intent, audioFilename});
       if (data) {
+
+        /*
         const botMessage: ChatMessage = {
           id: (Date.now() + 2).toString(),
           text: data.response,
@@ -171,7 +172,7 @@ export const JournalingScreen = () => {
         } else {
           // 다른 메시지들은 바로 표시
           addMockMessages(journalEntryId, [botMessage]);
-        }
+        }*/
 
         setIsSendingMessage(false); // 로딩 상태 초기화 미리
         

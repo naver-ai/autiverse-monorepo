@@ -161,6 +161,7 @@ export interface JournalingSessionInfo {
 // Chatbot response types
 export interface ChatbotResponse {
   journal_entry_id: string;
+  message_id?: string | null;
   response: string;
   stage: string;
   focusedPanel?: string | null;
