@@ -15,6 +15,8 @@ interface VoiceRecorderStore {
   canRecord: boolean;
   setIsRecording: (recording: boolean) => void;
   setCanRecord: (canRecord: boolean) => void;
+  setAudioMetering: (audioMetering: number | undefined) => void;
+  audioMetering?: number;
   reset: () => void;
 }
 
@@ -23,11 +25,12 @@ export const useVoiceRecorderState = create<VoiceRecorderStore>((set) => ({
   canRecord: false,
   setIsRecording: (recording) => set({ isRecording: recording }),
   setCanRecord: (canRecord) => set({ canRecord: canRecord }),
-  reset: () => set({ isRecording: false }),
+  setAudioMetering: (audioMetering) => set({ audioMetering: audioMetering }),
+  reset: () => set({ isRecording: false, audioMetering: undefined, canRecord: false }),
 }));
 
 export function useVoiceRecorder() {
-  const { isRecording, canRecord, setIsRecording, setCanRecord, reset } = useVoiceRecorderState();
+  const { isRecording, canRecord, audioMetering, setIsRecording, setCanRecord, reset, setAudioMetering } = useVoiceRecorderState();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -62,7 +65,11 @@ export function useVoiceRecorder() {
     try {
       console.log("Start recording.");
       const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
+        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        (status) => {
+          setAudioMetering(status.metering);
+        },
+        100
       );
       globalRecordingInstance = recording;
       setIsRecording(true);
@@ -88,6 +95,7 @@ export function useVoiceRecorder() {
       return null;
     }finally{
       setIsRecording(false);
+      setAudioMetering(undefined);
     }
   }, [isRecording, setIsRecording]);
 
@@ -102,6 +110,7 @@ export function useVoiceRecorder() {
   return {
     isRecording,
     canRecord,
+    audioMetering,
     startRecording,
     stopRecording,
     clearRecording: cleanupRecording,

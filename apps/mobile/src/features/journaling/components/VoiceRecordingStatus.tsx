@@ -1,12 +1,22 @@
 import React, { useEffect, useRef, useState, memo, useMemo } from 'react';
-import { View, Text, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { styleTemplates } from '../../../styles';
 import { useVoiceRecorderState, useSpeechState } from '../utils';
 import { useTranslation } from 'react-i18next';
 import format from 'string-format';
 import { escapeJongseong } from '@autiverse-monorepo/ts-core';
 
-import Reanimated, { Easing, FadeIn, FadeOut } from 'react-native-reanimated';
+import Reanimated, { 
+  Easing, 
+  FadeIn, 
+  FadeOut, 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withRepeat, 
+  withTiming,
+  withSequence,
+  withSpring
+} from 'react-native-reanimated';
 
 export const VoiceRecordingStatus = memo(({
   agentName,
@@ -17,58 +27,66 @@ export const VoiceRecordingStatus = memo(({
   onComplete: () => void;
 }) => {
 
-  const {isRecording} = useVoiceRecorderState()
+  const {isRecording, audioMetering} = useVoiceRecorderState()
 
-  const pulseAnimation = useRef(new Animated.Value(1)).current;
-
-  const bounceAnimation = useRef(new Animated.Value(1)).current;
+  const bounceScale = useSharedValue(1);
+  const animatedScale = useSharedValue(0);
 
   const {t} = useTranslation();
   const listeningText = useMemo(()=>{
     return format(t('ChatInput.VoiceRecording.ListeningTextTemplate'), { agentName: escapeJongseong(agentName)});
   }, [t, agentName]);
 
+  // Pulse animation style - audioMetering에 연동
+  const pulseAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: animatedScale.value }],
+    };
+  });
 
-  // 음성 녹음 애니메이션
+  // Bounce animation style
+  const bounceAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: bounceScale.value }],
+    };
+  });
+
+  // 음성 레벨에 따른 스프링 애니메이션
+  useEffect(() => {
+    if (isRecording && audioMetering !== undefined) {
+      // audioMetering: -160 ~ -40 -> scale: 0 ~ 1.2
+      const meteringValue = audioMetering ?? -160;
+      const normalizedValue = Math.max(0, (meteringValue + 160) / 120); // 120 = -40 - (-160)
+      const targetScale = normalizedValue;
+      
+      animatedScale.value = withSpring(targetScale, {
+        damping: 15,
+        stiffness: 150,
+        mass: 0.5,
+      });
+    } else {
+      // 녹음 중지 시 기본 크기로
+      animatedScale.value = withSpring(0, {
+        damping: 15,
+        stiffness: 150,
+      });
+    }
+  }, [audioMetering, isRecording]);
+
+  // Bounce 애니메이션
   useEffect(() => {
     if (isRecording) {
-      const pulse = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnimation, {
-            toValue: 1.2,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnimation, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
+      bounceScale.value = withRepeat(
+        withSequence(
+          withTiming(1.15, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 600, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1, // infinite repeat
+        false // reverse
       );
-      pulse.start();
-      
-      // Bounce 애니메이션
-      const bounce = Animated.loop(
-        Animated.sequence([
-          Animated.timing(bounceAnimation, {
-            toValue: 1.15,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(bounceAnimation, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      bounce.start();
-      
-      return () => {
-        pulse.stop();
-        bounce.stop();
-      };
+    } else {
+      // 애니메이션 중지
+      bounceScale.value = withTiming(1, { duration: 200 });
     }
   }, [isRecording]);
 
@@ -80,29 +98,22 @@ export const VoiceRecordingStatus = memo(({
   return (isRecording && <Reanimated.View entering={FadeIn.duration(300).easing(Easing.out(Easing.cubic))} exiting={FadeOut.duration(200).easing(Easing.out(Easing.cubic))} 
           className={"flex-row items-center justify-between p-4 rounded-xl mb-4 bg-white border-2 border-gray-200 min-h-[110px]"}>
       <View className="flex-row items-center flex-1"><View className="flex-row items-center mr-3">
-            <Animated.View
-              style={{
+            <Reanimated.View
+              style={[{
                 width: 16,
                 height: 16,
                 borderRadius: 8,
                 marginRight: 8,
                 backgroundColor: '#ef4444',
-                transform: [{ scale: pulseAnimation }],
-              }}
+              }, pulseAnimatedStyle]}
             />
           </View>
-        <Text className={`text-xl ${
-          'text-blue-800' 
-        }`} style={styleTemplates.withBoldFont}>
+        <Text className={'text-xl text-rose-400 animate-pulse'} style={styleTemplates.withBoldFont}>
           {listeningText}
         </Text>
       </View>
       
-      <Animated.View
-          style={{
-            transform: [{ scale: bounceAnimation }],
-          }}
-        >
+      <Reanimated.View style={bounceAnimatedStyle}>
         <TouchableOpacity
           onPress={onComplete}
             className="bg-green-500 rounded-lg items-center justify-center p-10"
@@ -118,6 +129,6 @@ export const VoiceRecordingStatus = memo(({
               {t('Chat.VoiceCompleteButton')}
           </Text>
         </TouchableOpacity>
-        </Animated.View>
+        </Reanimated.View>
     </Reanimated.View>)
 })
