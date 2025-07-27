@@ -27,7 +27,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   onTTSComplete
 }) => {
 
-  const {isSendingMessage} = useJournalingStore();
+  const {isSendingMessage, setIsInputActive} = useJournalingStore();
 
   const {startSpeech} = useSpeech()
 
@@ -51,6 +51,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       // 즉시 음성 재생 (지연 없음)
       const cleanText = removeEmojis(lastBotMessage.text);
       if (cleanText.trim()) { // 빈 텍스트가 아닌 경우에만 재생
+        setIsInputActive(false);
         startSpeech(cleanText, {
           ...getTTSOptionsFromAgentConfig(agentConfig),
           onDone: () => {
@@ -58,6 +59,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             if (onTTSComplete) {
               onTTSComplete();
             }
+            setIsInputActive(true);
           },
           onError: (error) => {
             console.error('TTS error:', error);
@@ -65,6 +67,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             if (onTTSComplete) {
               onTTSComplete();
             }
+            setIsInputActive(true);
           }
         });
       }
