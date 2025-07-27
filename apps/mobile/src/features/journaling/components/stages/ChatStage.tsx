@@ -14,6 +14,7 @@ import { useSession } from '../../hooks/useSession';
 import { UserButtonMode } from '../../types';
 import { MessageIntent } from '@autiverse-monorepo/ts-core';
 import { ComicGenerationStatus } from '../../api';
+import { useEffect } from 'react';
 
 interface ChatStageProps {
   comicGenerationStatus: ComicGenerationStatus;
@@ -54,6 +55,10 @@ export const ChatStage: React.FC<ChatStageProps> = ({
 
   const lastBotMessage = sessionInfo?.messages?.filter((m) => !m.isUser).pop();
 
+  useEffect(()=>{
+
+  }, [lastBotMessage?.id, lastBotMessage?.intent])
+
   const userButtonMode = useMemo<UserButtonMode|null>(() => {
     if (!lastBotMessage?.intent) return null;
 
@@ -89,10 +94,10 @@ export const ChatStage: React.FC<ChatStageProps> = ({
 
   const handleOnTTSComplete = useCallback(() => {
     onTTSComplete?.();
-    if(chatInputRef.current && userButtonMode == null) {
+    if(chatInputRef.current && userButtonMode == null && lastBotMessage?.intent !== MessageIntent.StartComicGeneration) {
       chatInputRef.current.startRecording();
     }
-  }, [onTTSComplete, userButtonMode]);
+  }, [onTTSComplete, userButtonMode, lastBotMessage?.intent]);
 
   // 만화 패널 렌더링 함수
   const renderComicPanels = () => {
