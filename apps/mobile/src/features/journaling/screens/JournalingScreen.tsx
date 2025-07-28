@@ -19,7 +19,41 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Portal } from 'react-native-paper';
 import { ChatSidebar } from '../components/ChatSidebar';
 import { styleTemplates } from '../../../styles';
-import { LogoImage } from '../../../components/svg-images';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { TailwindButton } from '../../../components/TailwindButton';
+import { ArrowLeftIcon } from '../../../components/svg-images';
+import format from 'string-format';
+import { useDyad } from '../../../api/dyad';
+import { HomeScreenBackground } from '../../../components/backgrounds';
+
+
+const Header = ({handleEndSession}: {handleEndSession: () => void}) => {
+  const {t} = useTranslation();
+  const {agentName} = useDyad();
+
+  const title = format(t('Journaling.Header.TitleTemplate'), { agent_name: agentName });
+
+  return (
+    <SafeAreaView edges={['top', 'left', 'right']} className="border-b border-gray-200 bg-white">
+      <View className="h-header text-center pt-1 flex flex-row items-center justify-center">
+        <TailwindButton
+                  onPress={handleEndSession}
+                  containerClassName="absolute left-0 top-0 bottom-0"
+                  buttonStyleClassName="bg-transparent pl-1 pr-3 flex-row"
+                  roundedClassName="rounded-lg"
+                  shadowClassName="shadow-none"
+                  titleClassName="text-white">
+                  <ArrowLeftIcon width={28} height={28} fill="gray"/>
+                  <Text className="text-gray-500" style={styleTemplates.withBoldFont}>
+                    {t('ChatStage.EndSession')}
+                  </Text>
+        </TailwindButton>
+        <Text className="text-gray-600 text-xl" style={styleTemplates.withBoldFont}>{title}</Text>
+      </View>
+      
+    </SafeAreaView>
+  )
+}
 
 export const JournalingScreen = () => {
   const router = useRouter();
@@ -200,40 +234,31 @@ export const JournalingScreen = () => {
 
   return (
     <Portal.Host>
-      <View className='flex-1 bg-gray-100 flex-row'>
-        <View className="flex-[1.8] bg-white border-r-2 border-gray-200">
-          {/* 만화 헤더 */}
-          <View className="flex-row justify-between items-center p-3 border-b border-gray-200 pt-4">
-              <LogoImage width={150} height={30} />
-              <TouchableOpacity
-                onPress={handleEndSession}
-                className="bg-yellow-500 px-3 py-2 rounded-lg"
-                activeOpacity={0.8}
-              >
-                <Text className="text-white text-sm" style={styleTemplates.withBoldFont}>
-                  {t('ChatStage.EndSession')}
-              </Text>
-              </TouchableOpacity>
+      <View className='flex-1'>
+        <HomeScreenBackground/>
+        <Header handleEndSession={handleEndSession}/>
+        <View className="flex-row flex-1">
+          <View className="flex-[1.8] border-r-2 border-gray-200">
+              <ComicView
+                className="flex-1 relative"
+                comicGenerationStatus={comicGenerationStatus}
+                progressAnimation={progressAnimation}
+                sessionId={journalEntryId}
+              />
           </View>
-          <ComicView
-            className="flex-1 relative"
-            comicGenerationStatus={comicGenerationStatus}
-            progressAnimation={progressAnimation}
-            sessionId={journalEntryId}
+          <ChatSidebar
+              className="flex-1 bg-white/50"
+              sessionId={journalEntryId}
+              comicGenerationStatus={comicGenerationStatus}
+              sendMessage={sendMessage}
+              onTTSComplete={() => {
+                // 완료 메시지가 아닐 때만 ChatInput 활성화
+                if (lastBotMessage?.intent !== MessageIntent.PromptNext) {
+                  setIsInputActive(true);
+                }
+              }}
           />
         </View>
-        <ChatSidebar
-          className="flex-1 bg-white"
-          sessionId={journalEntryId}
-          comicGenerationStatus={comicGenerationStatus}
-          sendMessage={sendMessage}
-          onTTSComplete={() => {
-            // 완료 메시지가 아닐 때만 ChatInput 활성화
-            if (lastBotMessage?.intent !== MessageIntent.PromptNext) {
-              setIsInputActive(true);
-            }
-          }}
-        />
       </View>
       
     </Portal.Host>

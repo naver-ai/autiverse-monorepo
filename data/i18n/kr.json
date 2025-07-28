@@ -32,6 +32,9 @@
         "ChildAndCaregiverTemplate": "{child_name}와 {caregiver_type}"
     },
     "Journaling": {
+        "Header": {
+            "TitleTemplate": "{agent_name}와 함께 일기 쓰기"
+        },
         "PresetSelection": {
             "LocationSelectionMessage": "오늘은 어디서 있었던 일을 그림 일기로 써볼까?",
             "PeopleSelectionMessageTemplate": "{location}에서 누구랑 있었던 일을 그림 일기로 써볼까? 여러 사람을 골라도 괜찮아!",
@@ -102,7 +105,7 @@
     },
     "ChatStage": {
         "DefaultComicMessage": "네가 말해준 내용으로 내가 여기에 조금 이따 4컷 만화를 그릴거야~",
-        "EndSession": "종료",
+        "EndSession": "다음에 다시 하기",
         "ProgressCompleteTemplate": "{progress}% 완료",
         "ChatHeaderTemplate": "💬 {agent_name}와 대화하기"
     },

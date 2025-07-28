@@ -5,7 +5,7 @@ import React, {
   useEffect,
   useCallback,
 } from 'react';
-import { View, Alert } from 'react-native';
+import { View, Alert, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSpeechState } from '../utils/speechUtils';
 import { useVoiceRecorder } from '../utils';
@@ -16,13 +16,16 @@ import { useAuth } from '../../auth/hooks';
 import { useSession } from '../hooks/useSession';
 import { VoiceRecordingStatus } from './VoiceRecordingStatus';
 import { ChatButtons } from './ChatButtons';
-import { ChatText } from './ChatText';
 import { MessageIntent } from '@autiverse-monorepo/ts-core';
 import { UserButtonMode } from '../types';
 import { ComicGenerationStatus } from '../api';
 import { TailwindButton } from '../../../components/TailwindButton';
 import { ChatTextInputModal } from './ChatTextInputModal';
 import { useJournalingStore } from '../store';
+import { styleTemplates } from '../../../styles';
+import { twMerge } from 'tailwind-merge';
+import colors from 'tailwindcss/colors';
+import { KeyboardIcon } from '../../../components/svg-images';
 
 interface ChatInputProps {
   journalEntryId: string;
@@ -297,8 +300,10 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     const isChatInputMessage =
       lastMessage?.intent === MessageIntent.PromptTextInput;
 
+    const isTextInputDisabled = !isInputActive || isSendingMessage
+
     return <>
-      <View className="p-6 border-t-2 border-gray-200 bg-white">
+      <View className="pt-6 px-6 pb-2">
         {/* 음성 녹음 상태 표시 */}
         <VoiceRecordingStatus
           agentName={agentName}
@@ -316,11 +321,15 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
 
         {/* 채팅 입력 버튼 */}
         {
-          isChatInputMessage || !isVoiceCompleted ? <TailwindButton title={t('Chat.ChatButton')} 
-              disabledTitleClassName='text-gray-300' buttonStyleClassName='bg-slate-100' roundedClassName='rounded-xl' shadowClassName='shadow-none'
-              disabled={!isInputActive || isSendingMessage}
+          (isInputActive && (isChatInputMessage || !isVoiceCompleted) && userButtonMode == null) ? <TailwindButton 
+              disabledTitleClassName='text-gray-300' buttonStyleClassName='bg-white flex-row items-center justify-center gap-2' roundedClassName='rounded-xl' shadowClassName='shadow-none'
+              disabled={isTextInputDisabled}
+              disabledButtonStyleClassName='bg-white/50'
               onLongPress={onPressChatButton}
-              /> : null
+              >
+                <KeyboardIcon width={24} height={24} fill={isTextInputDisabled ? colors.gray[300] : colors.slate[600]}/>
+                <Text className={twMerge("text-slate-600", isTextInputDisabled ? "text-gray-300" : "")} style={styleTemplates.withBoldFont}>{t('Chat.ChatButton')}</Text>
+              </TailwindButton> : null
         }
       </View>
       <ChatTextInputModal onSubmitText={sendMessage} visible={isTextInputModalVisible} onClose={()=>{setIsTextInputModalVisible(false)}}/>

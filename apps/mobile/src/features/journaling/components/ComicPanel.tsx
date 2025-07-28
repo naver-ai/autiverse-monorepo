@@ -23,8 +23,8 @@ export const ComicPanel: React.FC<ComicPanelProps> = ({
 
   return (
     <View 
-      className={`bg-white p-2 rounded-xl shadow-md border-2 ${
-        isHighlighted ? 'border-red-500 border-3' : 'border-gray-200'
+      className={`bg-white p-2 rounded-2xl shadow-md shadow-gray-400/30 ${
+        isHighlighted ? 'border-orange-300 border-3' : 'border-gray-200'
       }`}
       style={{ 
         height: 300, 

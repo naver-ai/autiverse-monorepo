@@ -12,6 +12,9 @@ import { MessageIntent } from '@autiverse-monorepo/ts-core';
 import { UserButtonMode } from '../types';
 import { useJournalingStore } from '../store';
 import { ComicGenerationStatus } from '../api';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { twMerge } from 'tailwind-merge';
+import { ScrollView } from 'react-native-gesture-handler';
 
 export const ChatSidebar = ({
     className,
@@ -76,26 +79,17 @@ export const ChatSidebar = ({
   }, [onTTSComplete, userButtonMode, lastBotMessage?.intent]);
 
   return (
-    <View className={className}>
-      {/* 채팅 헤더 */}
-      <View className="bg-blue-500 p-4">
-        <Text
-          className="text-2xl text-white"
-          style={styleTemplates.withBoldFont}
-        >
-          {format(t('ChatStage.ChatHeaderTemplate'), { agent_name: agentName })}
-        </Text>
-      </View>
+    <SafeAreaView mode="padding" edges={['bottom', 'right']} className={className}>
       {isDyadLoading == false ? (
         <>
-          <View className="flex-1 p-3 bg-gray-50">
+          <ScrollView className="flex-1" contentContainerClassName="p-3">
             <ChatMessageComponent
               journalEntryId={sessionId}
               agentName={agentName}
               agentConfig={agentConfig}
               onTTSComplete={handleOnTTSComplete}
             />
-          </View>
+          </ScrollView>
           <ChatInput
             ref={chatInputRef}
             journalEntryId={sessionId}
@@ -109,6 +103,6 @@ export const ChatSidebar = ({
       ) : (
         <View className="flex-1" />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
