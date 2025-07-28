@@ -37,7 +37,7 @@ const FarewellSection = forwardRef<FarewellSectionRef, FarewellSectionProps>(
     }, [t, childName, locale]);
 
     const [isSpeaking, setIsSpeaking] = useState(false);
-    const {ttsScalePulseStyle, ttsBorderColorStyle} = useSpeechAnimation(isSpeaking);
+    const {ttsBorderColorStyle} = useSpeechAnimation(isSpeaking);
 
     // Hand shaking animation
     const handShakeValue = useSharedValue(-1);
@@ -75,7 +75,7 @@ const FarewellSection = forwardRef<FarewellSectionRef, FarewellSectionProps>(
     
 
     // TTS 시작
-    const runAnimation = useCallback((onCompleteHandler?: () => void) => {
+    const runAnimation = useCallback(() => {
       setIsSpeaking(true);
       startSpeech(farewellMessage, {
         ...getTTSOptionsFromAgentConfig(agentConfig),
@@ -94,7 +94,7 @@ const FarewellSection = forwardRef<FarewellSectionRef, FarewellSectionProps>(
           setIsSpeaking(false);
         }
       });
-    }, [farewellMessage, agentConfig, startSpeech]);
+    }, [farewellMessage, agentConfig, startSpeech, onCompleteHandler]);
 
     // Expose imperative methods via ref
     useImperativeHandle(

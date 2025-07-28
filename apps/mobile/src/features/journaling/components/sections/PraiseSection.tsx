@@ -14,9 +14,11 @@ import { useSpeechAnimation } from '../../hooks/useSpeechAnimation'
 import Reanimated from 'react-native-reanimated';
 import { AnimatedText } from '../../../../components/AnimatedText';
 import { twMerge } from 'tailwind-merge';
+import { Image } from 'expo-image';
+import { Pressable } from 'react-native-gesture-handler';
 
 interface StampViewProps {
-  emoji: string;
+  children?: React.ReactNode;
   index: number;
   isPopped: boolean;
   isActive: boolean;
@@ -28,7 +30,7 @@ interface StampViewProps {
 }
 
 const StampView: React.FC<StampViewProps> = ({
-  emoji,
+  children,
   index,
   isPopped,
   isActive,
@@ -49,14 +51,13 @@ const StampView: React.FC<StampViewProps> = ({
         ],
       }}
     >
-      <TouchableOpacity
+      <Pressable
         onPress={() => onPress(index)}
         disabled={isPopped || !isActive}
-        activeOpacity={isActive ? 0.8 : 1}
         className="bg-transparent"
       >
         <Animated.View 
-          className={twMerge(" w-64 h-64 bg-slate-50 border-3 border-white/40 rounded-full flex-row items-center justify-center", isActive && "border-2 border-autiverse-yellow")}
+          className={twMerge("w-64 h-64 bg-white border-3 border-white/40 rounded-full flex-row items-center justify-center", isActive && "border-2 border-autiverse-yellow")}
           style={{
             transform: [{ scale: bubbleAnimation }],
             shadowColor: '#000',
@@ -65,29 +66,9 @@ const StampView: React.FC<StampViewProps> = ({
             shadowRadius: 16,
             elevation: 10,
           }}
-        >
-          <Animated.View
-            className="bg-transparent"
-            style={{
-              transform: [{ scale: contentAnimation }],
-            }}
-          >
-            <Text 
-              className="text-9xl text-center" 
-              style={[
-                {
-                  textAlign: 'center',
-                  includeFontPadding: false,
-                  textAlignVertical: 'center',
-                }
-              ]}
-              allowFontScaling={false}
-            >
-              {emoji}
-            </Text>
-          </Animated.View>
+        >{children}
         </Animated.View>
-      </TouchableOpacity>
+      </Pressable>
     </Animated.View>
   );
 };
@@ -325,7 +306,28 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
     };
   }, []);
 
-  const stampEmojis = ['🏆', '⭐', '🏅'];
+  const stampEmojis = [
+    <Image
+    source={require('../../../../../assets/stamp-trophy.png')}
+    style={{
+      width: 180,
+      height: 180,
+    }}
+  />,
+  <Image
+                    source={require('../../../../../assets/stamp-star.png')}
+                    style={{
+                      width: 150,
+                      height: 150,
+                    }}
+                  />,
+  <Image
+    source={require('../../../../../assets/stamp-medal.png')}
+    style={{
+      width: 150,
+      height: 150,
+    }}
+  />];
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
@@ -389,7 +391,6 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
               {stampEmojis.map((emoji, index) => (
                 <StampView
                   key={index}
-                  emoji={emoji}
                   index={index}
                   isPopped={poppedStamps[index]}
                   isActive={stampsActive}
@@ -398,7 +399,9 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
                   bubbleAnimation={bubbleAnimations[index]}
                   contentAnimation={contentAnimations[index]}
                   onPress={popStamp}
-                />
+                >
+                  {emoji}
+                </StampView>
               ))}
             </View>
           )}
