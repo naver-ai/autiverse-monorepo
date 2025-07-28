@@ -1,12 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
-import { ChatMessage as ChatMessageType } from '@autiverse-monorepo/ts-core';
 import { styleTemplates } from '../../../styles';
 import { useSpeech } from '../utils';
 import { getTTSOptionsFromAgentConfig } from '../utils/speechUtils';
 import { AgentImage } from './AgentImage';
 import { useSession } from '../hooks/useSession';
 import { useJournalingStore } from '../store';
+import { useSpeechAnimation } from '../hooks/useSpeechAnimation';
+import Reanimated from 'react-native-reanimated';
 
 interface ChatMessageProps {
   journalEntryId: string;
@@ -29,7 +30,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   onTTSComplete
 }) => {
 
-  const {isSendingMessage, setIsInputActive} = useJournalingStore();
+  const {isSendingMessage, setIsInputActive, isInputActive} = useJournalingStore();
 
   const {startSpeech} = useSpeech()
 
@@ -39,6 +40,14 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     ?.pop();
 
   const lastSpokenMessageId = useRef<string | undefined>(undefined);
+
+  const {ttsScalePulseStyle} = useSpeechAnimation(!isInputActive, 1.3);
+
+  const sentences = useMemo(() => {
+    return lastBotMessage?.text
+      .split(/(?<=[.!?])\s+(?=[가-힣])/)
+      .filter(sentence => sentence.trim().length > 0);
+  }, [lastBotMessage?.text]);
 
   useEffect(()=>{
     lastSpokenMessageId.current = undefined;
@@ -107,7 +116,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               marginTop: 4
             }}
           />
-          <View className="bg-white border border-gray-200 p-3 rounded-lg self-start" style={{ maxWidth: '85%' }}>
+          <View className="bg-white border border-gray-200 p-3 rounded-lg self-start">
             <View className="flex-row items-center">
               <ActivityIndicator size="small" color="#666" />
               <Text className="text-gray-600 ml-2 text-lg" style={styleTemplates.withSemiboldFont}>{agentName}가 생각 중...</Text>
@@ -120,13 +129,11 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   
   if (lastBotMessage) {
     // 문장 단위로 분리 (마침표, 느낌표, 물음표 기준) - 이모티콘 포함
-    const sentences = lastBotMessage.text
-      .split(/(?<=[.!?])\s+(?=[가-힣])/)
-      .filter(sentence => sentence.trim().length > 0);
 
     return (
       <View className="items-start">
         <View className="flex-row items-start">
+          <Reanimated.View style={ttsScalePulseStyle}>
           <AgentImage
             avatarImage={agentConfig?.avatar_image || ''}
             style={{
@@ -137,17 +144,14 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               marginTop: 4
             }}
           />
+          </Reanimated.View>
           <View className="flex-1">
-            {sentences.map((sentence, index) => (
+            {sentences?.map((sentence, index) => (
               <View 
                 key={index} 
-                className="bg-white border border-gray-200 p-3 rounded-lg self-start"
-                style={{ 
-                  marginBottom: index < sentences.length - 1 ? 8 : 0,
-                  maxWidth: '85%'
-                }}
+                className="bg-white border border-gray-200 p-3 rounded-lg self-start my-2"
               >
-                <Text className="text-lg text-gray-800" style={styleTemplates.withSemiboldFont}>
+                <Text className="text-xl leading-8 text-gray-800" style={styleTemplates.withSemiboldFont}>
                   {sentence.trim()}
                 </Text>
               </View>
