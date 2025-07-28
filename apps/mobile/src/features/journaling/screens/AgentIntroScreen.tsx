@@ -45,7 +45,7 @@ export function AgentIntroScreen() {
 
   const agentNameWithJosa = useMemo(() => {
     if(locale === UserLocale.Korean && dyad?.agents?.[0]?.agent_name) {
-      return appendJosa(dyad?.agents?.[0]?.agent_name, '아', '야');
+      return appendJosa(dyad?.agents?.[0]?.agent_name, '이야', '야');
     }
     return dyad?.agents?.[0]?.agent_name || '친구';
   }, [dyad?.agents?.[0]?.agent_name, locale]);

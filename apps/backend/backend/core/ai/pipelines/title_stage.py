@@ -73,7 +73,7 @@ class TitleStage:
         
         try:
             # 현재 interaction turn 가져오기
-            interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Complete)
+            interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Title)
             
             # 사용자 메시지 저장
             create_message(
@@ -88,15 +88,15 @@ class TitleStage:
             # 이전 메시지들을 확인하여 현재 상황 판단
             messages = get_messages_by_journal_entry_and_stage(self.db, self.journal_entry_id, JournalEntryStage.Title)
             
-            # 마지막 Assistant 메시지 확인
+            # 마지막 Assistant 메시지 확인 (빈 메시지 제외)
             last_assistant_message: Message | None = None
             for message in reversed(messages):
-                if message.role == MessageRole.Assistant:
+                if message.role == MessageRole.Assistant and message.content.strip():
                     last_assistant_message = message
                     break
             
             if not last_assistant_message:
-                return "", None, None
+                return None
             
             metadata = None
 
@@ -118,7 +118,7 @@ class TitleStage:
                 
                 response, response_intent = self.title_generator.process_custom_title_feedback(user_message, custom_title, child_name, reject_count)
                 
-            elif ("그럼 어떤 제목으로 하고 싶어?" in last_assistant_message) or ("채팅으로 쳐서 정확하게 알려줘!" in last_assistant_message):
+            elif ("그럼 어떤 제목으로 하고 싶어?" in last_assistant_message.content) or ("채팅으로 쳐서 정확하게 알려줘!" in last_assistant_message.content):
                 # 커스텀 제목 입력
                 self._save_title(user_message.strip())
                 response, response_intent, metadata = self.title_generator.confirm_custom_title(user_message.strip(), child_name)

@@ -348,12 +348,24 @@ class ChatbotController:
         # Convert current_panels to ComicData if it exists
         comic_data = None
         if current_panels:
-            comic_data = ComicData(
-                panel1=current_panels.get("panel1"),
-                panel2=current_panels.get("panel2"),
-                panel3=current_panels.get("panel3"),
-                panel4=current_panels.get("panel4")
-            )
+            # Filter out None values and panels with None content
+            filtered_panels = {}
+            for key in ["panel1", "panel2", "panel3", "panel4"]:
+                panel_data = current_panels.get(key)
+                if panel_data is not None:
+                    # Check if it's a dict with None content
+                    if isinstance(panel_data, dict) and panel_data.get("content") is None:
+                        continue
+                    # Check if it's a string (which is valid)
+                    elif isinstance(panel_data, str):
+                        filtered_panels[key] = panel_data
+                    # Check if it's a dict with valid content
+                    elif isinstance(panel_data, dict) and panel_data.get("content") is not None:
+                        filtered_panels[key] = panel_data
+            
+            # Only create ComicData if we have at least one panel
+            if filtered_panels:
+                comic_data = ComicData(**filtered_panels)
         
         return JournalingSessionInfo(
                 journal_entry_id=journal_entry_id,

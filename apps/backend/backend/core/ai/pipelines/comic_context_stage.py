@@ -1014,7 +1014,13 @@ Please generate a question that addresses the FIRST missing information gap."""
 
                 result = response.choices[0].message.content
                 question_data = json.loads(result)
-                return question_data["question"], None
+                question = question_data["question"]
+                
+                # 기분을 물어보는 질문인지 확인
+                if "기분이 어땠어" in question:
+                    return question, MessageIntent.PromptEmotion
+                else:
+                    return question, None
                 
             except Exception as e:
                 print(f"[DEBUG] comic_context: Error generating question: {e}")
