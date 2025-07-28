@@ -7,7 +7,7 @@ interface UseSpeechAnimationReturn {
   ttsBorderColorStyle: any;
 }
 
-export const useSpeechAnimation = (isSpeaking: boolean): UseSpeechAnimationReturn => {
+export const useSpeechAnimation = (isSpeaking: boolean, scaleTo?: number): UseSpeechAnimationReturn => {
   // 공유 애니메이션 값 (0: 평상시, 1: 애니메이션 최대치)
   const ttsAnimationValue = useSharedValue(0);
   const ttsSlowAnimationValue = useSharedValue(0);
@@ -15,6 +15,7 @@ export const useSpeechAnimation = (isSpeaking: boolean): UseSpeechAnimationRetur
   // TTS 애니메이션 관리
   useEffect(() => {
     if (isSpeaking) {
+      console.log('start speech animation');
       ttsAnimationValue.value = withRepeat(
         withSequence(
           withTiming(0, { duration: 400, easing: Easing.inOut(Easing.ease) }),
@@ -33,6 +34,7 @@ export const useSpeechAnimation = (isSpeaking: boolean): UseSpeechAnimationRetur
         true
       );
     } else {
+      console.log('stop speech animation');
       ttsAnimationValue.value = withTiming(0, { duration: 150, easing: Easing.inOut(Easing.ease) });
       ttsSlowAnimationValue.value = withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) });
     }
@@ -44,11 +46,11 @@ export const useSpeechAnimation = (isSpeaking: boolean): UseSpeechAnimationRetur
         scale: interpolate(
           ttsAnimationValue.value,
           [0, 1],
-          [1, 1.1]
+          [1, scaleTo || 1.1]
         )
       }],
     };
-  });
+  }, [scaleTo]);
 
   const ttsOpacityPulseStyle = useAnimatedStyle(() => {
     return {

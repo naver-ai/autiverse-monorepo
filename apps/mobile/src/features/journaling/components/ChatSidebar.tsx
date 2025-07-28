@@ -1,11 +1,7 @@
 import { useMemo, useCallback, useRef, useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
-
-import format from 'string-format';
-import { t } from 'i18next';
 import { ChatMessageComponent } from './ChatMessage';
 import { ChatInput, ChatInputRef, useChatInputModalStore } from './ChatInput';
-import { styleTemplates } from '../../../styles';
 import { useDyad } from '../../../api/dyad';
 import { useSession } from '../hooks/useSession';
 import { MessageIntent } from '@autiverse-monorepo/ts-core';
@@ -13,7 +9,6 @@ import { UserButtonMode } from '../types';
 import { useJournalingStore } from '../store';
 import { ComicGenerationStatus } from '../api';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { twMerge } from 'tailwind-merge';
 import { ScrollView } from 'react-native-gesture-handler';
 
 export const ChatSidebar = ({
