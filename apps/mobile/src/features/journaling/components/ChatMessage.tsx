@@ -12,7 +12,8 @@ interface ChatMessageProps {
   journalEntryId: string;
   agentName: string;
   agentConfig?: any;
-  onTTSComplete?: () => void;
+  onTTSStart?: (messageId: string) => void;
+  onTTSComplete?: (messageId: string) => void;
 }
 
 // 이모티콘 제거 함수
@@ -24,6 +25,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   journalEntryId,
   agentName,
   agentConfig,
+  onTTSStart,
   onTTSComplete
 }) => {
 
@@ -52,12 +54,13 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       const cleanText = removeEmojis(lastBotMessage.text);
       if (cleanText.trim()) { // 빈 텍스트가 아닌 경우에만 재생
         setIsInputActive(false);
+        onTTSStart?.(messageId);
         startSpeech(cleanText, {
           ...getTTSOptionsFromAgentConfig(agentConfig),
           onDone: () => {
             // TTS 완료 후 ChatInput 활성화
             if (onTTSComplete) {
-              onTTSComplete();
+              onTTSComplete(messageId);
             }
             setIsInputActive(true);
           },
@@ -65,14 +68,14 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
             console.error('TTS error:', error);
             // 에러 발생 시에도 ChatInput 활성화
             if (onTTSComplete) {
-              onTTSComplete();
+              onTTSComplete(messageId);
             }
             setIsInputActive(true);
           }
         });
       }
     }
-  }, [lastBotMessage?.id, isSendingMessage]);
+  }, [lastBotMessage?.id, isSendingMessage, onTTSStart, onTTSComplete]);
   
   if (!sessionInfo || sessionInfo.messages?.length === 0) {
     return (

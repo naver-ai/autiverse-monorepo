@@ -112,7 +112,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
 8. If the user asks a question that should be asked to adults or unrelated to the conversation topic, then you can say, "I don't know," and go back to the conversation topic.
 """
         
-    def start_context_analysis(self) -> tuple[str, MessageIntent]:
+    def start_context_analysis(self) -> Message:
         """만화 컨텍스트 분석 시작"""
         try:
             # Journal entry stage 업데이트
@@ -126,13 +126,13 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             # 첫 번째 분석 질문 생성
             initial_question, intent = self._generate_first_question()
             
-            create_message(
+            message = create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
                 initial_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
                 intent=intent
             )
             
-            return initial_question, intent
+            return message
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in start_context_analysis: {e}")
             raise
@@ -169,28 +169,38 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                 self._reconstruct_panel(user_message, "사용자 입력", False)
                 self.story_analysis = self._analyze_story_flow()
                 print(f"[DEBUG] comic_context: story_analysis updated: {self.story_analysis}")
-            
+
+
             # 완료 상태 확인
             if self.is_complete():
                 # 만화 생성 시작 신호 반환 (실제 만화 생성은 controller에서 처리)
-                return t('Journaling.Messages.Revision1Confirmation', self._get_dyad().locale), MessageIntent.StartComicGeneration
-            
-            # 다음 질문 생성
-            next_question, next_intent = self._get_next_question()
-            
-            # 봇 응답 저장
-            message = create_message(
+                response_message = t('Journaling.Messages.Revision1Confirmation', self._get_dyad().locale)
+                response_intent = MessageIntent.StartComicGeneration
+
+                message = create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
-                next_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
-                intent=next_intent
-            )
+                    response_message, MessageRole.Assistant, JournalEntryStage.ComicContext,
+                    intent=response_intent
+                )
             
-            return message
+                return message
+            else:
+              # 다음 질문 생성
+              next_question, next_intent = self._get_next_question()
+              
+              # 봇 응답 저장
+              message = create_message(
+                  self.db, self.journal_entry_id, interaction_turn.id,
+                  next_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
+                  intent=next_intent
+              )
+              
+              return message
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in process_message: {e}")
             import traceback
             traceback.print_exc()
-            return "미안해! 다시 말해줘! 😅"
+            raise
     
     def _analyze_story_flow(self) -> Dict[str, Any]:
         """스토리 플로우 분석"""
@@ -720,7 +730,7 @@ answer: "{answer}"
         """다음 질문 생성"""
         try:
             if not self.story_analysis:
-                return "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래??", MessageIntent.PromptConfirm
+                return "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래??", MessageIntent.PromptNext
             
             # Content 이슈만 확인 (Flow, Order는 _reconstruct_panel에서 처리)
             content_issues = self.story_analysis.get("content", {})

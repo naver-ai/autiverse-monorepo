@@ -1,28 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { styleTemplates } from '../../../styles';
 import { UserButtonMode } from '../types';
 import { MessageIntent } from '@autiverse-monorepo/ts-core';
+import { useSession } from '../hooks/useSession';
+import { useTranslation } from 'react-i18next';
 
 interface ChatButtonsProps {
+  sessionId: string;
   buttonMode: UserButtonMode|null;
-  buttonTexts: { left: {label: string, intent: MessageIntent}; right: {label: string, intent: MessageIntent} };
   isDisabled: boolean;
   sendMessage: (message: string, intent?: MessageIntent, audioFilename?: string) => void;
   onButtonsVisibilityChange: (hasButtons: boolean) => void;
 }
 
 export const ChatButtons: React.FC<ChatButtonsProps> = ({
+  sessionId,
   buttonMode,
-  buttonTexts,
   isDisabled,
   sendMessage,
   onButtonsVisibilityChange
 }) => {
 
-  const showYesNoButtons = buttonMode === UserButtonMode.YES_NO_BUTTON;
-  const showEmotionButtons = buttonMode === UserButtonMode.EMOTION_BUTTON;
-  const showNextButton = buttonMode === UserButtonMode.NEXT_BUTTON;
+  const {t} = useTranslation();
 
   const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
 
@@ -40,6 +40,44 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
     { text: '감탄했다', emoji: '😍' },
     { text: '지루했다', emoji: '😴' }
   ];
+
+
+  const { sessionInfo } = useSession({ sessionId });
+  const lastBotMessage = sessionInfo?.messages?.filter((m) => !m.isUser).pop();
+
+  // 버튼 내용 결정
+  const buttonTexts = useMemo<{left: {label: string, intent: MessageIntent}, right: {label: string, intent: MessageIntent}} | undefined>(() => {
+    const previousBotIntent = lastBotMessage?.intent
+
+    switch(previousBotIntent) {
+      case MessageIntent.PromptIssueExist:
+        return {
+          left: {label: t('ChatInput.ButtonLabels.Wrong'), intent: MessageIntent.AnswerNegative},
+          right: {label: t('ChatInput.ButtonLabels.AllCorrect'), intent: MessageIntent.AnswerPositive},
+        };
+      case MessageIntent.TransitionToTitle:
+        return {
+          left: {label: t('ChatInput.ButtonLabels.LetsDoIt'), intent: MessageIntent.AnswerPositive},
+          right: {label: t('ChatInput.ButtonLabels.Good'), intent: MessageIntent.AnswerPositive},
+        };
+      case MessageIntent.InitialTitleConfirm:
+        return {
+          left: {label: t('ChatInput.ButtonLabels.NotGood'), intent: MessageIntent.AnswerNegative},
+          right: {label: t('ChatInput.ButtonLabels.Good3'), intent: MessageIntent.AnswerPositive},
+        };
+      case MessageIntent.CustomTitleConfirm:
+        return {
+          left: {label: t('ChatInput.ButtonLabels.NoOther'), intent: MessageIntent.AnswerNegative},
+          right: {label: t('ChatInput.ButtonLabels.YesGood'), intent: MessageIntent.AnswerPositive},
+        }
+      default:
+        return undefined;
+    }
+  }, [lastBotMessage?.intent])
+
+  const showYesNoButtons = buttonMode === UserButtonMode.YES_NO_BUTTON && buttonTexts !== undefined;
+  const showEmotionButtons = buttonMode === UserButtonMode.EMOTION_BUTTON;
+  const showNextButton = buttonMode === UserButtonMode.NEXT_BUTTON;
 
   const handleEmotionClick = (emotion: string) => {
     if (isDisabled) return;

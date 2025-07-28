@@ -229,7 +229,7 @@ class MessageRole(StrEnum):
 
 class MessageIntent(StrEnum):
     PromptNext="prompt_next"
-    PromptConfirm="prompt_confirm" # Yes / no
+    PromptConfirm="prompt_confirm" # Yes / no => Not used now
     PromptIssueExist="prompt_issue_exist" # 문제가 있는 부분이 있어?
     InitialTitleConfirm="initial_title_confirm" # 첫 번째 제목 제안에 대한 피드백
     CustomTitleConfirm="custom_title_confirm" # 커스텀 제목 확인에 대한 피드백

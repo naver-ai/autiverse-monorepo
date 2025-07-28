@@ -84,8 +84,6 @@ export const JournalingScreen = () => {
 
   const currentStage = sessionInfo?.stage;
 
-  const queryClient = useQueryClient();
-
   // 만화 생성 훅 (React Query 기반) - 통합
   const { 
     status: comicGenerationStatus, 
@@ -251,12 +249,6 @@ export const JournalingScreen = () => {
               sessionId={journalEntryId}
               comicGenerationStatus={comicGenerationStatus}
               sendMessage={sendMessage}
-              onTTSComplete={() => {
-                // 완료 메시지가 아닐 때만 ChatInput 활성화
-                if (lastBotMessage?.intent !== MessageIntent.PromptNext) {
-                  setIsInputActive(true);
-                }
-              }}
           />
         </View>
       </View>

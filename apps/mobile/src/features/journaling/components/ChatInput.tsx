@@ -4,6 +4,7 @@ import React, {
   useImperativeHandle,
   useEffect,
   useCallback,
+  useMemo,
 } from 'react';
 import { View, Alert, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -78,8 +79,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     const messages = sessionInfo?.messages;
     const currentStage = sessionInfo?.stage;
 
-    const lastBotMessage = messages?.filter((m) => !m.isUser).pop();
-
     // TTS 또는 로딩 중일 때 비활성화, 또는 ChatInput이 비활성화 상태일 때
     const isDisabled =
       isSendingMessage ||
@@ -87,73 +86,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       comicGenerationStatus.status === 'generating' ||
       !isInputActive ||
       isVoiceRecording;
-
-    // 버튼 내용 결정
-    const getButtonTexts = () : {left: {label: string, intent: MessageIntent}, right: {label: string, intent: MessageIntent}} => {
-      if (currentStage === 'revision_1') {
-        if (lastBotMessage?.intent === MessageIntent.PromptConfirm) {
-          // 첫 번째 질문
-          return {
-            left: {label: t('ChatInput.ButtonLabels.Wrong'), intent: MessageIntent.AnswerNegative},
-            right: {label: t('ChatInput.ButtonLabels.AllCorrect'), intent: MessageIntent.AnswerPositive},
-          };
-        } /*else if (
-          lastBotMessage?.text?.includes('아직도 틀린 부분 있어?') ||
-          lastBotMessage?.text?.includes('이제 다 맞을까?')
-        ) {
-          // 수정 후 질문
-          return {
-            left: {label: t('ChatInput.ButtonLabels.StillWrong'), intent: MessageIntent.AnswerNegative},
-            right: {label: t('ChatInput.ButtonLabels.Enough'), intent: MessageIntent.AnswerPositive},
-          };
-        }*/ //TODO 두 번째 컨펌 핸들링 잘 할 방법 고민
-      } else if (currentStage === 'revision_2') {
-        if (lastBotMessage?.intent === MessageIntent.TransitionToTitle) {
-          return {
-            left: {label: t('ChatInput.ButtonLabels.LetsDoIt'), intent: MessageIntent.AnswerPositive},
-            right: {label: t('ChatInput.ButtonLabels.Good'), intent: MessageIntent.AnswerPositive},
-          };
-        }
-        return {
-          left: {label: t('ChatInput.ButtonLabels.Have'), intent: MessageIntent.AnswerNegative},
-          right: {label: t('ChatInput.ButtonLabels.DontHave'), intent: MessageIntent.AnswerPositive},
-        };
-      } else if (currentStage === 'comic_context') {
-        return {
-          left: {label: t('ChatInput.ButtonLabels.Good2'), intent: MessageIntent.AnswerPositive},
-          right: {label: t('ChatInput.ButtonLabels.GotIt'), intent: MessageIntent.AnswerPositive},
-        };
-      } else if (currentStage === 'title') {
-        if (lastBotMessage?.intent === MessageIntent.InitialTitleConfirm) {
-          // 첫 번째 제목 제안
-          return {
-            left: {label: t('ChatInput.ButtonLabels.NotGood'), intent: MessageIntent.AnswerNegative},
-            right: {label: t('ChatInput.ButtonLabels.Good3'), intent: MessageIntent.AnswerPositive},
-          };
-        } else if (lastBotMessage?.intent === MessageIntent.CustomTitleConfirm) {
-          // 커스텀 제목 확인
-          return {
-            left: {label: t('ChatInput.ButtonLabels.NoOther'), intent: MessageIntent.AnswerNegative},
-            right: {label: t('ChatInput.ButtonLabels.YesGood'), intent: MessageIntent.AnswerPositive},
-          };
-        }
-      }
-
-      // completion message 뒤에 나오는 "그럼 이제 일기 제목을 정하러 가볼까?" 메시지일 때
-      if (lastBotMessage?.intent === MessageIntent.TransitionToTitle) {
-        return {
-          left: {label: t('ChatInput.ButtonLabels.LetsDoIt'), intent: MessageIntent.AnswerPositive},
-          right: {label: t('ChatInput.ButtonLabels.Good'), intent: MessageIntent.AnswerPositive},
-        };
-      }
-
-      return {
-        left: {label: t('ChatInput.ButtonLabels.Yes'), intent: MessageIntent.AnswerPositive},
-        right: {label: t('ChatInput.ButtonLabels.No'), intent: MessageIntent.AnswerNegative},
-      };
-    };
-
-    const buttonTexts = getButtonTexts();
 
     // 음성 녹음 시작
     const startVoiceRecording = async () => {
@@ -304,20 +236,18 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     const isTextInputDisabled = !isInputActive || isSendingMessage
 
     return <>
-      <View className="pt-6 px-6 pb-2">
+      {isInputActive && <View className="pt-6 px-6 pb-2">
         {/* 음성 녹음 상태 표시 */}
-        {
-          isInputActive && isVoiceRecording ? <VoiceRecordingStatus
+        <VoiceRecordingStatus
           agentName={agentName}
           onComplete={completeVoiceRecording}
-        /> : null
-        }
+        />
         
 
         {/* 버튼들 */}
         <ChatButtons
+          sessionId={journalEntryId}
           buttonMode={userButtonMode}
-          buttonTexts={buttonTexts}
           isDisabled={isDisabled}
           sendMessage={sendMessage}
           onButtonsVisibilityChange={setHasButtons}
@@ -325,7 +255,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
 
         {/* 채팅 입력 버튼 */}
         {
-          (isInputActive && (isChatInputMessage || !isVoiceCompleted) && userButtonMode == null) ? <Reanimated.View 
+          ((isChatInputMessage || !isVoiceCompleted) && userButtonMode == null) ? <Reanimated.View 
               entering={SlideInDown.duration(600).easing(Easing.inOut(Easing.cubic))}
               exiting={SlideOutDown.duration(400).easing(Easing.inOut(Easing.cubic))}
               ><TailwindButton 
@@ -338,7 +268,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
                 <Text className={twMerge("text-slate-600", isTextInputDisabled ? "text-gray-300" : "")} style={styleTemplates.withBoldFont}>{t('Chat.ChatButton')}</Text>
               </TailwindButton></Reanimated.View> : null
         }
-      </View>
+      </View>}
       <ChatTextInputModal onSubmitText={sendMessage} visible={isTextInputModalVisible} onClose={()=>{setIsTextInputModalVisible(false)}}/>
       </>
   },

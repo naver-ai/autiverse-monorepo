@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useRef } from 'react';
+import { useMemo, useCallback, useRef, useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 
 import format from 'string-format';
@@ -20,13 +20,11 @@ export const ChatSidebar = ({
     className,
   sessionId,
   comicGenerationStatus,
-  onTTSComplete,
   sendMessage,
 }: {
     className?: string;
   sessionId: string;
   comicGenerationStatus: ComicGenerationStatus;
-  onTTSComplete?: () => void;
   sendMessage: (
     message: string,
     intent?: MessageIntent,
@@ -35,7 +33,7 @@ export const ChatSidebar = ({
 }) => {
   const { isDyadLoading, dyad, agentName, agentConfig } = useDyad();
 
-  const {isInputActive} = useJournalingStore()
+  const {isInputActive, setIsInputActive} = useJournalingStore()
 
   const { sessionInfo } = useSession({ sessionId: sessionId });
 
@@ -46,8 +44,6 @@ export const ChatSidebar = ({
 
     // MessageIntent 기반으로 버튼 모드 결정
     switch (lastBotMessage.intent) {
-      case MessageIntent.PromptConfirm:
-        return UserButtonMode.YES_NO_BUTTON;
       case MessageIntent.PromptIssueExist:
         return UserButtonMode.YES_NO_BUTTON;
       case MessageIntent.PromptEmotion:
@@ -67,16 +63,47 @@ export const ChatSidebar = ({
 
   const chatInputRef = useRef<ChatInputRef>(null);
 
-  const handleOnTTSComplete = useCallback(() => {
-    onTTSComplete?.();
-    if (
-      chatInputRef.current &&
-      userButtonMode == null &&
-      lastBotMessage?.intent !== MessageIntent.StartComicGeneration
-    ) {
-      chatInputRef.current.startRecording();
+  const [lastSpokenMessageId, setLastSpokenMessageId] = useState<string | null>(null);
+
+  const handleOnTTSStart = useCallback((messageId: string) => {
+    setLastSpokenMessageId(null);
+  }, []);
+
+  const handleOnTTSComplete = useCallback((messageId: string) => {
+    setLastSpokenMessageId(messageId);
+  }, []);
+
+  const inputModeActiveForId = useRef<string | undefined>(undefined);
+
+  useEffect(()=>{
+    inputModeActiveForId.current = undefined;
+  }, [])
+
+  useEffect(()=>{
+    console.log("inputModeActiveForId", inputModeActiveForId.current, lastSpokenMessageId, lastBotMessage, comicGenerationStatus);
+    if(inputModeActiveForId.current !== lastBotMessage?.id){
+        if(lastBotMessage?.intent === MessageIntent.StartComicGeneration) {
+            if (lastSpokenMessageId === lastBotMessage.id && comicGenerationStatus.status === 'completed') {
+                console.log("Both TTS and comic generation are completed. Start input mode...");
+                setIsInputActive(true);
+                inputModeActiveForId.current = lastBotMessage.id;
+            }
+        }else if(userButtonMode === null){
+            if(lastSpokenMessageId != null && lastSpokenMessageId === lastBotMessage?.id ){
+                console.log("Last spoken message id is the same as the last bot message id. Start input mode...");
+                setIsInputActive(true);
+                
+                if(lastBotMessage?.intent !== MessageIntent.PromptTextInput){
+                    chatInputRef.current?.startRecording();
+                }
+                
+                inputModeActiveForId.current = lastBotMessage?.id;
+            }
+
+        }
     }
-  }, [onTTSComplete, userButtonMode, lastBotMessage?.intent]);
+  }, [lastBotMessage?.id, lastBotMessage?.intent, comicGenerationStatus.status, lastSpokenMessageId, userButtonMode])
+
 
   return (
     <SafeAreaView mode="padding" edges={['bottom', 'right']} className={className}>
@@ -87,6 +114,7 @@ export const ChatSidebar = ({
               journalEntryId={sessionId}
               agentName={agentName}
               agentConfig={agentConfig}
+              onTTSStart={handleOnTTSStart}
               onTTSComplete={handleOnTTSComplete}
             />
           </ScrollView>

@@ -72,7 +72,7 @@ class Revision1Stage:
         message = create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             initial_question, MessageRole.Assistant, JournalEntryStage.Revision1,
-            intent=MessageIntent.PromptConfirm
+            intent=MessageIntent.PromptIssueExist
         )
         
         return message
@@ -107,7 +107,7 @@ class Revision1Stage:
         
         # "네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까?" 질문에 대한 답변 처리
         if self._is_correction_confirmation_question():
-            if intent == MessageIntent.AnswerNegative or self._is_negative_response(user_message):
+            if self._is_negative_response(user_message, intent):
                 # 수정할 부분이 있다면 revision_count 증가하고 수정 요청
                 new_count = self.revision_count + 1
                 self._update_revision_count(new_count)
@@ -118,41 +118,24 @@ class Revision1Stage:
                     return "아앗;; 이제 마지막 기회야! 지금 틀린 부분이 있다면 다 말해줘~ 😅", MessageIntent.PromptOpenEndedAnswer
                 else:
                     return "아앗;; 어디가 어떻게 틀렸어? 😅", MessageIntent.PromptOpenEndedAnswer
-            elif intent == MessageIntent.AnswerPositive or self._is_positive_response(user_message):
+            elif self._is_positive_response(user_message, intent):
                 # 수정 완료, 만화 생성 시작 메시지 전송
-                return t('Journaling.Messages.Revision1Confirmation', self._get_dyad().locale), MessageIntent.StartComicGeneration
-            else:
-                return "응 아니 중에 골라줘! 😅", MessageIntent.PromptConfirm
-        
-        # 질문에 대한 답변 처리
-        if self._is_question_response():
-            if intent == MessageIntent.AnswerNegative or self._is_negative_response(user_message):
-                # 수정할 부분이 있다면 revision_count 증가하고 수정 요청
-                new_count = self.revision_count + 1
-                self._update_revision_count(new_count)
-                print(f"[DEBUG] revision_1: revision_count: {self.revision_count}")
-                if self.revision_count > self.max_revisions:
-                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 고치고 싶은 부분이 있다면 말해줘~", MessageIntent.PromptOpenEndedAnswer
-                elif self.revision_count == self.max_revisions:
-                    return "아앗;; 이제 마지막 기회야! 지금 틀린 부분이 있다면 다 말해줘~ 😅", MessageIntent.PromptOpenEndedAnswer
-                else:
-                    return "아앗;; 어디가 어떻게 틀렸어? 😅", MessageIntent.PromptOpenEndedAnswer
-            elif intent == MessageIntent.AnswerPositive or self._is_positive_response(user_message):
-                # 수정할 부분이 없다면 comic_intro를 revision_1에 저장하고 만화 생성 시작 메시지 전송
                 journal = get_journal(self.db, self.journal_entry_id)
                 if journal and journal.comic_intro:
                     update_journal_data(
                         self.db, self.journal_entry_id,
                         revision_1=journal.comic_intro
                     )
+
                 return t('Journaling.Messages.Revision1Confirmation', self._get_dyad().locale), MessageIntent.StartComicGeneration
             else:
-                return "응 아니 중에 골라줘! 😅", MessageIntent.PromptConfirm
+                print(f"[DEBUG] revision_1: _generate_response: intent={intent}, Should not reach here!!")
+                raise Exception("Revision 1: Correction confirmation questions must be answered through intent")
         else:
             # 구체적인 수정 내용이 들어온 경우
             try:
                 self._apply_user_correction(user_message)
-                return "네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까? 🤔", MessageIntent.PromptConfirm
+                return "네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까? 🤔", MessageIntent.PromptIssueExist
             except Exception as e:
                 print(f"[DEBUG] revision_1: Error applying user correction: {e}")
                 return "수정하는데 문제가 생겼어. 다시 말해줘! 😅", MessageIntent.PromptOpenEndedAnswer
@@ -170,28 +153,23 @@ class Revision1Stage:
             return False
         return False
     
-    def _is_question_response(self) -> bool:
-        """현재 응답이 질문에 대한 답변인지 확인"""
-        messages = get_messages_by_journal_entry(self.db, self.journal_entry_id)
-        if messages:
-            # 현재 사용자 메시지가 저장되기 전의 마지막 봇 메시지를 찾기 위해 -2 인덱스 사용
-            for i in range(len(messages) - 1, -1, -1):
-                if messages[i].role == MessageRole.Assistant:
-                    return messages[i].intent == MessageIntent.PromptConfirm
-            return False
-        return False
-    
-    def _is_negative_response(self, message: str) -> bool:
+    def _is_negative_response(self, message: str, intent: MessageIntent) -> bool:
         """부정적인 응답인지 확인"""
-        negative_keywords = ["아니", "no", "n", "틀렸어", "아니야", "틀린 게 있어", "아직 있어"]
-        result = any(keyword in message.lower() for keyword in negative_keywords)
-        return result
+        if intent == MessageIntent.AnswerNegative:
+            return True
+        else:
+            negative_keywords = ["아니", "no", "n", "틀렸어", "아니야", "틀린 게 있어", "아직 있어"]
+            result = any(keyword in message.lower() for keyword in negative_keywords)
+            return result
     
-    def _is_positive_response(self, message: str) -> bool:
+    def _is_positive_response(self, message: str, intent: MessageIntent) -> bool:
         """긍정적인 응답인지 확인"""
-        positive_keywords = ["응", "네", "yes", "y", "맞아", "좋아", "다 맞아", "이제 충분해"]
-        result = any(keyword in message.lower() for keyword in positive_keywords)
-        return result
+        if intent == MessageIntent.AnswerPositive:
+            return True
+        else:
+            positive_keywords = ["응", "네", "yes", "y", "맞아", "좋아", "다 맞아", "이제 충분해"]
+            result = any(keyword in message.lower() for keyword in positive_keywords)
+            return result
     
     def _apply_user_correction(self, correction: str) -> None:
         """사용자 수정 내용 적용"""
@@ -358,12 +336,13 @@ User's correction request: {correction}
                 # Auto comic generation에서 하던대로 새 메시지 업데이트
                 # comic_context로 전환
                 context_stage = ComicContextStage(self.db, self.journal_entry_id)
-                context_response, intent = context_stage.start_context_analysis()
+                response_message = context_stage.start_context_analysis()
                 
                 response = {
                     "journal_entry_id": self.journal_entry_id,
-                    "response": context_response,
-                    "intent": intent,
+                    "message_id": response_message.id,
+                    "response": response_message,
+                    "intent": response_message.intent,
                     "stage": "comic_context"
                 }
                 
