@@ -73,10 +73,6 @@ export default function HomeScreen() {
       }
   }, [latestEntry?.stage, router]);
 
- 
-
-  console.log("latestEntry", latestEntry)
-
   const {jwt} = useAuth();
 
   const queryClient = useQueryClient();

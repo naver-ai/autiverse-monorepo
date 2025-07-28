@@ -8,6 +8,7 @@ import { useSession } from '../hooks/useSession';
 import { useJournalingStore } from '../store';
 import { useSpeechAnimation } from '../hooks/useSpeechAnimation';
 import Reanimated from 'react-native-reanimated';
+import { AnimatedText } from '../../../components/AniamtedText';
 
 interface ChatMessageProps {
   journalEntryId: string;
@@ -41,7 +42,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
 
   const lastSpokenMessageId = useRef<string | undefined>(undefined);
 
-  const {ttsScalePulseStyle} = useSpeechAnimation(!isInputActive, 1.3);
+  const {ttsScalePulseStyle, ttsBorderColorStyle} = useSpeechAnimation(!isInputActive, 1.3);
 
   const sentences = useMemo(() => {
     return lastBotMessage?.text
@@ -146,16 +147,29 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           />
           </Reanimated.View>
           <View className="flex-1">
-            {sentences?.map((sentence, index) => (
-              <View 
-                key={index} 
-                className="bg-white border border-gray-200 p-3 rounded-lg self-start my-2"
-              >
-                <Text className="text-xl leading-8 text-gray-800" style={styleTemplates.withSemiboldFont}>
-                  {sentence.trim()}
-                </Text>
-              </View>
-            ))}
+            {sentences?.map((sentence, index) => {
+              // 앞 문장들의 글자수 * charInterval의 합 + 문장 간격을 계산 (이모지 포함)
+              const previousDelay = sentences
+                .slice(0, index)
+                .reduce((total, prevSentence) => {
+                  // Array.from()을 사용하여 이모지를 포함한 정확한 글자 수 계산
+                  const charCount = Array.from(prevSentence.trim()).length;
+                  return total + (charCount * 100);
+                }, 0) + (index * 400); // 문장별 100ms 간격 추가
+              
+              return (
+                <AnimatedText 
+                    key={index}
+                    className="bg-white border-2 border-gray-200 p-3 rounded-lg self-start my-2"
+                    style={ttsBorderColorStyle}
+                    text={sentence.trim()}
+                    initialDelay={previousDelay}
+                    charInterval={100}
+                    textClassName="text-xl leading-8 text-gray-800"
+                    textStyle={styleTemplates.withSemiboldFont}
+                  />
+              );
+            })}
           </View>
         </View>
       </View>
