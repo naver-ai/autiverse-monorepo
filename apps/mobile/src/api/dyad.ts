@@ -1,6 +1,7 @@
 import { Dyad, NetworkHelper } from "@autiverse-monorepo/ts-core";
 import { useAuthStore } from "../features/auth/store";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
     
 export async function getDyadAPI(jwt: string): Promise<Dyad> {
@@ -27,6 +28,8 @@ export function useDyad() {
 
     const { jwt } = useAuthStore();
 
+    const {t} = useTranslation();
+
     const {data: dyad, isLoading: isDyadLoading, error: dyadError} = useQuery({
         queryKey: ['dyad'],
         queryFn: () => getDyadAPI(jwt!!),
@@ -38,7 +41,7 @@ export function useDyad() {
     return {
         dyad,
         locale: dyad?.locale,
-        agentName: dyad?.agents?.[0]?.agent_name,
+        agentName: dyad?.agents?.[0]?.agent_name || t('Journaling.Common.DefaultAgentName'),
         agentConfig: dyad?.agents?.[0]?.agent_config,
         childName: dyad?.child_name,
         isDyadLoading,

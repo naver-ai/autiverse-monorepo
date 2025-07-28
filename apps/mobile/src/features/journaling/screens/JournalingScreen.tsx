@@ -1,31 +1,31 @@
-import { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Animated,
+  TouchableOpacity,
+  Text,
 } from 'react-native';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useComicGeneration } from '../hooks/useComicGeneration';
 import { useChatbot } from '../hooks/useChatbot';
-import { ChatStage } from '../components/stages';
+import { ComicView } from '../components/ComicView';
 import { ChatMessage, JournalEntryStage, MessageIntent } from '@autiverse-monorepo/ts-core';
 import { useSpeech, useVoiceRecorderState } from '../utils';
-import { useDyad } from '../../../api/dyad';
 import { useJournalingStore } from '../store';
 import { useSession } from '../hooks/useSession';
 import { useQueryClient } from '@tanstack/react-query';
 import { Portal } from 'react-native-paper';
+import { ChatSidebar } from '../components/ChatSidebar';
+import { styleTemplates } from '../../../styles';
+import { LogoImage } from '../../../components/svg-images';
 
 export const JournalingScreen = () => {
   const router = useRouter();
   const { t } = useTranslation();
 
-  const {journalEntryId, stage}: {journalEntryId: string, stage: string} = useLocalSearchParams();
-
-  const {dyad, agentName, agentConfig, childName} = useDyad();
+  const {journalEntryId}: {journalEntryId: string} = useLocalSearchParams();
 
   const {stopSpeech, isSpeaking} = useSpeech()
 
@@ -142,58 +142,12 @@ export const JournalingScreen = () => {
       const data = await sendMessageFromHook({journalEntryId, message: messageText, intent, audioFilename});
       if (data) {
 
-        /*
-        const botMessage: ChatMessage = {
-          id: (Date.now() + 2).toString(),
-          text: data.response,
-          isUser: false,
-          timestamp: new Date(),
-          intent: data.intent,
-          metadata: data.metadata,
-        };
-
-        // 완료 메시지 감지 (다음 버튼을 눌러야 넘어감)
-        if (data.intent === MessageIntent.PromptNext) {
-          addMockMessages(journalEntryId, [botMessage]);
-        } else if (data.stage === 'revision_2' && data.intent === MessageIntent.PromptIssueExist) {
-          // Revision_2에서 만화 생성이 시작될 때 고정 메시지 추가
-          console.log('Revision_2 comic generation detected, adding fixed message...');
-          
-          const fixedMessage: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            text: t('Journaling.Messages.Revision2Confirmation'),
-            isUser: false,
-            timestamp: new Date(),
-          };
-          addMockMessages(journalEntryId, [fixedMessage]);
-          
-          // revision_2 메시지는 바로 표시 (만화 생성 완료 시 onComplete에서 고정 메시지가 제거됨)
-          addMockMessages(journalEntryId, [botMessage]);
-        } else {
-          // 다른 메시지들은 바로 표시
-          addMockMessages(journalEntryId, [botMessage]);
-        }*/
-
         setIsSendingMessage(false); // 로딩 상태 초기화 미리
         
         // auto_comic_generation 플래그 확인
         console.log('Response data:', data);
         console.log(data.intent == MessageIntent.StartComicGeneration)
         if (data.intent == MessageIntent.StartComicGeneration) {
-          /*
-          //즉시 다음 단계로 stage 설정 (깜빡임 방지)
-          if (data.stage === 'revision_1') {
-            queryClient.setQueryData(['session', journalEntryId], (old: JournalingSessionInfo) => (old ? {
-              ...old,
-              stage: 'comic_context'
-            } : undefined));
-          } else if (data.stage === 'comic_context') {
-            queryClient.setQueryData(['session', journalEntryId], (old: JournalingSessionInfo) => (old ? {
-              ...old,
-              stage: 'revision_2'
-            } : undefined));
-          }*/
-          
           // 만화 생성 상태 모니터링 시작
             try {
               // 만화 생성 시작 (프로그레스바와 연결됨)
@@ -246,22 +200,42 @@ export const JournalingScreen = () => {
 
   return (
     <Portal.Host>
-    <KeyboardAvoidingView className='flex-1 bg-gray-100' behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <ChatStage
+      <View className='flex-1 bg-gray-100 flex-row'>
+        <View className="flex-[1.8] bg-white border-r-2 border-gray-200">
+          {/* 만화 헤더 */}
+          <View className="flex-row justify-between items-center p-3 border-b border-gray-200 pt-4">
+              <LogoImage width={150} height={30} />
+              <TouchableOpacity
+                onPress={handleEndSession}
+                className="bg-yellow-500 px-3 py-2 rounded-lg"
+                activeOpacity={0.8}
+              >
+                <Text className="text-white text-sm" style={styleTemplates.withBoldFont}>
+                  {t('ChatStage.EndSession')}
+              </Text>
+              </TouchableOpacity>
+          </View>
+          <ComicView
+            className="flex-1 relative"
             comicGenerationStatus={comicGenerationStatus}
             progressAnimation={progressAnimation}
-            sendMessage={sendMessage}
-            agentName={agentName || t('Journaling.Common.DefaultAgentName')}
-            agentConfig={agentConfig}
             sessionId={journalEntryId}
-            onTTSComplete={() => {
-              // 완료 메시지가 아닐 때만 ChatInput 활성화
-              if (lastBotMessage?.intent !== MessageIntent.PromptNext) {
-                setIsInputActive(true);
-              }
-            }}
-            onEndSession={handleEndSession}
           />
-    </KeyboardAvoidingView></Portal.Host>
+        </View>
+        <ChatSidebar
+          className="flex-1 bg-white"
+          sessionId={journalEntryId}
+          comicGenerationStatus={comicGenerationStatus}
+          sendMessage={sendMessage}
+          onTTSComplete={() => {
+            // 완료 메시지가 아닐 때만 ChatInput 활성화
+            if (lastBotMessage?.intent !== MessageIntent.PromptNext) {
+              setIsInputActive(true);
+            }
+          }}
+        />
+      </View>
+      
+    </Portal.Host>
   );
 };
