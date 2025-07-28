@@ -26,6 +26,7 @@ import { styleTemplates } from '../../../styles';
 import { twMerge } from 'tailwind-merge';
 import colors from 'tailwindcss/colors';
 import { KeyboardIcon } from '../../../components/svg-images';
+import Reanimated, { Easing, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 
 interface ChatInputProps {
   journalEntryId: string;
@@ -305,10 +306,13 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     return <>
       <View className="pt-6 px-6 pb-2">
         {/* 음성 녹음 상태 표시 */}
-        <VoiceRecordingStatus
+        {
+          isInputActive && isVoiceRecording ? <VoiceRecordingStatus
           agentName={agentName}
           onComplete={completeVoiceRecording}
-        />
+        /> : null
+        }
+        
 
         {/* 버튼들 */}
         <ChatButtons
@@ -321,7 +325,10 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
 
         {/* 채팅 입력 버튼 */}
         {
-          (isInputActive && (isChatInputMessage || !isVoiceCompleted) && userButtonMode == null) ? <TailwindButton 
+          (isInputActive && (isChatInputMessage || !isVoiceCompleted) && userButtonMode == null) ? <Reanimated.View 
+              entering={SlideInDown.duration(600).easing(Easing.inOut(Easing.cubic))}
+              exiting={SlideOutDown.duration(400).easing(Easing.inOut(Easing.cubic))}
+              ><TailwindButton 
               disabledTitleClassName='text-gray-300' buttonStyleClassName='bg-white flex-row items-center justify-center gap-2' roundedClassName='rounded-xl' shadowClassName='shadow-none'
               disabled={isTextInputDisabled}
               disabledButtonStyleClassName='bg-white/50'
@@ -329,7 +336,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
               >
                 <KeyboardIcon width={24} height={24} fill={isTextInputDisabled ? colors.gray[300] : colors.slate[600]}/>
                 <Text className={twMerge("text-slate-600", isTextInputDisabled ? "text-gray-300" : "")} style={styleTemplates.withBoldFont}>{t('Chat.ChatButton')}</Text>
-              </TailwindButton> : null
+              </TailwindButton></Reanimated.View> : null
         }
       </View>
       <ChatTextInputModal onSubmitText={sendMessage} visible={isTextInputModalVisible} onClose={()=>{setIsTextInputModalVisible(false)}}/>
