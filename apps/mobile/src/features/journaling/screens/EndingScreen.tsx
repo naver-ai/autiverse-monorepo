@@ -9,8 +9,6 @@ import { usePrevious } from "@uidotdev/usehooks";
 
 export const EndingScreen = () => {
 
-  const {journalEntryId} = useLocalSearchParams();
-
   const [mode, setMode] = useState<'farewell' | 'praise'>('praise');
   const previousMode = usePrevious(mode)
 
@@ -37,7 +35,7 @@ export const EndingScreen = () => {
 
   useEffect(()=>{
     if(previousMode !== mode && mode === 'farewell'){
-      farewellSectionRef.current?.runAnimation(handleFarewellComplete);
+      farewellSectionRef.current?.runAnimation();
     }
   }, [
     previousMode,
@@ -51,7 +49,7 @@ export const EndingScreen = () => {
             dyad ? (mode == 'praise' ? (
                 <PraiseSection childName={dyad?.child_name} onComplete={() => setMode('farewell')} />
             ) : (
-                dyad && <FarewellSection ref={farewellSectionRef} childName={dyad?.child_name} agentConfig={dyad?.agents[0]?.agent_config} locale={dyad?.locale} />
+                dyad && <FarewellSection ref={farewellSectionRef} childName={dyad?.child_name} agentConfig={dyad?.agents[0]?.agent_config} locale={dyad?.locale} onCompleteHandler={handleFarewellComplete} />
             )) : null
         }
         <LoadingOverlay isLoading={isDyadLoading} />

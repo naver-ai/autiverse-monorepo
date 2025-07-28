@@ -10,6 +10,87 @@ import { getTTSOptionsFromAgentConfig } from '../../utils/speechUtils';
 import { AgentImage } from '../AgentImage';
 import { useDyad } from '../../../../api/dyad';
 import { UserLocale, appendJosa } from '@autiverse-monorepo/ts-core';
+import { useSpeechAnimation } from '../../hooks/useSpeechAnimation'
+import Reanimated from 'react-native-reanimated';
+import { AnimatedText } from '../../../../components/AnimatedText';
+import { twMerge } from 'tailwind-merge';
+
+interface StampViewProps {
+  emoji: string;
+  index: number;
+  isPopped: boolean;
+  isActive: boolean;
+  stampScale: Animated.Value;
+  stampAnimation: Animated.Value;
+  bubbleAnimation: Animated.Value;
+  contentAnimation: Animated.Value;
+  onPress: (index: number) => void;
+}
+
+const StampView: React.FC<StampViewProps> = ({
+  emoji,
+  index,
+  isPopped,
+  isActive,
+  stampScale,
+  stampAnimation,
+  bubbleAnimation,
+  contentAnimation,
+  onPress
+}) => {
+  
+  return (
+    <Animated.View
+      className={twMerge("bg-transparent")}  
+      style={{
+        transform: [
+          { scale: stampScale },
+          { scale: stampAnimation }
+        ],
+      }}
+    >
+      <TouchableOpacity
+        onPress={() => onPress(index)}
+        disabled={isPopped || !isActive}
+        activeOpacity={isActive ? 0.8 : 1}
+        className="bg-transparent"
+      >
+        <Animated.View 
+          className={twMerge(" w-64 h-64 bg-slate-50 border-3 border-white/40 rounded-full flex-row items-center justify-center", isActive && "border-2 border-autiverse-yellow")}
+          style={{
+            transform: [{ scale: bubbleAnimation }],
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.15,
+            shadowRadius: 16,
+            elevation: 10,
+          }}
+        >
+          <Animated.View
+            className="bg-transparent"
+            style={{
+              transform: [{ scale: contentAnimation }],
+            }}
+          >
+            <Text 
+              className="text-9xl text-center" 
+              style={[
+                {
+                  textAlign: 'center',
+                  includeFontPadding: false,
+                  textAlignVertical: 'center',
+                }
+              ]}
+              allowFontScaling={false}
+            >
+              {emoji}
+            </Text>
+          </Animated.View>
+        </Animated.View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
 interface PraiseSectionProps {
   childName?: string; // 아이 이름
@@ -141,11 +222,16 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
       }, 500); // 0.5초 후 farewell section으로 이동
     }
   };
+
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const {ttsScalePulseStyle, ttsBorderColorStyle} = useSpeechAnimation(isSpeaking);
   
   // 첫 번째 메시지 시작
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowFirstMessage(true);
+      setIsSpeaking(true);
       startSpeech(firstMessage, {
           ...getTTSOptionsFromAgentConfig(agentConfig),
           onDone: () => {
@@ -185,12 +271,15 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
                       setTimeout(() => {
                         setStampsActive(true);
                       }, 500);
+
+                      setIsSpeaking(false);
                     },
                     onError: (error) => {
                       // 에러 시에도 스탬프 활성화
                       setTimeout(() => {
                         setStampsActive(true);
                       }, 500);
+                      setIsSpeaking(false);
                     }
                   });
                 }, 500);
@@ -202,6 +291,7 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
                   setShowStampMessage(true);
                   setStampsActive(true);
                 }, 500);
+                setIsSpeaking(false);
               }
             });
           }, 500);
@@ -214,6 +304,7 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
             setShowStamp(true);
             setStampsActive(true);
           }, 500);
+          setIsSpeaking(false);
         }
       });
     }, 500); // 1초 후 첫 번째 메시지 시작
@@ -234,14 +325,17 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
     };
   }, []);
 
+  const stampEmojis = ['🏆', '⭐', '🏅'];
+
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
       <View className="flex-1 px-6">
         {/* 상단 Agent + 문구 영역 */}
         <View className="pt-8 pb-4">
-          <View className="bg-white rounded-3xl p-6 shadow-lg w-full">
+          <Reanimated.View style={ttsBorderColorStyle} className="bg-white rounded-3xl p-6 shadow-lg w-full border-2 border-gray-200">
             <View className="flex-row items-center">
-                              <AgentImage
+              <Reanimated.View style={ttsScalePulseStyle}>
+                <AgentImage
                   avatarImage={agentConfig?.avatar_image || ''}
                   style={{
                     width: 50,
@@ -251,195 +345,61 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
                     marginRight: 12
                   }}
                 />
+              </Reanimated.View>
               <View className="flex-1">
                 {showFirstMessage && (
-                  <Text 
-                    className="text-2xl text-gray-800 leading-relaxed text-center mb-2" 
-                    style={styleTemplates.withBoldFont}
-                  >
-                    {firstMessage}
-                  </Text>
+                  <AnimatedText 
+                    className="mb-2 justify-center"
+                    textClassName="text-2xl text-gray-800" 
+                    textStyle={styleTemplates.withBoldFont}
+                    text={firstMessage}
+                    initialDelay={0}
+                    charInterval={100}
+                  />
                 )}
                 {showSecondMessage && (
-                  <Text 
-                    className="text-2xl text-gray-800 leading-relaxed text-center mb-2" 
-                    style={styleTemplates.withBoldFont}
-                  >
-                    {secondMessage}
-                  </Text>
+                  <AnimatedText 
+                    className="mb-2 justify-center"
+                    textClassName="text-2xl text-gray-800" 
+                    textStyle={styleTemplates.withBoldFont}
+                    text={secondMessage}
+                    initialDelay={0}
+                    charInterval={100}
+                  />    
                 )}
                 {showStampMessage && (
-                  <Text 
-                    className="text-2xl text-gray-800 leading-relaxed text-center mb-2" 
-                    style={styleTemplates.withBoldFont}
-                  >
-                    {stampMessage}
-                  </Text>
+                  <AnimatedText 
+                    className="mb-2 justify-center"
+                    textClassName="text-2xl text-gray-800" 
+                    textStyle={styleTemplates.withBoldFont}
+                    text={stampMessage}
+                    initialDelay={0}
+                    charInterval={100}
+                  />
                 )}
               </View>
             </View>
-          </View>
+          </Reanimated.View>
         </View>
 
         {/* 중앙 스탬프 3개 영역 */}
         <View className="flex-1 items-center justify-center bg-transparent">
           {showStamp && (
             <View className="flex-row justify-center space-x-24 bg-transparent">
-              <Animated.View
-                className="bg-transparent"
-                style={{
-                  transform: [
-                    { scale: stampScale },
-                    { scale: stampAnimations[0] }
-                  ],
-                }}
-              >
-                <TouchableOpacity
-                  onPress={() => popStamp(0)}
-                  disabled={poppedStamps[0] || !stampsActive}
-                  activeOpacity={stampsActive ? 0.8 : 1}
-                  className="bg-transparent"
-                >
-                  <Animated.View 
-                    className="bg-slate-50 border-3 border-white/40 rounded-full p-16"
-                    style={{
-                      opacity: bubbleAnimations[0],
-                      transform: [{ scale: bubbleAnimations[0] }],
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 6 },
-                      shadowOpacity: 0.15,
-                      shadowRadius: 16,
-                      elevation: 10,
-                    }}
-                  >
-                    <Animated.View
-                      className="bg-transparent"
-                      style={{
-                        transform: [{ scale: contentAnimations[0] }],
-                      }}
-                    >
-                      <Text 
-                        className="text-9xl text-center" 
-                        style={[
-                          styleTemplates.withBoldFont,
-                          {
-                            textAlign: 'center',
-                            includeFontPadding: false,
-                            textAlignVertical: 'center',
-                          }
-                        ]}
-                        allowFontScaling={false}
-                      >
-                        🏆
-                      </Text>
-                    </Animated.View>
-                  </Animated.View>
-                </TouchableOpacity>
-              </Animated.View>
-              
-              <Animated.View
-                className="bg-transparent"
-                style={{
-                  transform: [
-                    { scale: stampScale },
-                    { scale: stampAnimations[1] }
-                  ],
-                }}
-              >
-                <TouchableOpacity
-                  onPress={() => popStamp(1)}
-                  disabled={poppedStamps[1] || !stampsActive}
-                  activeOpacity={stampsActive ? 0.8 : 1}
-                  className="bg-transparent"
-                >
-                  <Animated.View 
-                    className="bg-slate-50 border-3 border-white/40 rounded-full p-16"
-                    style={{
-                      opacity: bubbleAnimations[1],
-                      transform: [{ scale: bubbleAnimations[1] }],
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 6 },
-                      shadowOpacity: 0.15,
-                      shadowRadius: 16,
-                      elevation: 10,
-                    }}
-                  >
-                    <Animated.View
-                      className="bg-transparent"
-                      style={{
-                        transform: [{ scale: contentAnimations[1] }],
-                      }}
-                    >
-                      <Text 
-                        className="text-9xl text-center" 
-                        style={[
-                          styleTemplates.withBoldFont,
-                          {
-                            textAlign: 'center',
-                            includeFontPadding: false,
-                            textAlignVertical: 'center',
-                          }
-                        ]}
-                        allowFontScaling={false}
-                      >
-                        ⭐
-                      </Text>
-                    </Animated.View>
-                  </Animated.View>
-                </TouchableOpacity>
-              </Animated.View>
-              
-              <Animated.View
-                className="bg-transparent"
-                style={{
-                  transform: [
-                    { scale: stampScale },
-                    { scale: stampAnimations[2] }
-                  ],
-                }}
-              >
-                <TouchableOpacity
-                  onPress={() => popStamp(2)}
-                  disabled={poppedStamps[2] || !stampsActive}
-                  activeOpacity={stampsActive ? 0.8 : 1}
-                  className="bg-transparent"
-                >
-                  <Animated.View 
-                    className="bg-slate-50 border-3 border-white/40 rounded-full p-16"
-                    style={{
-                      opacity: bubbleAnimations[2],
-                      transform: [{ scale: bubbleAnimations[2] }],
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 6 },
-                      shadowOpacity: 0.15,
-                      shadowRadius: 16,
-                      elevation: 10,
-                    }}
-                  >
-                    <Animated.View
-                      className="bg-transparent"
-                      style={{
-                        transform: [{ scale: contentAnimations[2] }],
-                      }}
-                    >
-                      <Text 
-                        className="text-9xl text-center" 
-                        style={[
-                          styleTemplates.withBoldFont,
-                          {
-                            textAlign: 'center',
-                            includeFontPadding: false,
-                            textAlignVertical: 'center',
-                          }
-                        ]}
-                        allowFontScaling={false}
-                      >
-                        🏅
-                      </Text>
-                    </Animated.View>
-                  </Animated.View>
-                </TouchableOpacity>
-              </Animated.View>
+              {stampEmojis.map((emoji, index) => (
+                <StampView
+                  key={index}
+                  emoji={emoji}
+                  index={index}
+                  isPopped={poppedStamps[index]}
+                  isActive={stampsActive}
+                  stampScale={stampScale}
+                  stampAnimation={stampAnimations[index]}
+                  bubbleAnimation={bubbleAnimations[index]}
+                  contentAnimation={contentAnimations[index]}
+                  onPress={popStamp}
+                />
+              ))}
             </View>
           )}
         </View>

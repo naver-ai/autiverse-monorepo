@@ -8,7 +8,7 @@ import { useSession } from '../hooks/useSession';
 import { useJournalingStore } from '../store';
 import { useSpeechAnimation } from '../hooks/useSpeechAnimation';
 import Reanimated from 'react-native-reanimated';
-import { AnimatedText } from '../../../components/AniamtedText';
+import { AnimatedText } from '../../../components/AnimatedText';
 
 interface ChatMessageProps {
   journalEntryId: string;
