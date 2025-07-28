@@ -28,8 +28,8 @@ export const useSpeechState = create<SpeechStore>((set) => ({
 
 // 기본 TTS 설정 (fallback)
 export const FALLBACK_TTS_OPTIONS = {
-  voice: 'nsabina',
-  speed: 0.8,
+  voice: 'vyuna',
+  speed: 1.0,
   pitch: 1.2,
   volume: 1.0,
 } as const;
@@ -79,15 +79,20 @@ export const useSpeech = () => {
     };
   }, []);
 
+  const stop = useCallback(async () => {
+    if (isSpeaking && globalSoundInstance) {
+      await cleanupSound();
+      reset()
+    }
+  }, [cleanupSound, isSpeaking, cleanupSound]);
+
   const speak = useCallback(async (text: string, options: SpeechOptions = {}) => {
 
     if(!jwt){
       return;
     }
 
-    if (isSpeaking) {
-      await stop();
-    }
+    await stop();
 
     setCurrentText(text);
     setIsSpeaking(true);
@@ -143,14 +148,7 @@ export const useSpeech = () => {
       setCurrentText('');
       options.onError?.(error);
     }
-  }, [jwt, isSpeaking, setIsSpeaking, setCurrentText]);
-
-  const stop = useCallback(async () => {
-    if (isSpeaking && globalSoundInstance) {
-      await cleanupSound();
-      reset()
-    }
-  }, [cleanupSound, isSpeaking, cleanupSound]);
+  }, [jwt, isSpeaking, setIsSpeaking, setCurrentText, stop]);
 
   return {
     isSpeaking,

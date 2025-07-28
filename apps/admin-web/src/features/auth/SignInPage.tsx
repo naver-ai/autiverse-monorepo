@@ -31,7 +31,6 @@ export const SignInPage = () => {
         mutationFn: (data: FormValues) => loginApi(data.password),
         onSuccess: (data) => {
             // Handle successful login
-            console.log('Login successful:', data);
             localStorage.setItem('auth_token', data);
             navigate({ to: '/dyads/list' });
         },

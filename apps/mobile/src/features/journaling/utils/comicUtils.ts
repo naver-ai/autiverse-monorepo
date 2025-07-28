@@ -1,4 +1,4 @@
-import { ComicData, ComicPanel } from '../types';
+import { ComicData, ComicPanel } from '@autiverse-monorepo/ts-core';
 
 // 타일 타입별 색상 정의
 export const getTileColor = (type: string) => {

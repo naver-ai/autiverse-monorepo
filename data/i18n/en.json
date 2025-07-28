@@ -52,7 +52,7 @@
         "VoiceRecording": {
             "CleanupError": "Error during voice recording cleanup:"
         },
-        "DefaultTitle": "Comic Diary",
+        "DefaultTitleTemplate": "Comic Diary by {child_name} and {agent_name}",
         "FarewellSection": {
             "MessageTemplate": "{child_name}, let's meet again next time and write a fun comic diary together. Goodbye~"
         },

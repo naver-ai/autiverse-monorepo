@@ -3,11 +3,12 @@ from typing import Dict, Any, List, Optional
 from backend.database.crud.chatbot import (
     get_journal_entry, update_journal_entry_stage, get_journal, 
     update_journal_data, create_interaction_turn, create_message,
-    get_messages_by_journal_entry, update_comic_data
+    get_messages_by_journal_entry, update_comic_data, update_comic_status
 )
-from backend.database.models import JournalEntryStage, MessageRole
+from backend.core.ai.pipelines.comic_context_stage import ComicContextStage
+from backend.database.models import JournalEntryStage, MessageRole, MessageIntent, ComicStatus, Dyad, Message
 from sqlalchemy.orm import Session
-from backend.utils.network_helper import NetworkHelper
+from backend.utils.i18n import t
 
 
 class Revision1Stage:
@@ -18,6 +19,15 @@ class Revision1Stage:
         # Journal에서 revision_count 가져오기
         self.revision_count = self._get_revision_count()
         self.max_revisions = 2
+
+    def _get_dyad(self) -> Dyad:
+        """dyad 정보를 가져오기"""
+        from backend.database.crud.chatbot import get_journal_entry
+
+        print("Get dyad of journal entry: ", self.journal_entry_id)
+
+        journal_entry = get_journal_entry(self.db, self.journal_entry_id)
+        return journal_entry.dyad if journal_entry and journal_entry.dyad else None
     
     def _get_child_name(self) -> str:
         """dyad의 child_name을 가져오기"""
@@ -47,7 +57,7 @@ class Revision1Stage:
         )
         self.revision_count = new_count
         
-    def start_revision(self) -> str:
+    def start_revision(self) -> Message:
         """첫 번째 수정 단계 시작"""
         # Journal entry stage 업데이트
         update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Revision1)
@@ -59,14 +69,15 @@ class Revision1Stage:
         
         # 첫 번째 수정 질문 생성
         initial_question = "그럼 네가 지금 말해준 내용으로 오늘의 그림일기를 써보자! 먼저 내가 잘 들었는지 왼쪽 내용을 읽어서 확인해줘~ 내가 다 맞게 들었을까? 🤔"
-        create_message(
+        message = create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            initial_question, MessageRole.Assistant, JournalEntryStage.Revision1
+            initial_question, MessageRole.Assistant, JournalEntryStage.Revision1,
+            intent=MessageIntent.PromptIssueExist
         )
         
-        return initial_question
+        return message
     
-    def process_message(self, user_message: str, audio_filename: str = None) -> str:
+    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message:
         """사용자 메시지 처리"""
         # 현재 interaction turn 가져오기
         interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Revision1)
@@ -75,79 +86,59 @@ class Revision1Stage:
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             user_message, MessageRole.User, JournalEntryStage.Revision1,
-            audio_filename=audio_filename
+            audio_filename=audio_filename,
+            intent=intent
         )
         
         # 봇 응답 생성
-        bot_response = self._generate_response(user_message)
-        
-        # 만화 생성 시작 신호인지 확인
-        if bot_response == "COMIC_GENERATION_START":
-            # 만화 생성 시작 신호만 반환
-            return "COMIC_GENERATION_START"
+        bot_response, intent = self._generate_response(user_message, intent)
         
         # 봇 응답 저장
-        create_message(
+        message = create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            bot_response, MessageRole.Assistant, JournalEntryStage.Revision1
+            bot_response, MessageRole.Assistant, JournalEntryStage.Revision1,
+            intent=intent
         )
         
-        return bot_response
+        return message
     
-    def _generate_response(self, user_message: str) -> str:
+    def _generate_response(self, user_message: str, intent: MessageIntent | None = None) -> tuple[str, MessageIntent]:
         """사용자 메시지에 대한 응답 생성"""
         
         # "네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까?" 질문에 대한 답변 처리
         if self._is_correction_confirmation_question():
-            if self._is_negative_response(user_message):
+            if self._is_negative_response(user_message, intent):
                 # 수정할 부분이 있다면 revision_count 증가하고 수정 요청
                 new_count = self.revision_count + 1
                 self._update_revision_count(new_count)
                 print(f"[DEBUG] revision_1: revision_count: {self.revision_count}")
                 if self.revision_count > self.max_revisions:
-                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 고치고 싶은 부분이 있다면 말해줘~"
+                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 고치고 싶은 부분이 있다면 말해줘~", MessageIntent.PromptOpenEndedAnswer
                 elif self.revision_count == self.max_revisions:
-                    return "아앗;; 이제 마지막 기회야! 지금 틀린 부분이 있다면 다 말해줘~ 😅"
+                    return "아앗;; 이제 마지막 기회야! 지금 틀린 부분이 있다면 다 말해줘~ 😅", MessageIntent.PromptOpenEndedAnswer
                 else:
-                    return "아앗;; 어디가 어떻게 틀렸어? 😅"
-            elif self._is_positive_response(user_message):
+                    return "아앗;; 어디가 어떻게 틀렸어? 😅", MessageIntent.PromptOpenEndedAnswer
+            elif self._is_positive_response(user_message, intent):
                 # 수정 완료, 만화 생성 시작 메시지 전송
-                return "COMIC_GENERATION_START"
-            else:
-                return "응 아니 중에 골라줘! 😅"
-        
-        # 질문에 대한 답변 처리
-        if self._is_question_response():
-            if self._is_negative_response(user_message):
-                # 수정할 부분이 있다면 revision_count 증가하고 수정 요청
-                new_count = self.revision_count + 1
-                self._update_revision_count(new_count)
-                print(f"[DEBUG] revision_1: revision_count: {self.revision_count}")
-                if self.revision_count > self.max_revisions:
-                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 고치고 싶은 부분이 있다면 말해줘~"
-                elif self.revision_count == self.max_revisions:
-                    return "아앗;; 이제 마지막 기회야! 지금 틀린 부분이 있다면 다 말해줘~ 😅"
-                else:
-                    return "아앗;; 어디가 어떻게 틀렸어? 😅"
-            elif self._is_positive_response(user_message):
-                # 수정할 부분이 없다면 comic_intro를 revision_1에 저장하고 만화 생성 시작 메시지 전송
                 journal = get_journal(self.db, self.journal_entry_id)
                 if journal and journal.comic_intro:
                     update_journal_data(
                         self.db, self.journal_entry_id,
                         revision_1=journal.comic_intro
                     )
-                return "COMIC_GENERATION_START"
+
+                return t('Journaling.Messages.Revision1Confirmation', self._get_dyad().locale), MessageIntent.StartComicGeneration
             else:
-                return "응 아니 중에 골라줘! 😅"
+                print(f"[DEBUG] revision_1: _generate_response: intent={intent}, Should not reach here!!")
+                raise Exception("Revision 1: Correction confirmation questions must be answered through intent")
         else:
             # 구체적인 수정 내용이 들어온 경우
             try:
                 self._apply_user_correction(user_message)
-                return "네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까? 🤔"
+                return "네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까? 🤔", MessageIntent.PromptIssueExist
             except Exception as e:
                 print(f"[DEBUG] revision_1: Error applying user correction: {e}")
-                return "수정하는데 문제가 생겼어. 다시 말해줘! 😅"
+                return "수정하는데 문제가 생겼어. 다시 말해줘! 😅", MessageIntent.PromptOpenEndedAnswer
         
 
     
@@ -158,42 +149,27 @@ class Revision1Stage:
             # 현재 사용자 메시지가 저장되기 전의 마지막 봇 메시지를 찾기 위해 -2 인덱스 사용
             for i in range(len(messages) - 1, -1, -1):
                 if messages[i].role == MessageRole.Assistant:
-                    last_bot_message = messages[i].content
-                    result = "네가 말해준 내용대로 바꿔봤어" in last_bot_message
-                    return result
+                    return messages[i].intent == MessageIntent.PromptIssueExist
             return False
         return False
     
-    def _is_question_response(self) -> bool:
-        """현재 응답이 질문에 대한 답변인지 확인"""
-        messages = get_messages_by_journal_entry(self.db, self.journal_entry_id)
-        if messages:
-            # 현재 사용자 메시지가 저장되기 전의 마지막 봇 메시지를 찾기 위해 -2 인덱스 사용
-            for i in range(len(messages) - 1, -1, -1):
-                if messages[i].role == MessageRole.Assistant:
-                    last_bot_message = messages[i].content
-                    # 질문인지 확인
-                    question_keywords = [
-                        "다 맞게 들었을까?",
-                        "아직도 틀린 부분 있어?",
-                        "이제 다 맞을까?"
-                    ]
-                    result = any(keyword in last_bot_message for keyword in question_keywords)
-                    return result
-            return False
-        return False
-    
-    def _is_negative_response(self, message: str) -> bool:
+    def _is_negative_response(self, message: str, intent: MessageIntent) -> bool:
         """부정적인 응답인지 확인"""
-        negative_keywords = ["아니", "no", "n", "틀렸어", "아니야", "틀린 게 있어", "아직 있어"]
-        result = any(keyword in message.lower() for keyword in negative_keywords)
-        return result
+        if intent == MessageIntent.AnswerNegative:
+            return True
+        else:
+            negative_keywords = ["아니", "no", "n", "틀렸어", "아니야", "틀린 게 있어", "아직 있어"]
+            result = any(keyword in message.lower() for keyword in negative_keywords)
+            return result
     
-    def _is_positive_response(self, message: str) -> bool:
+    def _is_positive_response(self, message: str, intent: MessageIntent) -> bool:
         """긍정적인 응답인지 확인"""
-        positive_keywords = ["응", "네", "yes", "y", "맞아", "좋아", "다 맞아", "이제 충분해"]
-        result = any(keyword in message.lower() for keyword in positive_keywords)
-        return result
+        if intent == MessageIntent.AnswerPositive:
+            return True
+        else:
+            positive_keywords = ["응", "네", "yes", "y", "맞아", "좋아", "다 맞아", "이제 충분해"]
+            result = any(keyword in message.lower() for keyword in positive_keywords)
+            return result
     
     def _apply_user_correction(self, correction: str) -> None:
         """사용자 수정 내용 적용"""
@@ -305,10 +281,12 @@ User's correction request: {correction}
         else:
             return create_interaction_turn(self.db, self.journal_entry_id, stage)
 
-    def _generate_comic_panels(self) -> None:
+    async def _generate_comic_panels(self) -> dict | None:
         """revision_1 완료 시 만화 패널 생성 및 Comic 테이블에 저장"""
         try:
             journal = get_journal(self.db, self.journal_entry_id)
+
+            print(f"[DEBUG] revision_1: Journal: {journal}")
             if not journal or not journal.revision_1:
                 return
             
@@ -319,25 +297,65 @@ User's correction request: {correction}
                 "panel3": journal.revision_1.get("panel3", "") if journal.revision_1.get("panel3") != "null" else "",
                 "panel4": journal.revision_1.get("panel4", "") if journal.revision_1.get("panel4") != "null" else ""
             }
+
+            print(f"[DEBUG] revision_1: Comic panels: {panel_contents}")
             
-            # NetworkHelper를 사용하여 API 호출
+            # 직접 ComicGridGenerator 호출
             try:
-                endpoints = NetworkHelper.get_comic_generation_endpoints()
-                start_url = endpoints['START']
+                from backend.core.ai import ComicGridGenerator
+                
+                # 진행률 콜백 함수 정의
+                async def progress_callback(progress: int, message: str):
+                    """만화 생성 진행률에 따라 상태 업데이트"""
+                    status = ComicStatus.Generating0
+                    if progress <= 20:
+                        status = ComicStatus.Generating1
+                    elif progress <= 60:
+                        status = ComicStatus.Generating2
+                    elif progress <= 75:
+                        status = ComicStatus.Generating3
+                    elif progress <= 90:
+                        status = ComicStatus.Generating4
+                    print(f"[DEBUG] Progress: {progress}% - {message}")
+
+                    await update_comic_status(self.db, self.journal_entry_id, status, None)
+                
+                # 초기 상태 설정
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Generating0, None)
                 
                 # 만화 생성 시작
-                response = NetworkHelper.make_internal_request('POST', start_url, {
-                    'journal_entry_id': self.journal_entry_id,
-                    'panel_contents': panel_contents
-                })
+                generator = ComicGridGenerator()
+                comic_data = await generator.generate_comic_grids(panel_contents, progress_callback)
+
+                # 데이터베이스에 저장
+                update_comic_data(self.db, self.journal_entry_id, comic_data)
                 
-                if response.status_code == 200:
-                    print(f"[DEBUG] revision_1: Comic generation started for {self.journal_entry_id}")
-                else:
-                    print(f"[DEBUG] revision_1: Failed to start comic generation: {response.status_code}")
-                    
+                print(f"[DEBUG] revision_1: Comic generation completed for {self.journal_entry_id}")
+                print(f"[DEBUG] revision_1: Comic data: {comic_data}")
+
+                # Auto comic generation에서 하던대로 새 메시지 업데이트
+                # comic_context로 전환
+                context_stage = ComicContextStage(self.db, self.journal_entry_id)
+                response_message = context_stage.start_context_analysis()
+                
+                response = {
+                    "journal_entry_id": self.journal_entry_id,
+                    "message_id": response_message.id,
+                    "response": response_message,
+                    "intent": response_message.intent,
+                    "stage": "comic_context"
+                }
+                
+                # 완료 상태 설정
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Completed, comic_data, response)
+                
+                return comic_data
+            
             except Exception as e:
-                print(f"[DEBUG] revision_1: Error starting comic generation: {e}")
+                print(f"[DEBUG] revision_1: Error in comic generation: {e}")
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Error, None)
+                import traceback
+                traceback.print_exc()
             
         except Exception as e:
             print(f"[DEBUG] revision_1: Error generating comic panels: {e}")
@@ -346,8 +364,6 @@ User's correction request: {correction}
     
 
     
-    def get_initial_question(self) -> str:
+    def get_initial_question(self) -> tuple[str, MessageIntent]:
         """첫 번째 수정 질문을 반환합니다."""
-        return "여기서 틀린 부분 있어? 🤔"
-    
- 
+        return "여기서 틀린 부분 있어? 🤔", MessageIntent.PromptIssueExist

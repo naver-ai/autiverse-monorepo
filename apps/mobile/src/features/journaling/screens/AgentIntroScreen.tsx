@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -18,27 +18,9 @@ import { getImageSource } from '../utils/imageUtils';
 import { AgentImage } from '../components/AgentImage';
 import { useSpeechAnimation } from '../hooks/useSpeechAnimation';
 import Reanimated from 'react-native-reanimated';
+import { appendJosa, UserLocale } from '@autiverse-monorepo/ts-core';
 
 const { width, height } = Dimensions.get('window');
-
-// 한글 조사 처리 함수 (종성에 따라 '아'/'야' 선택)
-const getKoreanJosa = (name: string): string => {
-  if (!name) return '야';
-
-  const lastName = name.charAt(name.length - 1);
-  const lastNameCode = lastName.charCodeAt(0);
-
-  // 한글 유니코드 범위: 44032 ~ 55203
-  if (lastNameCode >= 44032 && lastNameCode <= 55203) {
-    // 한글 유니코드에서 종성 계산: (유니코드 - 44032) % 28
-    const jongseong = (lastNameCode - 44032) % 28;
-    // 종성이 있으면 (0이 아니면) '아', 없으면 (0이면) '야'
-    return jongseong === 0 ? '야' : '아';
-  }
-
-  // 한글이 아닌 경우 기본값
-  return '야';
-};
 
 export function AgentIntroScreen() {
   const { t } = useTranslation();
@@ -49,31 +31,41 @@ export function AgentIntroScreen() {
   const [isTTSActive, setIsTTSActive] = useState(false);
 
   const {startSpeech, stopSpeech} = useSpeech()
-  const { dyad, agentConfig, isDyadLoading, dyadError } = useDyad();
+  const { dyad, locale, agentConfig, isDyadLoading, dyadError } = useDyad();
 
   // TTS 애니메이션 훅 사용
   const { ttsScalePulseStyle, ttsOpacityPulseStyle, ttsBorderColorStyle } = useSpeechAnimation(isTTSActive);
 
+  const childNameWithJosa = useMemo(() => {
+    if(locale === UserLocale.Korean && dyad?.child_name) {
+      return appendJosa(dyad?.child_name, '아', '야');
+    }
+    return dyad?.child_name;
+  }, [dyad?.child_name, locale]);
+
+  const agentNameWithJosa = useMemo(() => {
+    if(locale === UserLocale.Korean && dyad?.agents?.[0]?.agent_name) {
+      return appendJosa(dyad?.agents?.[0]?.agent_name, '아', '야');
+    }
+    return dyad?.agents?.[0]?.agent_name || '친구';
+  }, [dyad?.agents?.[0]?.agent_name, locale]);
+
+
+  const isFirstVisit = (dyad?.journal_entries?.length || 0) <= 1;
+
+  const greetingText = useMemo(() => {
+    return isFirstVisit
+    ? format(t('Journaling.AgentIntro.FirstVisitGreetingTemplate'), { 
+        child_name: childNameWithJosa, 
+        agent_name: agentNameWithJosa 
+      })
+    : format(t('Journaling.AgentIntro.ReturnVisitGreetingTemplate'), { 
+        child_name: childNameWithJosa, 
+      });
+  }, [t, childNameWithJosa, agentNameWithJosa, isFirstVisit]);
+
   useEffect(() => {
     if (dyad && !hasSpoken) {
-      const isFirstVisit = dyad.journal_entries?.length <= 1;
-      const childJosa = getKoreanJosa(dyad.child_name);
-      const agentJosa = getKoreanJosa(dyad.agents?.[0]?.agent_name || '친구');
-
-      const greetingText = isFirstVisit
-        ? format(t('Journaling.AgentIntro.FirstVisitGreetingTemplate'), { 
-            child_name: dyad.child_name, 
-            child_josa: childJosa, 
-            agent_name: dyad.agents?.[0]?.agent_name || '친구', 
-            agent_josa: agentJosa 
-          })
-        : format(t('Journaling.AgentIntro.ReturnVisitGreetingTemplate'), { 
-            child_name: dyad.child_name, 
-            child_josa: childJosa 
-          });
-
-      console.log('AgentIntroScreen: isFirstVisit:', isFirstVisit);
-
       // TTS 시작
       setIsTTSActive(true);
       startSpeech(greetingText, {
@@ -96,7 +88,7 @@ export function AgentIntroScreen() {
         }
       });
     }
-  }, [dyad, hasSpoken]);
+  }, [dyad, hasSpoken, greetingText]);
 
   // 컴포넌트 언마운트 시 TTS 정지
   useEffect(() => {
@@ -109,7 +101,7 @@ export function AgentIntroScreen() {
     if (autoNavigate && !hasNavigated) {
       setHasNavigated(true);
       router.push({
-        pathname: '/(app)/create-comic',
+        pathname: '/(app)/preset-selection',
       });
     }
   }, [autoNavigate, router, hasNavigated]);
@@ -143,23 +135,6 @@ export function AgentIntroScreen() {
       </SafeAreaView>
     );
   } else {
-
-    console.log(dyad)
-    const isFirstVisit = dyad!.journal_entries?.length <= 1;
-    const childJosa = getKoreanJosa(dyad!.child_name);
-    const agentJosa = getKoreanJosa(dyad!.agents?.[0]?.agent_name || '친구');
-
-    const greetingText = isFirstVisit
-      ? format(t('Journaling.AgentIntro.FirstVisitGreetingTemplate'), { 
-          child_name: dyad!.child_name, 
-          child_josa: childJosa, 
-          agent_name: dyad!.agents?.[0]?.agent_name || '친구', 
-          agent_josa: agentJosa 
-        })
-      : format(t('Journaling.AgentIntro.ReturnVisitGreetingTemplate'), { 
-          child_name: dyad!.child_name, 
-          child_josa: childJosa 
-        });
 
     return (
       <SafeAreaView className="flex-1 bg-slate-50">

@@ -4,16 +4,15 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 from backend.utils.environment import get_env_variable, EnvironmentVariables
 from backend.database.crud.chatbot import *
-from backend.database.crud.chatbot import update_journal_entry_stage, update_comic_panels, update_comic_data
+from backend.database.crud.chatbot import update_journal_entry_stage, update_comic_panels, update_comic_data, update_comic_status
 from backend.database.crud.chatbot import get_messages_by_journal_entry_and_stage
 from backend.database.models import JournalEntryStage, MessageRole
-
-
+from backend.utils.i18n import t
+from backend.core.ai.pipelines.revision_2_stage import Revision2Stage
 from sqlmodel import Session
 import json
 import openai
 import os
-from backend.utils.network_helper import NetworkHelper
 
 
 
@@ -43,19 +42,21 @@ class ComicContextStage:
         
         print(f"[DEBUG] comic_context: initialized with child_name={self.child_name}, agent_name={self.agent_name}")
     
+    def _get_dyad(self) -> Dyad:
+        """dyad 정보를 가져오기"""
+        from backend.database.crud.chatbot import get_journal_entry
+        journal_entry = get_journal_entry(self.db, self.journal_entry_id)
+        return journal_entry.dyad if journal_entry and journal_entry.dyad else None
+
     def _get_dyad_info(self) -> tuple[str, int, str, str, list[str]]:
         """dyad 정보를 한 번에 가져오기 (child_name, child_age, child_gender, agent_name, agent_interests)"""
-        from backend.database.crud.chatbot import get_journal_entry
-        
-        journal_entry = get_journal_entry(self.db, self.journal_entry_id)
-        if not journal_entry or not journal_entry.dyad:
+        dyad = self._get_dyad()
+        if not dyad:
             return "사용자", 15, "male", "도도", ["Dinosaurs", "Counting things", "Talking to himself"]
         
-        dyad = journal_entry.dyad
         child_name = dyad.child_name or "사용자"
         child_age = dyad.child_age or 15
         child_gender = dyad.child_gender or "male"
-        
         # agent 정보 가져오기
         agent_name = "도도"  # fallback
         agent_interests = ["Dinosaurs", "Counting things", "Talking to himself"]  # fallback
@@ -111,7 +112,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
 8. If the user asks a question that should be asked to adults or unrelated to the conversation topic, then you can say, "I don't know," and go back to the conversation topic.
 """
         
-    def start_context_analysis(self) -> str:
+    def start_context_analysis(self) -> Message:
         """만화 컨텍스트 분석 시작"""
         try:
             # Journal entry stage 업데이트
@@ -123,19 +124,20 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             )
             
             # 첫 번째 분석 질문 생성
-            initial_question = self._generate_first_question()
+            initial_question, intent = self._generate_first_question()
             
-            create_message(
+            message = create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
-                initial_question, MessageRole.Assistant, JournalEntryStage.ComicContext
+                initial_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
+                intent=intent
             )
             
-            return initial_question
+            return message
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in start_context_analysis: {e}")
             raise
     
-    def process_message(self, user_message: str, audio_filename: str = None) -> str:
+    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message:
         """사용자 메시지 처리"""
         print(f"[DEBUG] comic_context: process_message called with user_message='{user_message}'")
         try:
@@ -146,7 +148,8 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
                 user_message, MessageRole.User, JournalEntryStage.ComicContext,
-                audio_filename=audio_filename
+                audio_filename=audio_filename,
+                intent=intent
             )
             
             # 첫 번째 메시지인 경우 분석 수행
@@ -166,27 +169,38 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                 self._reconstruct_panel(user_message, "사용자 입력", False)
                 self.story_analysis = self._analyze_story_flow()
                 print(f"[DEBUG] comic_context: story_analysis updated: {self.story_analysis}")
-            
+
+
             # 완료 상태 확인
             if self.is_complete():
                 # 만화 생성 시작 신호 반환 (실제 만화 생성은 controller에서 처리)
-                return "COMIC_GENERATION_START"
-            
-            # 다음 질문 생성
-            next_question = self._get_next_question()
-            
-            # 봇 응답 저장
-            create_message(
+                response_message = t('Journaling.Messages.Revision1Confirmation', self._get_dyad().locale)
+                response_intent = MessageIntent.StartComicGeneration
+
+                message = create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
-                next_question, MessageRole.Assistant, JournalEntryStage.ComicContext
-            )
+                    response_message, MessageRole.Assistant, JournalEntryStage.ComicContext,
+                    intent=response_intent
+                )
             
-            return next_question
+                return message
+            else:
+              # 다음 질문 생성
+              next_question, next_intent = self._get_next_question()
+              
+              # 봇 응답 저장
+              message = create_message(
+                  self.db, self.journal_entry_id, interaction_turn.id,
+                  next_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
+                  intent=next_intent
+              )
+              
+              return message
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in process_message: {e}")
             import traceback
             traceback.print_exc()
-            return "미안해! 다시 말해줘! 😅"
+            raise
     
     def _analyze_story_flow(self) -> Dict[str, Any]:
         """스토리 플로우 분석"""
@@ -712,11 +726,11 @@ answer: "{answer}"
         except json.JSONDecodeError:
             print("Failed to parse reconstruction response")
     
-    def _get_next_question(self) -> str:
+    def _get_next_question(self) -> tuple[str, MessageIntent]:
         """다음 질문 생성"""
         try:
             if not self.story_analysis:
-                return "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래??"
+                return "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래??", MessageIntent.PromptNext
             
             # Content 이슈만 확인 (Flow, Order는 _reconstruct_panel에서 처리)
             content_issues = self.story_analysis.get("content", {})
@@ -747,7 +761,7 @@ answer: "{answer}"
             if not has_real_issues:
                 # comic_context 완료 시 다음 단계로 넘어감
                 update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Revision2)
-                return "완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔"
+                return "완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔", MessageIntent.PromptIssueExist
             
             # DB에서 ComicContext stage의 모든 메시지를 conversation_history로 가져오기
             messages = get_messages_by_journal_entry_and_stage(self.db, self.journal_entry_id, JournalEntryStage.ComicContext)
@@ -1000,21 +1014,20 @@ Please generate a question that addresses the FIRST missing information gap."""
 
                 result = response.choices[0].message.content
                 question_data = json.loads(result)
-                return question_data["question"]
+                return question_data["question"], None
                 
             except Exception as e:
                 print(f"[DEBUG] comic_context: Error generating question: {e}")
-                return "다음에 대해 말해줘!"
+                return "다음에 대해 말해줘!", None
             
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in _get_next_question: {e}")
-            return "다음에 대해 말해줘!"
+            return "다음에 대해 말해줘!", None
     
-    def _generate_first_question(self) -> str:
+    def _generate_first_question(self) -> tuple[str, MessageIntent]:
         """첫 번째 질문 생성"""
         try:
-            question = self._get_next_question()
-            return question
+            return self._get_next_question()
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in _generate_first_question: {e}")
             raise
@@ -1072,7 +1085,7 @@ Please generate a question that addresses the FIRST missing information gap."""
         
         return is_complete
     
-    def _generate_final_comic_panels(self) -> None:
+    async def _generate_final_comic_panels(self) -> dict | None:
         """comic_context 완료 시 최종 만화 패널 생성 및 Comic 테이블에 저장"""
         try:
             # comic_context 데이터 가져오기
@@ -1088,24 +1101,64 @@ Please generate a question that addresses the FIRST missing information gap."""
                 "panel4": journal.comic_context.get("panel4", "") if journal.comic_context.get("panel4") != "null" else ""
             }
             
-            # NetworkHelper를 사용하여 API 호출
+            # 직접 ComicGridGenerator 호출
             try:
-                endpoints = NetworkHelper.get_comic_generation_endpoints()
-                start_url = endpoints['START']
+                from backend.core.ai import ComicGridGenerator
+                
+                # 진행률 콜백 함수 정의
+                async def progress_callback(progress: int, message: str):
+                    """만화 생성 진행률에 따라 상태 업데이트"""
+                    status = ComicStatus.Generating0
+                    if progress <= 20:
+                        status = ComicStatus.Generating1
+                    elif progress <= 60:
+                        status = ComicStatus.Generating2
+                    elif progress <= 75:
+                        status = ComicStatus.Generating3
+                    elif progress <= 90:
+                        status = ComicStatus.Generating4
+
+                    await update_comic_status(self.db, self.journal_entry_id, status, None)
+                    print(f"[DEBUG] Progress: {progress}% - {message}")
+                
+                # 초기 상태 설정
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Generating0, None)
                 
                 # 만화 생성 시작
-                response = NetworkHelper.make_internal_request('POST', start_url, {
-                    'journal_entry_id': self.journal_entry_id,
-                    'panel_contents': panel_contents
-                })
+                generator = ComicGridGenerator()
+                comic_data = await generator.generate_comic_grids(panel_contents, progress_callback)
+
+                # 데이터베이스에 저장
+                update_comic_data(self.db, self.journal_entry_id, comic_data)
                 
-                if response.status_code == 200:
-                    print(f"[DEBUG] comic_context: Comic generation started for {self.journal_entry_id}")
-                else:
-                    print(f"[DEBUG] comic_context: Failed to start comic generation: {response.status_code}")
-                    
+                print(f"[DEBUG] comic_context: Comic generation completed for {self.journal_entry_id}")
+                print(f"[DEBUG] comic_context: Comic data: {comic_data}")
+
+                #Auto comic generation에서 하던대로 새 메시지 업데이트
+
+                # revision_2로 전환
+                revision2_stage = Revision2Stage(self.db, self.journal_entry_id)
+                revision2_response, intent = revision2_stage.start_revision()
+                
+                response = {
+                    "response": revision2_response,
+                    "intent": intent,
+                    "stage": "revision_2"
+                }
+                
+                # 완료 상태 설정
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Completed, comic_data, response)
+                
+                
+                print(f"[DEBUG] comic_context: Status updated to completed for {self.journal_entry_id}")
+                
+                return comic_data
+                
             except Exception as e:
-                print(f"[DEBUG] comic_context: Error starting comic generation: {e}")
+                print(f"[DEBUG] comic_context: Error in comic generation: {e}")
+                await update_comic_status(self.db, self.journal_entry_id, ComicStatus.Error, None)
+                import traceback
+                traceback.print_exc()
             
         except Exception as e:
             print(f"[DEBUG] comic_context: Error generating final comic panels: {e}")

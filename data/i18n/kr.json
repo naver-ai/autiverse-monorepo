@@ -32,6 +32,9 @@
         "ChildAndCaregiverTemplate": "{child_name}와 {caregiver_type}"
     },
     "Journaling": {
+        "Header": {
+            "TitleTemplate": "{agent_name}와 함께 일기 쓰기"
+        },
         "PresetSelection": {
             "LocationSelectionMessage": "오늘은 어디서 있었던 일을 그림 일기로 써볼까?",
             "PeopleSelectionMessageTemplate": "{location}에서 누구랑 있었던 일을 그림 일기로 써볼까? 여러 사람을 골라도 괜찮아!",
@@ -46,8 +49,8 @@
             "NoPeopleInPlace": "이 장소에는 등록된 사람이 없습니다"
         },
         "AgentIntro": {
-            "FirstVisitGreetingTemplate": "안녕, {child_name}{child_josa}. 나는 2주간 너와 함께 그림 일기를 쓸 {agent_name}{agent_josa}. 만나서 반가워!",
-            "ReturnVisitGreetingTemplate": "안녕, {child_name}{child_josa}. 또 만나니 너무 좋다.",
+            "FirstVisitGreetingTemplate": "안녕, {child_name}. 나는 2주간 너와 함께 그림 일기를 쓸 {agent_name}. 만나서 반가워!",
+            "ReturnVisitGreetingTemplate": "안녕, {child_name}. 또 만나니 너무 좋다.",
             "Loading": "로딩 중...",
             "DataLoadError": "데이터를 불러올 수 없습니다."
         },
@@ -74,12 +77,12 @@
         "VoiceRecording": {
             "CleanupError": "음성 녹음 정리 중 오류:"
         },
-        "DefaultTitle": "그림 일기",
+        "DefaultTitleTemplate": "{child_name}와 {agent_name}가 함께 쓴 그림일기",
         "FarewellSection": {
-            "MessageTemplate": "{child_name}{child_josa}, 우리 다음에 또 만나서 재미있게 그림 일기 써보자. 안녕~"
+            "MessageTemplate": "{child_name}, 우리 다음에 또 만나서 재미있게 그림 일기 써보자. 안녕~"
         },
         "PraiseSection": {
-            "FirstMessageTemplate": "우리 {child_name}{child_josa} 오늘 그림 일기 쓰는 모습 만점!!",
+            "FirstMessageTemplate": "우리 {child_name} 오늘 그림 일기 쓰는 모습 만점!!",
             "SecondMessage": "오늘 있었던 일 잘 떠올리고, 질문에 답변 잘해주고, 내가 그림 그리는 거 기다려줘서 고마워~",
             "StampMessage": "우리 아래 스탬프 팡팡팡 터트리면서 마무리해보자~"
         },
@@ -93,12 +96,16 @@
         "WaitMessage": "잠시만 기다려주세요..."
     },
     "Chat": {
-        "VoiceModePlaceholder": "채팅으로 하려면 여기를 클릭하세요",
-        "SendButton": "전송"
+        "Placeholder": "대화 내용을 입력해줘.",
+        "ChatButton": "길게 눌러서 채팅으로 입력하기",
+        "SendButton": "보내기",
+        "VoiceCompleteButton": "다 말했어",
+        "SubmittingMessage": "메시지 보내는 중...",
+        "LoadingMessage": "답변을 생각중이야..."
     },
     "ChatStage": {
         "DefaultComicMessage": "네가 말해준 내용으로 내가 여기에 조금 이따 4컷 만화를 그릴거야~",
-        "EndSession": "종료",
+        "EndSession": "다음에 다시 하기",
         "ProgressCompleteTemplate": "{progress}% 완료",
         "ChatHeaderTemplate": "💬 {agent_name}와 대화하기"
     },
@@ -126,7 +133,8 @@
             "CompleteError": "음성 변환 중 오류가 발생했습니다.",
             "DetectionFailed": "나한테 잘 안 들렸어! 다시 한 번 말해줘~",
             "DetectionFailedTitle": "음성 감지 실패",
-            "Confirm": "확인"
+            "Confirm": "확인",
+            "ListeningTextTemplate": "{agentName}가 듣는 중..."
         }
     }
 } 

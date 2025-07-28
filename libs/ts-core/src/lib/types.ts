@@ -119,6 +119,8 @@ export interface ChatMessage {
   text: string;
   isUser: boolean;
   timestamp: Date;
+  intent?: MessageIntent | null;
+  metadata?: Record<string, any> | null;
 }
 
 export interface Preset {
@@ -138,4 +140,51 @@ export interface ComicData {
   panel2?: ComicPanel | string;
   panel3?: ComicPanel | string;
   panel4?: ComicPanel | string;
+}
+
+// Backend API response types
+export interface JournalingSessionInfo {
+  journal_entry_id: string;
+  stage: JournalEntryStage;
+  status: string;
+  location?: string | null;
+  people?: string[] | null;
+  events?: string[] | null;
+  summary?: string | null;
+  title?: string | null;
+  panels?: ComicData | null;
+  message_count: number;
+  focusedPanel?: string | null;
+  messages: ChatMessage[];
+}
+
+// Chatbot response types
+export interface ChatbotResponse {
+  journal_entry_id: string;
+  message_id?: string | null;
+  response: string;
+  stage: string;
+  focusedPanel?: string | null;
+  intent?: MessageIntent | null;
+  metadata?: Record<string, any> | null;
+  data?: Record<string, any> | null;
+}
+
+export enum MessageIntent {
+  InitialTitleConfirm = "initial_title_confirm",
+  CustomTitleConfirm = "custom_title_confirm",
+  PromptNext = "prompt_next",
+  PromptConfirm = "prompt_confirm",
+  PromptEmotion = "prompt_emotion",
+  
+  PromptTextInput = "prompt_text_input",
+  PromptOpenEndedAnswer = "prompt_open_ended_answer",
+  PromptIssueExist = "prompt_issue_exist",
+  StartComicGeneration = "start_comic_generation",
+  TransitionToTitle="transition_to_title",
+
+  AnswerPositive = "answer_positive",
+  AnswerNegative = "answer_negative",
+  AnswerNext = "answer_next",
+  AnswerEmotion = "answer_emotion"
 }

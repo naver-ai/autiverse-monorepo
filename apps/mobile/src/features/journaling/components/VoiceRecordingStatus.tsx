@@ -1,142 +1,123 @@
-import React, { useEffect, useRef, useState, memo } from 'react';
-import { View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
+import React, { useEffect, useRef, useState, memo, useMemo } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { styleTemplates } from '../../../styles';
 import { useVoiceRecorderState, useSpeechState } from '../utils';
+import { useTranslation } from 'react-i18next';
+import format from 'string-format';
+import { escapeJongseong } from '@autiverse-monorepo/ts-core';
 
-// 한국어 조사 선택 함수
-const getKoreanParticle = (name: string): string => {
-  if (!name) return '가';
-  
-  // 받침이 있는지 확인 (한글 유니코드 범위: 44032-55203)
-  const lastChar = name.charAt(name.length - 1);
-  const lastCharCode = lastChar.charCodeAt(0);
-  
-  // 한글이 아니거나 받침이 없는 경우
-  if (lastCharCode < 44032 || lastCharCode > 55203) {
-    return '가';
-  }
-  
-  // 받침 계산: (유니코드 - 44032) % 28
-  const baseCode = lastCharCode - 44032;
-  const finalConsonant = baseCode % 28;
-  
-  // 받침이 있으면 '이가', 없으면 '가'
-  return finalConsonant > 0 ? '이가' : '가';
-};
+import Reanimated, { 
+  Easing, 
+  FadeIn, 
+  FadeOut, 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withRepeat, 
+  withTiming,
+  withSequence,
+  withSpring
+} from 'react-native-reanimated';
 
 export const VoiceRecordingStatus = memo(({
   agentName,
-  isVoiceMode,
   onComplete
 }: {
   agentName: string;
   isVoiceMode?: boolean;
   onComplete: () => void;
 }) => {
-  const voiceMode = isVoiceMode ?? false;
-  const {isRecording} = useVoiceRecorderState()
-  const {isSpeaking} = useSpeechState()
 
-  const pulseAnimation = useRef(new Animated.Value(1)).current;
+  const {isRecording, audioMetering} = useVoiceRecorderState()
 
-  const bounceAnimation = useRef(new Animated.Value(1)).current;
-  console.log('voiceRecording', isRecording, isSpeaking)
+  const bounceScale = useSharedValue(1);
+  const animatedScale = useSharedValue(0);
 
-  // 음성 녹음 애니메이션
+  const {t} = useTranslation();
+  const listeningText = useMemo(()=>{
+    return format(t('ChatInput.VoiceRecording.ListeningTextTemplate'), { agentName: escapeJongseong(agentName)});
+  }, [t, agentName]);
+
+  // Pulse animation style - audioMetering에 연동
+  const pulseAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: animatedScale.value }],
+    };
+  });
+
+  // Bounce animation style
+  const bounceAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: bounceScale.value }],
+    };
+  });
+
+  // 음성 레벨에 따른 스프링 애니메이션
+  useEffect(() => {
+    if (isRecording && audioMetering !== undefined) {
+      // audioMetering: -160 ~ -40 -> scale: 0 ~ 1.2
+      const meteringValue = audioMetering ?? -160;
+      const normalizedValue = Math.max(0, (meteringValue + 160) / 120); // 120 = -40 - (-160)
+      const targetScale = normalizedValue;
+      
+      animatedScale.value = withSpring(targetScale, {
+        damping: 15,
+        stiffness: 150,
+        mass: 0.5,
+      });
+    } else {
+      // 녹음 중지 시 기본 크기로
+      animatedScale.value = withSpring(0, {
+        damping: 15,
+        stiffness: 150,
+      });
+    }
+  }, [audioMetering, isRecording]);
+
+  // Bounce 애니메이션
   useEffect(() => {
     if (isRecording) {
-      const pulse = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnimation, {
-            toValue: 1.2,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnimation, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
+      bounceScale.value = withRepeat(
+        withSequence(
+          withTiming(1.15, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 600, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1, // infinite repeat
+        false // reverse
       );
-      pulse.start();
-      
-      // Bounce 애니메이션
-      const bounce = Animated.loop(
-        Animated.sequence([
-          Animated.timing(bounceAnimation, {
-            toValue: 1.15,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(bounceAnimation, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      bounce.start();
-      
-      return () => {
-        pulse.stop();
-        bounce.stop();
-      };
+    } else {
+      // 애니메이션 중지
+      bounceScale.value = withTiming(1, { duration: 200 });
     }
   }, [isRecording]);
 
   // TTS나 음성 녹음이 활성화되지 않았으면 아무것도 표시하지 않음
-  if (!isSpeaking && !isRecording) {
+  if (!isRecording) {
     return null;
   }
 
-  return (
-    <View className={`flex-row items-center justify-between p-4 rounded-xl mb-4 ${
-      voiceMode && isRecording 
-        ? 'bg-blue-50 border-2 border-blue-200' 
-        : 'bg-white border-2 border-gray-200'
-    }`} style={{ minHeight: 110 }}>
-      <View className="flex-row items-center flex-1">
-        {isRecording ? (
-          <View className="flex-row items-center mr-3">
-            <Animated.View
-              style={{
+  return (isRecording && <Reanimated.View entering={FadeIn.duration(300).easing(Easing.out(Easing.cubic))} exiting={FadeOut.duration(200).easing(Easing.out(Easing.cubic))} 
+          className={"flex-row items-center justify-between p-4 rounded-xl mb-4 bg-white border-2 border-gray-200 min-h-[110px]"}>
+      <View className="flex-row items-center flex-1"><View className="flex-row items-center mr-3">
+            <Reanimated.View
+              style={[{
                 width: 16,
                 height: 16,
                 borderRadius: 8,
                 marginRight: 8,
                 backgroundColor: '#ef4444',
-                transform: [{ scale: pulseAnimation }],
-              }}
+              }, pulseAnimatedStyle]}
             />
           </View>
-        ) : (
-          <View className="w-4 h-4 bg-gray-400 rounded-full mr-3" />
-        )}
-        <Text className={`text-xl ${
-          isRecording 
-            ? 'text-blue-800' 
-            : 'text-gray-600'
-        }`} style={styleTemplates.withBoldFont}>
-          {`${agentName}${getKoreanParticle(agentName)} ${
-            isRecording ? '듣는 중...' : '말하는 중...'
-          }`}
+        <Text className={'text-xl text-rose-400 animate-pulse'} style={styleTemplates.withBoldFont}>
+          {listeningText}
         </Text>
       </View>
       
-      {/* 완료 버튼은 음성 녹음 중일 때만 표시 */}
-      {isRecording && (
-        <Animated.View
-          style={{
-            transform: [{ scale: bounceAnimation }],
-          }}
-        >
+      <Reanimated.View style={bounceAnimatedStyle}>
         <TouchableOpacity
           onPress={onComplete}
-            className="bg-green-500 rounded-lg items-center justify-center"
+            className="bg-green-500 rounded-lg items-center justify-center p-10"
           style={{
-              width: 90, // 정사각형 크기 (기존의 약 2배)
-              height: 90,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.1,
@@ -144,15 +125,10 @@ export const VoiceRecordingStatus = memo(({
             elevation: 3,
           }}
         >
-            <Text className="text-white text-2xl" style={styleTemplates.withBoldFont}>
-            완료
+            <Text className="text-white text-xl" style={styleTemplates.withBoldFont}>
+              {t('Chat.VoiceCompleteButton')}
           </Text>
         </TouchableOpacity>
-        </Animated.View>
-      )}
-      
-      {/* 말하는 중일 때는 빈 공간으로 높이 맞춤 */}
-      {!isRecording && <View style={{ width: 90, height: 90 }} />}
-    </View>
-  );
+        </Reanimated.View>
+    </Reanimated.View>)
 })

@@ -62,6 +62,12 @@ async function setup(){
             required: true,
             validate: makeExistingValidator("Please enter a valid hostname.")
         }),
+        "BACKEND_HOSTNAME_DEV": await input({
+            default: env["BACKEND_HOSTNAME_DEV"] || '0.0.0.0',
+            message: 'Insert Backend hostname in development mode WITHOUT protocol and port (e.g., 0.0.0.0, naver.com):',
+            required: false,
+            validate: makeExistingValidator("Please enter a valid hostname.")
+        }),
         "AUTH_SECRET": await input({
             default: env["AUTH_SECRET"] || 'NaverAILabHCIELMI',
             message: 'Insert any random string to be used as an auth secret:',

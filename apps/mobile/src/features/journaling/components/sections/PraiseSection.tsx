@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 // @ts-ignore
@@ -8,25 +8,22 @@ import { styleTemplates } from '../../../../styles';
 import { useSpeech } from '../../utils';
 import { getTTSOptionsFromAgentConfig } from '../../utils/speechUtils';
 import { AgentImage } from '../AgentImage';
-
-const { width, height } = Dimensions.get('window');
+import { useDyad } from '../../../../api/dyad';
+import { UserLocale, appendJosa } from '@autiverse-monorepo/ts-core';
 
 interface PraiseSectionProps {
   childName?: string; // 아이 이름
-  agentConfig?: any; // agent 설정
   onComplete?: () => void;
 }
 
-export default function PraiseSection({ childName, agentConfig, onComplete }: PraiseSectionProps) {
+export default function PraiseSection({ childName, onComplete }: PraiseSectionProps) {
   const { t } = useTranslation();
   const [showStamp, setShowStamp] = useState(false);
   const [stampScale] = useState(new Animated.Value(0));
   const [hasCompleted, setHasCompleted] = useState(false);
-  const [hasSpoken, setHasSpoken] = useState(false);
   const [poppedStamps, setPoppedStamps] = useState<boolean[]>([false, false, false]);
   const {startSpeech, stopSpeech} = useSpeech()
   // 단계별 메시지 상태
-  const [currentStage, setCurrentStage] = useState(0); // 0: 첫번째 메시지, 1: 두번째 메시지, 2: 스탬프 메시지
   const [showFirstMessage, setShowFirstMessage] = useState(false);
   const [showSecondMessage, setShowSecondMessage] = useState(false);
   const [showStampMessage, setShowStampMessage] = useState(false);
@@ -52,33 +49,21 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
     new Animated.Value(1),
     new Animated.Value(1)
   ]);
-  
+ 
+  const {dyad, locale, agentConfig} = useDyad();
+
+  const childNameWithJosa = useMemo(() => {
+    if(locale === UserLocale.Korean && dyad?.child_name) {
+      return appendJosa(dyad?.child_name, '이', '');
+    }
+    return dyad?.child_name || t('Journaling.Common.DefaultChildName')
+  }, [dyad?.child_name, locale, t]);
+
   // bounce 애니메이션 ref들
   const bounceAnimations = useRef<Animated.CompositeAnimation[]>([]);
-  
-  // 한국어 종성에 따른 호격 조사 처리 함수
-  const getVocativeParticle = (name: string): string => {
-    if (!name || name.length === 0) return '';
-    
-    const lastChar = name.charAt(name.length - 1);
-    const code = lastChar.charCodeAt(0);
-    
-    // 한글 범위 체크 (가-힣: 44032-55203)
-    if (code < 44032 || code > 55203) return '';
-    
-    // 종성 계산: (유니코드 - 44032) % 28
-    const unicode = code - 44032;
-    const jong = unicode % 28;
-    
-    // 종성이 있으면 '이', 없으면 '야'
-    return jong !== 0 ? '이' : '';
-  };
-  
-  // 단계별 메시지들
-  const actualChildName = childName || t('Journaling.Common.DefaultChildName');
+
   const firstMessage = format(t('Journaling.PraiseSection.FirstMessageTemplate'), { 
-    child_name: actualChildName, 
-    child_josa: getVocativeParticle(actualChildName) 
+    child_name: childNameWithJosa, 
   });
   const secondMessage = t('Journaling.PraiseSection.SecondMessage');
   const stampMessage = t('Journaling.PraiseSection.StampMessage');
@@ -256,16 +241,16 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
         <View className="pt-8 pb-4">
           <View className="bg-white rounded-3xl p-6 shadow-lg w-full">
             <View className="flex-row items-center">
-              <AgentImage
-                avatarImage={agentConfig?.avatar_image || ''}
-                style={{
-                  width: 50,
-                  height: 50,
-                  borderRadius: 25,
-                  resizeMode: 'cover',
-                  marginRight: 12
-                }}
-              />
+                              <AgentImage
+                  avatarImage={agentConfig?.avatar_image || ''}
+                  style={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: 25,
+                    resizeMode: 'cover',
+                    marginRight: 12
+                  }}
+                />
               <View className="flex-1">
                 {showFirstMessage && (
                   <Text 
@@ -297,44 +282,40 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
         </View>
 
         {/* 중앙 스탬프 3개 영역 */}
-        <View className="flex-1 items-center justify-center" style={{ backgroundColor: 'transparent' }}>
+        <View className="flex-1 items-center justify-center bg-transparent">
           {showStamp && (
-            <View className="flex-row justify-center space-x-24" style={{ backgroundColor: 'transparent' }}>
+            <View className="flex-row justify-center space-x-24 bg-transparent">
               <Animated.View
+                className="bg-transparent"
                 style={{
                   transform: [
                     { scale: stampScale },
                     { scale: stampAnimations[0] }
                   ],
-                  backgroundColor: 'transparent',
                 }}
               >
                 <TouchableOpacity
                   onPress={() => popStamp(0)}
                   disabled={poppedStamps[0] || !stampsActive}
                   activeOpacity={stampsActive ? 0.8 : 1}
-                  style={{ backgroundColor: 'transparent' }}
+                  className="bg-transparent"
                 >
                   <Animated.View 
+                    className="bg-slate-50 border-3 border-white/40 rounded-full p-16"
                     style={{
                       opacity: bubbleAnimations[0],
                       transform: [{ scale: bubbleAnimations[0] }],
-                      backgroundColor: '#f8fafc',
-                      borderWidth: 3,
-                      borderColor: 'rgba(255, 255, 255, 0.4)',
                       shadowColor: '#000',
                       shadowOffset: { width: 0, height: 6 },
                       shadowOpacity: 0.15,
                       shadowRadius: 16,
                       elevation: 10,
-                      borderRadius: 100,
-                      padding: 64,
                     }}
                   >
                     <Animated.View
+                      className="bg-transparent"
                       style={{
                         transform: [{ scale: contentAnimations[0] }],
-                        backgroundColor: 'transparent',
                       }}
                     >
                       <Text 
@@ -357,40 +338,36 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
               </Animated.View>
               
               <Animated.View
+                className="bg-transparent"
                 style={{
                   transform: [
                     { scale: stampScale },
                     { scale: stampAnimations[1] }
                   ],
-                  backgroundColor: 'transparent',
                 }}
               >
                 <TouchableOpacity
                   onPress={() => popStamp(1)}
                   disabled={poppedStamps[1] || !stampsActive}
                   activeOpacity={stampsActive ? 0.8 : 1}
-                  style={{ backgroundColor: 'transparent' }}
+                  className="bg-transparent"
                 >
                   <Animated.View 
+                    className="bg-slate-50 border-3 border-white/40 rounded-full p-16"
                     style={{
                       opacity: bubbleAnimations[1],
                       transform: [{ scale: bubbleAnimations[1] }],
-                      backgroundColor: '#f8fafc',
-                      borderWidth: 3,
-                      borderColor: 'rgba(255, 255, 255, 0.4)',
                       shadowColor: '#000',
                       shadowOffset: { width: 0, height: 6 },
                       shadowOpacity: 0.15,
                       shadowRadius: 16,
                       elevation: 10,
-                      borderRadius: 100,
-                      padding: 64,
                     }}
                   >
                     <Animated.View
+                      className="bg-transparent"
                       style={{
                         transform: [{ scale: contentAnimations[1] }],
-                        backgroundColor: 'transparent',
                       }}
                     >
                       <Text 
@@ -413,40 +390,36 @@ export default function PraiseSection({ childName, agentConfig, onComplete }: Pr
               </Animated.View>
               
               <Animated.View
+                className="bg-transparent"
                 style={{
                   transform: [
                     { scale: stampScale },
                     { scale: stampAnimations[2] }
                   ],
-                  backgroundColor: 'transparent',
                 }}
               >
                 <TouchableOpacity
                   onPress={() => popStamp(2)}
                   disabled={poppedStamps[2] || !stampsActive}
                   activeOpacity={stampsActive ? 0.8 : 1}
-                  style={{ backgroundColor: 'transparent' }}
+                  className="bg-transparent"
                 >
                   <Animated.View 
+                    className="bg-slate-50 border-3 border-white/40 rounded-full p-16"
                     style={{
                       opacity: bubbleAnimations[2],
                       transform: [{ scale: bubbleAnimations[2] }],
-                      backgroundColor: '#f8fafc',
-                      borderWidth: 3,
-                      borderColor: 'rgba(255, 255, 255, 0.4)',
                       shadowColor: '#000',
                       shadowOffset: { width: 0, height: 6 },
                       shadowOpacity: 0.15,
                       shadowRadius: 16,
                       elevation: 10,
-                      borderRadius: 100,
-                      padding: 64,
                     }}
                   >
                     <Animated.View
+                      className="bg-transparent"
                       style={{
                         transform: [{ scale: contentAnimations[2] }],
-                        backgroundColor: 'transparent',
                       }}
                     >
                       <Text 

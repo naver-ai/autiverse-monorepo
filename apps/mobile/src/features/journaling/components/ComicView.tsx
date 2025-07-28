@@ -1,54 +1,39 @@
 import React from 'react';
-import { View, Text, Animated, TouchableOpacity } from 'react-native';
+import { View, Text, Animated } from 'react-native';
 import { useTranslation } from 'react-i18next';
 // @ts-ignore
 import format from 'string-format';
-import { convertComicDataToPanels } from '../../utils';
-import { styleTemplates } from '../../../../styles';
-import { LogoImage } from '../../../../components/svg-images';
-import { useJournalingStore } from '../../store';
-import { ComicPanel } from '../ComicPanel';
-import { ChatMessageComponent } from '../ChatMessage';
-import { ChatInput } from '../ChatInput';
+import { convertComicDataToPanels } from '../utils';
+import { styleTemplates } from '../../../styles';
+import { ComicPanel } from './ComicPanel';
+import { useSession } from '../hooks/useSession';
+import { MessageIntent } from '@autiverse-monorepo/ts-core';
+import { ComicGenerationStatus } from '../api';
 
-interface ChatStageProps {
-  comicGenerationStatus: any;
-  progressAnimation: Animated.Value;
-  sendMessage: (message: string) => void;
-  agentName: string;
-  agentConfig?: any;
-  onTTSComplete?: () => void;
-  sessionId?: string;
-  loadSessionInfo?: (sessionId: string) => Promise<any>;
-  onEndSession?: () => void;
-  continueExisting?: boolean;
-}
-
-export const ChatStage: React.FC<ChatStageProps> = ({
+export const ComicView = ({
+  className,
   comicGenerationStatus,
   progressAnimation,
-  sendMessage,
-  agentName,
-  agentConfig,
-  onTTSComplete,
   sessionId,
-  loadSessionInfo,
-  onEndSession,
-  continueExisting = false
+}: {
+  className?: string;
+  comicGenerationStatus: ComicGenerationStatus;
+  progressAnimation: Animated.Value;
+  sessionId: string;
 }) => {
   const { t } = useTranslation();
-  const {
-    currentStage,
-    comicData,
-    focusedPanel,
-    messages,
-    inputText,
-    setInputText,
-    isLoading,
-    isInputActive,
-    isAfterFarewell
-  } = useJournalingStore();
+
+  const {sessionInfo} = useSession({sessionId: sessionId});
+
+  const comicData = sessionInfo?.panels;
+ 
+  const currentStage = sessionInfo?.stage;
+  const focusedPanel = sessionInfo?.focusedPanel;
+
   const convertComicDataToPanelsMemo = React.useMemo(() => {
+    if(!comicData) {
+      return null;
+    }
     return convertComicDataToPanels(comicData);
   }, [comicData]);
 
@@ -97,27 +82,7 @@ export const ChatStage: React.FC<ChatStageProps> = ({
     );
   };
 
-  return (
-    <View className="flex-1">
-      <View className="flex-1 flex-row">
-        {/* 왼쪽: 만화 섹션 */}
-        <View className="flex-[1.8] bg-white border-r-2 border-gray-200">
-          {/* 만화 헤더 */}
-            <View className="flex-row justify-between items-center p-3 border-b border-gray-200 pt-4">
-              <LogoImage width={150} height={30} />
-              <TouchableOpacity
-                onPress={onEndSession}
-                className="bg-yellow-500 px-3 py-2 rounded-lg"
-                activeOpacity={0.8}
-              >
-                <Text className="text-white text-sm" style={styleTemplates.withBoldFont}>
-                  {t('ChatStage.EndSession')}
-              </Text>
-              </TouchableOpacity>
-          </View>
-          
-          {/* 만화 콘텐츠 */}
-          <View className="flex-1 relative">
+  return (<View className={className}>
             {/* 기존 만화 또는 기본 메시지 */}
             <View className={`flex-1 ${comicGenerationStatus.status === 'generating' || comicGenerationStatus.status?.startsWith('generating') ? 'opacity-30' : ''}`}>
               {comicData && (currentStage === 'revision_1' || currentStage === 'comic_context' || currentStage === 'revision_2' || currentStage === 'title' || currentStage === 'complete') ? (
@@ -176,47 +141,5 @@ export const ChatStage: React.FC<ChatStageProps> = ({
                 </View>
               </View>
             )}
-          </View>
-        </View>
-
-        {/* 오른쪽: 채팅 섹션 */}
-        <View className="flex-1 bg-white">
-                  {/* 채팅 헤더 */}
-        <View className="bg-blue-500 p-4">
-          <Text className="text-2xl text-white" style={styleTemplates.withBoldFont}>{format(t('ChatStage.ChatHeaderTemplate'), { agent_name: agentName })}</Text>
-        </View>
-
-          {/* 현재 Agent 메시지 */}
-          <View className="flex-1 p-3 bg-gray-50">
-            <ChatMessageComponent
-              messages={messages}
-              isLoading={isLoading}
-              agentName={agentName}
-              agentConfig={agentConfig}
-              onTTSComplete={onTTSComplete}
-            />
-          </View>
-
-          {/* 입력 영역 */}
-          <ChatInput
-            inputText={inputText}
-            setInputText={setInputText}
-            sendMessage={sendMessage}
-            isLoading={isLoading}
-            messages={messages}
-            currentStage={currentStage}
-            comicGenerationStatus={comicGenerationStatus}
-            isInputActive={isInputActive}
-            agentName={agentName}
-            sessionId={sessionId}
-            loadSessionInfo={loadSessionInfo}
-            isAfterFarewell={isAfterFarewell}
-            continueExisting={continueExisting}
-          />
-        </View>
-      </View>
-
-
-    </View>
-  );
+          </View>);
 }; 

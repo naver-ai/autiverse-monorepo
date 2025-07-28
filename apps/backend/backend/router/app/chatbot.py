@@ -16,7 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from backend.database.engine import get_session
 from backend.database.crud.chatbot import get_dyad_by_id, get_dyad_places, get_place_people, generate_audio_filename
 from backend.core.ai import ChatbotController
-from backend.database.models import Dyad, Comic, JournalEntry, Journal, Message, MessageRole, JournalEntryStage, InteractionTurn
+from backend.database.models import Dyad, Comic, JournalEntry, Journal, Message, MessageRole, JournalEntryStage, InteractionTurn, JournalingSessionInfo, MessageIntent
 from backend.router.app.common import get_signed_in_dyad
 from backend.utils.environment import FilePaths
 
@@ -29,14 +29,17 @@ class StartChatbotRequest(BaseModel):
 class SendMessageRequest(BaseModel):
     journal_entry_id: str
     message: str
+    intent: Optional[MessageIntent] = None
     audio_filename: Optional[str] = None
 
 class ChatbotResponse(BaseModel):
     journal_entry_id: str
+    message_id: Optional[str] = None # If message_id is not provided, it means the message is not actual message stored in DB.
     response: str
     stage: str
     data: Optional[Dict[str, Any]] = None
-    auto_comic_generation: Optional[bool] = None
+    intent: Optional[MessageIntent] = None
+    metadata: Optional[Dict[str, Any]] = None
 
 class UpdateTitleRequest(BaseModel):
     journal_entry_id: str
@@ -70,8 +73,7 @@ def start_chatbot(
             journal_entry_id=result["journal_entry_id"],
             response=result["response"],
             stage=result["stage"],
-            data=result.get("data"),
-            auto_comic_generation=result.get("auto_comic_generation")
+            data=result.get("data")
         )
     except ValueError as e:
         print(f"[DEBUG] ValueError: {str(e)}")
@@ -95,8 +97,7 @@ def start_chatbot_with_suggestion(
             journal_entry_id=result["journal_entry_id"],
             response=result["response"],
             stage=result["stage"],
-            data=result.get("data"),
-            auto_comic_generation=result.get("auto_comic_generation")
+            data=result.get("data")
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -104,35 +105,40 @@ def start_chatbot_with_suggestion(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.post("/send", response_model=ChatbotResponse)
-def send_message(
+async def send_message(
     request: SendMessageRequest,
     db: Session = Depends(get_session)
 ):
     """메시지 전송"""
     try:
         controller = ChatbotController(db)
-        result = controller.send_message(
+        result = await controller.send_message(
             journal_entry_id=request.journal_entry_id,
             message=request.message,
+            intent=request.intent,
             audio_filename=request.audio_filename
         )
         
         return ChatbotResponse(
             journal_entry_id=request.journal_entry_id,
+            message_id=result["message_id"],
             response=result["response"],
             stage=result["stage"],
             data=result.get("data"),
-            auto_comic_generation=result.get("auto_comic_generation")
+            intent=result.get("intent"),
+            metadata=result.get("metadata")
         )
     except ValueError as e:
+        print("value error: ", e)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        print("error: ", e)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.get("/session/{journal_entry_id}")
+@router.get("/session/{journal_entry_id}", response_model=JournalingSessionInfo)
 def get_session_info(
     journal_entry_id: str,
-    db: Session = Depends(get_session)
+    db: Annotated[Session, Depends(get_session)]
 ):
     """세션 정보 조회"""
     try:
@@ -146,7 +152,7 @@ def get_session_info(
 @router.post("/reset/{journal_entry_id}")
 def reset_session(
     journal_entry_id: str,
-    db: Session = Depends(get_session)
+    db: Annotated[Session, Depends(get_session)]
 ):
     """세션 초기화"""
     try:
@@ -156,8 +162,7 @@ def reset_session(
         return ChatbotResponse(
             journal_entry_id=journal_entry_id,
             response=result["response"],
-            stage=result["stage"],
-            auto_comic_generation=result.get("auto_comic_generation")
+            stage=result["stage"]
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -167,7 +172,7 @@ def reset_session(
 @router.get("/dyad/{dyad_id}/places")
 def get_places(
     dyad: Annotated[Dyad, Depends(get_signed_in_dyad)],
-    db: Session = Depends(get_session),
+    db: Annotated[Session, Depends(get_session)],
 ):
     places = get_dyad_places(db, dyad.id)
     return {
@@ -226,28 +231,6 @@ def delete_session(
             raise HTTPException(status_code=404, detail="Session not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
-@router.post("/auto-comic-generation/{journal_entry_id}", response_model=ChatbotResponse)
-def start_auto_comic_generation(
-    journal_entry_id: str,
-    db: Session = Depends(get_session)
-):
-    """자동 만화 생성 시작"""
-    try:
-        controller = ChatbotController(db)
-        result = controller.start_auto_comic_generation(journal_entry_id)
-        
-        return ChatbotResponse(
-            journal_entry_id=journal_entry_id,
-            response=result["response"],
-            stage=result["stage"],
-            data=result.get("data"),
-            auto_comic_generation=result.get("auto_comic_generation")
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 
 
 @router.get("/gallery")
 def get_gallery(
@@ -317,6 +300,7 @@ def get_gallery(
             "comics": gallery_items
         }
     except Exception as e:
+        print(f"[DEBUG] Gallry loading exception: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 
 
 @router.post("/upload-audio")

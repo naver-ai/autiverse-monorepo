@@ -1,10 +1,7 @@
-from typing import Dict, Any, Optional
-from langchain_openai import ChatOpenAI
-from langchain.schema import HumanMessage, SystemMessage
-from backend.utils.environment import get_env_variable, EnvironmentVariables
+from typing import Dict, Any
 from backend.database.crud.chatbot import *
 from .completion_message_generator import CompletionMessageGenerator
-
+from backend.database.models import MessageIntent
 from sqlmodel import Session
 import json
 import openai
@@ -69,7 +66,7 @@ class Revision2Stage:
         )
         self.revision_count = new_count
         
-    def start_revision(self) -> str:
+    def start_revision(self) -> tuple[str, MessageIntent]:
         """두 번째 수정 단계 시작"""
         # Journal entry stage 업데이트
         update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Revision2)
@@ -105,12 +102,13 @@ class Revision2Stage:
         initial_question = "우와앙~ 우리가 같이 만든 그림일기다! 지금부터 내용이 제대로 들어갔는지 확인해보자~ 수정하거나 추가하고 싶은 부분 있어? 🤔"
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            initial_question, MessageRole.Assistant, JournalEntryStage.Revision2
+            initial_question, MessageRole.Assistant, JournalEntryStage.Revision2,
+            intent=MessageIntent.PromptIssueExist
         )
         
-        return initial_question
+        return initial_question, MessageIntent.PromptIssueExist
     
-    def process_message(self, user_message: str, audio_filename: str = None) -> str:
+    def process_message(self, user_message: str, user_intent: MessageIntent | None = None, audio_filename: str = None) -> Message:
         """사용자 메시지 처리"""
         # 현재 interaction turn 가져오기
         interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Revision2)
@@ -119,76 +117,56 @@ class Revision2Stage:
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             user_message, MessageRole.User, JournalEntryStage.Revision2,
-            audio_filename=audio_filename
+            audio_filename=audio_filename,
+            intent=user_intent
         )
         
         # 봇 응답 생성
-        bot_response = self._generate_response(user_message)
+        bot_response, intent = self._generate_response(user_message, user_intent)
         
         # 봇 응답 저장
-        create_message(
+        message = create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            bot_response, MessageRole.Assistant, JournalEntryStage.Revision2
+            bot_response, MessageRole.Assistant, JournalEntryStage.Revision2,
+            intent=intent
         )
         
-        return bot_response
+        return message
     
-    def _generate_response(self, user_message: str) -> str:
+    def _generate_response(self, user_message: str, user_intent: MessageIntent) -> tuple[str, MessageIntent]:
         """사용자 메시지에 대한 응답 생성"""
         
         # "네가 말해준 내용대로 바꿔봤어. 더 추가하거나 바꿀 곳 있어?" 질문에 대한 답변 처리
         if self._is_correction_confirmation_question():
-            if self._is_positive_response(user_message):
+            if self._is_negative_response(user_message, user_intent): #수정할 곳이 있다
                 # 수정할 부분이 있다면 revision_count 증가하고 수정 요청
                 new_count = self.revision_count + 1
                 self._update_revision_count(new_count)
                 print(f"[DEBUG] revision_2: revision_count: {self.revision_count}")
                 if self.revision_count > self.max_revisions:
-                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 수정하거나 추가하고 싶은 부분이 있다면 말해줘~"
+                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 수정하거나 추가하고 싶은 부분이 있다면 말해줘~", MessageIntent.PromptOpenEndedAnswer
                 elif self.revision_count == self.max_revisions:
-                    return "아앗;; 이제 마지막 기회야! 지금 수정하거나 추가하고 싶은 부분이 있다면 다 말해줘~ 😅"
+                    return "아앗;; 이제 마지막 기회야! 지금 수정하거나 추가하고 싶은 부분이 있다면 다 말해줘~ 😅", MessageIntent.PromptOpenEndedAnswer
                 else:
-                    return "어디를 어떻게 수정해볼까?? 🤔"
-            elif self._is_negative_response(user_message):
+                    return "어디를 어떻게 수정해볼까?? 🤔", MessageIntent.PromptOpenEndedAnswer
+            elif self._is_positive_response(user_message, user_intent): #수정할 곳이 없다
                 # 수정 완료, 완료 단계로
                 self._complete_journal_entry()
                 # 완성된 그림 일기 내용을 바탕으로 개인화된 마무리 메시지 생성
                 comic_data = self._get_completed_comic_data()
                 completion_message = self.completion_message_generator.generate_completion_message(comic_data, self.child_name)
-                return completion_message
+                return completion_message, MessageIntent.TransitionToTitle
             else:
-                return "응 아니 중에 골라줘! 😅"
-        
-        # 질문에 대한 답변 처리
-        if self._is_question_response():
-            if self._is_negative_response(user_message):
-                # 수정할 부분이 없다면 완료
-                self._complete_journal_entry()
-                # 완성된 그림 일기 내용을 바탕으로 개인화된 마무리 메시지 생성
-                comic_data = self._get_completed_comic_data()
-                completion_message = self.completion_message_generator.generate_completion_message(comic_data, self.child_name)
-                return completion_message
-            elif self._is_positive_response(user_message):
-                # 수정할 부분이 있다면 revision_count 증가하고 수정 요청
-                new_count = self.revision_count + 1
-                self._update_revision_count(new_count)
-                print(f"[DEBUG] revision_2: revision_count: {self.revision_count}")
-                if self.revision_count > self.max_revisions:
-                    return "장난치지 말구! 😤 이제 진짜 진짜 마지막 기회다! 정말로 수정하거나 추가하고 싶은 부분이 있다면 말해줘~"
-                elif self.revision_count == self.max_revisions:
-                    return "아앗;; 이제 마지막 기회야! 지금 수정하거나 추가하고 싶은 부분이 있다면 다 말해줘~ 😅"
-                else:
-                    return "어디를 어떻게 수정해볼까?? 🤔"
-            else:
-                return "응 아니 중에 골라줘! 😅"
+                print(f"[DEBUG] revision_2: _generate_response: intent={user_intent}, Should not reach here!!")
+                raise Exception("Revision 2: Correction confirmation questions must be answered through intent")
         else:
             # 구체적인 수정 내용이 들어온 경우
             try:
                 self._apply_user_correction(user_message)
-                return "네가 말해준 내용대로 바꿔봤어. 더 추가하거나 바꿀 곳 있어? 🤔"
+                return "네가 말해준 내용대로 바꿔봤어. 더 추가하거나 바꿀 곳 있어? 🤔", MessageIntent.PromptIssueExist
             except Exception as e:
                 print(f"[DEBUG] revision_2: Error applying user correction: {e}")
-                return "수정하는데 문제가 생겼어. 다시 말해줘! 😅"
+                return "수정하는데 문제가 생겼어. 다시 말해줘! 😅", MessageIntent.PromptOpenEndedAnswer
     
     def _is_correction_confirmation_question(self) -> bool:
         """현재 질문이 수정 확인 질문인지 확인"""
@@ -197,41 +175,27 @@ class Revision2Stage:
             # 현재 사용자 메시지가 저장되기 전의 마지막 봇 메시지를 찾기 위해 -2 인덱스 사용
             for i in range(len(messages) - 1, -1, -1):
                 if messages[i].role == MessageRole.Assistant:
-                    last_bot_message = messages[i].content
-                    result = "네가 말해준 내용대로 바꿔봤어" in last_bot_message
-                    return result
+                    return messages[i].intent == MessageIntent.PromptIssueExist
             return False
         return False
     
-    def _is_question_response(self) -> bool:
-        """현재 응답이 질문에 대한 답변인지 확인"""
-        messages = get_messages_by_journal_entry(self.db, self.journal_entry_id)
-        if messages:
-            # 현재 사용자 메시지가 저장되기 전의 마지막 봇 메시지를 찾기 위해 -2 인덱스 사용
-            for i in range(len(messages) - 1, -1, -1):
-                if messages[i].role == MessageRole.Assistant:
-                    last_bot_message = messages[i].content
-                    # 질문인지 확인
-                    question_keywords = [
-                        "수정하거나 추가하고 싶은 부분 있어?",
-                        "더 추가하거나 바꿀 곳 있어?"
-                    ]
-                    result = any(keyword in last_bot_message for keyword in question_keywords)
-                    return result
-            return False
-        return False
-    
-    def _is_negative_response(self, message: str) -> bool:
+    def _is_negative_response(self, message: str, user_intent: MessageIntent) -> bool:
         """부정적인 응답인지 확인"""
-        negative_keywords = ["없어"]
-        result = any(keyword in message.lower() for keyword in negative_keywords)
-        return result
+        if user_intent == MessageIntent.AnswerNegative:
+            return True
+        else:
+            negative_keywords = ["없어"]
+            result = any(keyword in message.lower() for keyword in negative_keywords)
+            return result
     
-    def _is_positive_response(self, message: str) -> bool:
+    def _is_positive_response(self, message: str, user_intent: MessageIntent) -> bool:
         """긍정적인 응답인지 확인"""
-        positive_keywords = ["있어"]
-        result = any(keyword in message.lower() for keyword in positive_keywords)
-        return result
+        if user_intent == MessageIntent.AnswerPositive:
+            return True
+        else:
+            positive_keywords = ["있어"]
+            result = any(keyword in message.lower() for keyword in positive_keywords)
+            return result
     
     def _apply_user_correction(self, correction: str) -> None:
         """사용자 수정 내용 적용"""
@@ -323,9 +287,7 @@ User's correction request: {correction}
             print(f"[DEBUG] revision_2: Unexpected error in _apply_user_correction: {e}")
     
     def _complete_journal_entry(self) -> None:
-        """journal entry 완료 처리"""
-        from backend.database.models import JournalEntryStatus
-        
+        """journal entry 완료 처리"""        
         try:
             # 최종 수정사항 적용 (revision_2를 comic_context에 반영)
             journal = get_journal(self.db, self.journal_entry_id)
@@ -334,7 +296,6 @@ User's correction request: {correction}
                     self.db, self.journal_entry_id,
                     comic_context=journal.revision_2
                 )
-
                 
         except Exception as e:
             print(f"[DEBUG] revision_2: Error in _complete_journal_entry: {e}")
@@ -342,7 +303,7 @@ User's correction request: {correction}
     
 
     
-    def _get_or_create_interaction_turn(self, stage: JournalEntryStage) -> Any:
+    def _get_or_create_interaction_turn(self, stage: JournalEntryStage) -> InteractionTurn:
         """현재 단계의 interaction turn 가져오기 또는 생성"""
         from backend.database.crud.chatbot import get_latest_interaction_turn
         
@@ -362,6 +323,6 @@ User's correction request: {correction}
             return journal.revision_2 if journal.revision_2 else journal.comic_context
         return {}
     
-    def get_initial_question(self) -> str:
+    def get_initial_question(self) -> tuple[str, MessageIntent]:
         """첫 번째 수정 질문을 반환합니다."""
-        return "완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔" 
+        return "완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔", MessageIntent.PromptIssueExist

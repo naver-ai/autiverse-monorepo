@@ -1,8 +1,10 @@
 from sqlalchemy.orm import Session
 from typing import Optional, List, Dict, Any
 from ..models import JournalEntry, Journal, Comic, Message, InteractionTurn, Dyad, Place, Person
-from ..models import JournalEntryStatus, JournalEntryStage, MessageRole
+from ..models import JournalEntryStatus, JournalEntryStage, MessageRole, MessageIntent, ComicStatus
 import json
+import asyncio
+from backend.core.socket import emit_comic_generation_started, emit_comic_generation_progress, emit_comic_generation_completed, emit_comic_generation_error
 
 def get_dyad_by_passcode(db: Session, passcode: str) -> Optional[Dyad]:
     """패스코드로 dyad 조회"""
@@ -39,7 +41,7 @@ def create_journal_entry(db: Session, dyad_id: str) -> JournalEntry:
 
 def get_journal_entry(db: Session, journal_entry_id: str) -> Optional[JournalEntry]:
     """journal entry 조회"""
-    return db.query(JournalEntry).filter(JournalEntry.id == journal_entry_id).first()
+    return db.get(JournalEntry, journal_entry_id)
 
 def update_journal_entry_stage(db: Session, journal_entry_id: str, stage: JournalEntryStage, status: JournalEntryStatus = None) -> Optional[JournalEntry]:
     """journal entry stage 업데이트"""
@@ -125,16 +127,26 @@ def get_comic(db: Session, journal_entry_id: str) -> Optional[Comic]:
     """comic 조회"""
     return db.query(Comic).filter(Comic.journal_entry_id == journal_entry_id).first()
 
-def update_comic_status(db: Session, journal_entry_id: str, status: str) -> Optional[Comic]:
-    """comic 생성 상태 업데이트 (통합)"""
-    comic = get_comic(db, journal_entry_id)
+async def update_comic_status(db: Session, journal_entry_id: str, status: ComicStatus, comic_data: dict | None = None, chatbot_response: dict | None = None):
+    """만화 생성 상태 업데이트"""
+    comic = db.query(Comic).filter(Comic.journal_entry_id == journal_entry_id).first()
     if comic:
         comic.status = status
         db.commit()
-        db.refresh(comic)
-    return comic
+        print(f"[DEBUG] Comic status updated to {status} for {journal_entry_id}")
 
-def get_comic_status(db: Session, journal_entry_id: str) -> Optional[str]:
+        if status == ComicStatus.Error:
+            await emit_comic_generation_error(comic.dyad_id, journal_entry_id, comic_data)    
+        elif status == ComicStatus.Generating0:
+            await emit_comic_generation_started(comic.dyad_id, journal_entry_id, comic_data)
+        elif status == ComicStatus.Completed:
+            await emit_comic_generation_completed(comic.dyad_id, journal_entry_id, comic_data, chatbot_response)
+        else:
+            await emit_comic_generation_progress(comic.dyad_id, journal_entry_id, status, comic_data) 
+        
+        
+
+def get_comic_status(db: Session, journal_entry_id: str) -> Optional[ComicStatus]:
     """comic 생성 상태 조회 (통합)"""
     comic = get_comic(db, journal_entry_id)
     return comic.status if comic else None
@@ -152,13 +164,22 @@ def update_comic_panels(db: Session, journal_entry_id: str, is_first_generation:
         db.refresh(comic)
     return comic
 
-def update_comic_data(db: Session, journal_entry_id: str, **kwargs) -> Optional[Comic]:
+def update_comic_data(db: Session, journal_entry_id: str, comic_data: dict) -> Optional[Comic]:
     """comic 데이터 업데이트 (더 유연한 방식)"""
     comic = get_comic(db, journal_entry_id)
     if comic:
-        for key, value in kwargs.items():
-            if hasattr(comic, key):
-                setattr(comic, key, value)
+        if comic.first_panel1 is None:
+            # 첫 번째 만화로 저장
+            comic.first_panel1 = comic_data.get("panel1")
+            comic.first_panel2 = comic_data.get("panel2")
+            comic.first_panel3 = comic_data.get("panel3")
+            comic.first_panel4 = comic_data.get("panel4")
+        else:
+            # 두 번째 만화로 저장
+            comic.second_panel1 = comic_data.get("panel1")
+            comic.second_panel2 = comic_data.get("panel2")
+            comic.second_panel3 = comic_data.get("panel3")
+            comic.second_panel4 = comic_data.get("panel4")
         db.commit()
         db.refresh(comic)
     return comic
@@ -181,7 +202,11 @@ def get_latest_interaction_turn(db: Session, journal_entry_id: str) -> Optional[
         InteractionTurn.journal_entry_id == journal_entry_id
     ).order_by(InteractionTurn.created_at.desc()).first()
 
-def create_message(db: Session, journal_entry_id: str, interaction_turn_id: str, content: str, role: MessageRole, stage: JournalEntryStage = None, metadata_json: Dict[str, Any] = None, audio_filename: str = None) -> Message:
+def create_message(db: Session, journal_entry_id: str, interaction_turn_id: str, content: str, role: MessageRole, 
+                   stage: JournalEntryStage = None, 
+                   metadata_json: Dict[str, Any] = None, 
+                   intent: MessageIntent | None = None,
+                   audio_filename: str = None) -> Message:
     """새로운 message 생성"""
     # stage가 제공되지 않은 경우 interaction turn에서 가져오기
     if stage is None:
@@ -198,6 +223,10 @@ def create_message(db: Session, journal_entry_id: str, interaction_turn_id: str,
         metadata_json=metadata_json,
         audio_filename=audio_filename
     )
+
+    if intent:
+        message.set_intent_metadata(intent)
+
     db.add(message)
     db.commit()
     db.refresh(message)

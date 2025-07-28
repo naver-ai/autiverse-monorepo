@@ -227,6 +227,24 @@ class MessageRole(StrEnum):
     User="user"
     Assistant="assistant"
 
+class MessageIntent(StrEnum):
+    PromptNext="prompt_next"
+    PromptConfirm="prompt_confirm" # Yes / no => Not used now
+    PromptIssueExist="prompt_issue_exist" # 문제가 있는 부분이 있어?
+    InitialTitleConfirm="initial_title_confirm" # 첫 번째 제목 제안에 대한 피드백
+    CustomTitleConfirm="custom_title_confirm" # 커스텀 제목 확인에 대한 피드백
+    PromptOpenEndedAnswer="prompt_open_ended_answer" # 채팅으로 쳐서 정확하게 알려줘!, etc
+    PromptTextInput="prompt_text_input"
+    PromptEmotion="prompt_emotion"
+    StartComicGeneration="start_comic_generation"
+    TransitionToTitle="transition_to_title"
+    Error = "error"
+
+    AnswerPositive="answer_positive"
+    AnswerNegative="answer_negative"
+    AnswerEmotion="answer_emotion"
+    AnswerNext="answer_next"
+
 class Message(SQLModel, IdTimestampMixin, JournalEntryIdMixin, InteractionTurnIdMixin, table=True):
     model_config = ConfigDict(use_enum_values=True)
 
@@ -243,11 +261,28 @@ class Message(SQLModel, IdTimestampMixin, JournalEntryIdMixin, InteractionTurnId
     @property
     def stage_property(self)->JournalEntryStage:
         return self.interaction_turn.stage
+    
+    def set_metadata(self, key: str, value: any):
+        new_metadata = {}
+
+        if self.metadata_json is not None:
+            new_metadata.update(self.metadata_json)
+
+        new_metadata[key] = value
+
+        self.metadata_json = new_metadata
+    
+    def set_intent_metadata(self, intent: MessageIntent):
+        self.set_metadata("intent", intent.value)
+
+    @property
+    def intent(self) -> MessageIntent | None:
+        return self.metadata_json.get("intent", None) if self.metadata_json else None
 
 class Journal(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
     location: Optional[str] = Field(nullable=True, default=None)
-    people: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
-    events: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    people: Optional[list[str]] = Field(sa_column=Column(JSON, nullable=True), default=None)
+    events: Optional[list[str]] = Field(sa_column=Column(JSON, nullable=True), default=None)
     summary: Optional[str] = Field(nullable=True, default=None)
     title: Optional[str] = Field(nullable=True, default=None)
     revision_1_count: int = Field(nullable=False, default=0)
@@ -262,7 +297,20 @@ class Journal(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
 class JournalIdMixin(BaseModel):
     journal_id: str = Field(foreign_key=f"{Journal.__tablename__}.id")
 
+class ComicStatus(StrEnum):
+    Generating0="generating-0"
+    Generating1="generating-1"
+    Generating2="generating-2"
+    Generating3="generating-3"
+    Generating4="generating-4"
+    Completed="completed"
+    Error="error"
+    Cancelled="cancelled"
+
 class Comic(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
+    model_config = ConfigDict(use_enum_values=True)
+    
+
     first_panel1: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
     first_panel2: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
     first_panel3: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
@@ -271,6 +319,42 @@ class Comic(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
     second_panel2: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
     second_panel3: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
     second_panel4: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
-    status: Optional[str] = Field(nullable=True, default=None)
+    status: Optional[ComicStatus] = Field(sa_type=SQLEnum(ComicStatus, native_enum=False), nullable=True, default=None)
     journal_entry_id: str = Field(foreign_key="journalentry.id")
     journal_id: str = Field(foreign_key="journal.id")
+
+# Comic panel type
+class ComicPanel(BaseModel):
+    content: str
+    grid: list = []
+
+# Comic data type
+class ComicData(BaseModel):
+    panel1: Optional[ComicPanel | str] = None
+    panel2: Optional[ComicPanel | str] = None
+    panel3: Optional[ComicPanel | str] = None
+    panel4: Optional[ComicPanel | str] = None
+
+# Message type for JournalingSessionInfo
+class ChatMessage(BaseModel):
+    id: str
+    text: str
+    isUser: bool
+    timestamp: Optional[str] = None
+    intent: Optional[MessageIntent] = None
+    metadata: Optional[dict] = None
+
+# JournalingSessionInfo type for get_session_info method
+class JournalingSessionInfo(BaseModel):
+    journal_entry_id: str
+    stage: str
+    status: str
+    location: Optional[str] = None
+    people: Optional[list[str]] = None
+    events: Optional[list[str]] = None
+    summary: Optional[str] = None
+    title: Optional[str] = None
+    panels: Optional[ComicData] = None
+    message_count: int
+    focusedPanel: Optional[str] = None
+    messages: list[ChatMessage] = []

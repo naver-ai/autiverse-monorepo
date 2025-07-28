@@ -23,6 +23,9 @@ import { TailwindButton } from '../../../../components/TailwindButton';
 import colors from 'tailwindcss/colors';
 import { CheckCircleIcon } from '../../../../components/svg-images';
 import { getPlacePeopleAPI, PlacePerson } from '../../api';
+import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '../../../auth/store';
+import { Place } from '@autiverse-monorepo/ts-core';
 
 const styles = StyleSheet.create({
   avatarImage: {
@@ -61,59 +64,36 @@ const ContentFrame= ({
   </>)
 }
 
-interface PresetSelectionStageProps {
-  onSelectionComplete: () => void;
-  onStartChatbotWithSuggestion: () => void;
-  onFreeStart: () => void;
-}
-
-export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
+export const PresetSelectionStage = ({
   onSelectionComplete,
   onStartChatbotWithSuggestion,
   onFreeStart,
+  isStartingChatbot,
+}: {
+  onSelectionComplete: (selectedLocation: Place, selectedPersonIds: string[]) => void;
+  onStartChatbotWithSuggestion: () => void;
+  onFreeStart: () => void;
+  isStartingChatbot: boolean;
 }) => {
   const { t } = useTranslation();
-  const {
-    selectionStep,
-    selectedLocation,
-    selectedPersonIds,
-    selectedPlaceId,
-    isLoading,
-    handleLocationSelect,
-    handlePersonToggle,
-    handleBackToLocation,
-  } = useJournalingStore();
+
+  const [selectionStep, setSelectionStep] = useState<'location' | 'people'>('location');
+  const [selectedLocation, setSelectedLocation] = useState<Place | null>(null);
+  const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([]);
 
   const {startSpeech, stopSpeech} = useSpeech()
 
   const [isTTSActive, setIsTTSActive] = useState(false);
   const [messageViewHeight, setMessageViewHeight] = useState(0);
-  const [placePeople, setPlacePeople] = useState<PlacePerson[]>([]);
-  const [isLoadingPlacePeople, setIsLoadingPlacePeople] = useState(false);
   const { dyad, agentConfig } = useDyad();
 
-  // 장소별 인물 가져오기
-  useEffect(() => {
-    const fetchPlacePeople = async () => {
-      if (selectionStep === 'people' && selectedPlaceId) {
-        setIsLoadingPlacePeople(true);
-        try {
-          const result = await getPlacePeopleAPI(selectedPlaceId);
-          setPlacePeople(result.people);
-        } catch (error) {
-          console.error('Failed to fetch place people:', error);
-          // 에러 발생 시 빈 배열로 설정
-          setPlacePeople([]);
-        } finally {
-          setIsLoadingPlacePeople(false);
-        }
-      } else {
-        setPlacePeople([]);
-      }
-    };
+  const {jwt} = useAuthStore();
 
-    fetchPlacePeople();
-  }, [selectionStep, selectedPlaceId]);
+  const {data: peopleInPlace, isLoading: isLoadingPeopleInPlace, error: peopleInPlaceError} = useQuery({
+    queryKey: ['peopleInPlace', selectedLocation?.id],
+    queryFn: () => getPlacePeopleAPI({placeId: selectedLocation!.id, token: jwt!}),
+    enabled: !!selectedLocation && selectionStep === 'people' && !!jwt,
+  });
 
   // TTS 시작
   useEffect(() => {
@@ -124,7 +104,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
       const ttsMessage =
         selectionStep === 'location'
           ? t('Journaling.PresetSelection.LocationSelectionMessage')
-          : format(t('Journaling.PresetSelection.PeopleSelectionMessageTemplate'), { location: selectedLocation });
+          : format(t('Journaling.PresetSelection.PeopleSelectionMessageTemplate'), { location: selectedLocation?.name });
       startSpeech(ttsMessage, {
         ...getTTSOptionsFromAgentConfig(agentConfig),
         onDone: () => {
@@ -153,6 +133,11 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
       // 장소 선택 단계에서는 TTS 중단 후 실행
       stopTTSAndExecute(callback);
     }
+  };
+
+  const handleLocationSelect = (location: Place) => {
+    setSelectedLocation(location);
+    setSelectionStep('people');
   };
 
   // 컴포넌트 언마운트 시 TTS 정지
@@ -192,7 +177,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               >
                 {selectionStep === 'location'
                   ? t('Journaling.PresetSelection.LocationSelectionMessage')
-                  : format(t('Journaling.PresetSelection.PeopleSelectionMessageTemplate'), { location: selectedLocation })}
+                  : format(t('Journaling.PresetSelection.PeopleSelectionMessageTemplate'), { location: selectedLocation?.name })}
               </Reanimated.Text>
             </View>
           </Reanimated.View>
@@ -202,16 +187,14 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
           <View className="border-t-2 border-gray-200 pt-6 pb-6 mt-4 px-6 flex flex-row items-center">
           <TailwindButton
               containerClassName="flex-1 mr-2"
-              buttonStyleClassName={`p-4 ${
-                isTTSActive || isLoading ? 'bg-gray-200' : 'bg-blue-500'
-              }`}
+              buttonStyleClassName={'p-4 bg-blue-500'}
               roundedClassName="rounded-xl"
               disabledButtonStyleClassName="bg-gray-200"
               disabledTitleClassName="text-gray-400"
               titleClassName={'text-xl text-white'}
-              title={isLoading ? t('Journaling.PresetSelection.Preparing') : t('Journaling.PresetSelection.DontKnowWhatToWrite')}
+              title={isStartingChatbot ? t('Journaling.PresetSelection.Preparing') : t('Journaling.PresetSelection.DontKnowWhatToWrite')}
               onPress={() => stopTTSAndExecute(onStartChatbotWithSuggestion)}
-              disabled={isTTSActive || isLoading}
+              disabled={isTTSActive || isStartingChatbot}
             />
             <TailwindButton
               containerClassName="flex-1 ml-2"
@@ -220,9 +203,9 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
               disabledButtonStyleClassName="bg-gray-200"
               titleClassName={'text-xl text-white'}
               disabledTitleClassName="text-gray-400"
-              title={isLoading ? t('Journaling.PresetSelection.Preparing') : t('Journaling.PresetSelection.IWantToWriteSomething')}
+              title={isStartingChatbot ? t('Journaling.PresetSelection.Preparing') : t('Journaling.PresetSelection.IWantToWriteSomething')}
               onPress={() => stopTTSAndExecute(onFreeStart)}
-              disabled={isTTSActive || isLoading}
+              disabled={isTTSActive || isStartingChatbot}
             />
         </View>
         }>
@@ -241,11 +224,11 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                       rippleColor={colors.orange[300]}
                       onPress={() =>
                         stopTTSAndExecute(() =>
-                          handleLocationSelect(place.name, place.id),
+                          handleLocationSelect(place),
                         )
                       }
                       delayPress={500} // 빠른 터치 방지
-                      disabled={isTTSActive || isLoading}
+                      disabled={isTTSActive || isStartingChatbot}
                     />
                 ))
               ) : (
@@ -266,36 +249,38 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
 
             {/* 뒤로가기 버튼 */}
               <TailwindButton
-                key={`back-to-location-${selectedLocation}`}
+                key={`back-to-location-${selectedLocation?.id}`}
                 containerClassName="self-start mb-3"
                 buttonStyleClassName={`p-2 bg-transparent`}
                 shadowClassName="shadow-none"
                 titleClassName={`text-blue-500 text-xl ${isTTSActive ? 'text-gray-400' : ''}`}
                 disabledTitleClassName="text-gray-400"
                 title={t('Journaling.PresetSelection.BackToLocation')}
-                onPress={() => stopTTSAndExecute(handleBackToLocation)}
+                onPress={() => stopTTSAndExecute(() => setSelectionStep('location'))}
                 disabled={isTTSActive}
               />
 
                 <TailwindButton
               buttonStyleClassName={`rounded-xl p-5 ${
-                isTTSActive || selectedPersonIds.length === 0 || isLoading
+                isTTSActive || selectedPersonIds.length === 0 || isLoadingPeopleInPlace
                   ? 'bg-gray-200'
                   : 'bg-blue-500'
               }`}
               disabledButtonStyleClassName="bg-gray-200"
               titleClassName={`text-white text-2xl text-center ${
-                isTTSActive || selectedPersonIds.length === 0 || isLoading
+                isTTSActive || selectedPersonIds.length === 0 || isLoadingPeopleInPlace
                   ? 'text-gray-400'
                   : 'text-white'
               }`}
               disabledTitleClassName="text-gray-400"
-              title={isLoading
+              title={isLoadingPeopleInPlace
                 ? t('Journaling.PresetSelection.Preparing')
                 : format(t('Journaling.PresetSelection.NextStepTemplate'), { count: selectedPersonIds.length })}
-              onPress={() => stopTTSAndExecute(onSelectionComplete)}
+              onPress={() => stopTTSAndExecute(()=>{
+                onSelectionComplete(selectedLocation!, selectedPersonIds);
+              })}
               disabled={
-                isTTSActive || selectedPersonIds.length === 0 || isLoading
+                isTTSActive || selectedPersonIds.length === 0 || isLoadingPeopleInPlace
               }
             />
             </View>
@@ -303,7 +288,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
 
             {/* 사람 선택 그리드 */}
           <View className="flex-1 flex flex-row items-center justify-center flex-wrap mb-4">
-              {isLoadingPlacePeople ? (
+              {isLoadingPeopleInPlace ? (
                 // 로딩 상태
                 <View className="p-4 border-2 border-gray-200 rounded-xl bg-white">
                   <Text
@@ -313,9 +298,9 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                     {t('Journaling.PresetSelection.LoadingPeople')}
                   </Text>
                 </View>
-              ) : placePeople.length > 0 ? (
+              ) : peopleInPlace && peopleInPlace.people.length > 0 ? (
                 // 장소별 인물 데이터 사용
-                placePeople.map((person) => {
+                peopleInPlace.people.map((person) => {
                   const isSelected = selectedPersonIds.includes(person.id);
                   return (
                   <TailwindButton
@@ -327,7 +312,7 @@ export const PresetSelectionStage: React.FC<PresetSelectionStageProps> = ({
                     disabledButtonStyleClassName={twMerge("border-gray-200", isSelected ? 'bg-gray-300' : 'bg-gray-200')}
                     onPress={() =>
                       executeWithConditionalTTSStop(() =>
-                        handlePersonToggle(person.name, person.id),
+                        setSelectedPersonIds([...selectedPersonIds, person.id]),
                       )
                     }
                     disabled={isTTSActive}

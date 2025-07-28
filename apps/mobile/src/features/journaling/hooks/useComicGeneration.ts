@@ -1,40 +1,179 @@
-// 이 파일은 더 이상 사용되지 않습니다. useComicGenerationQuery.ts를 사용하세요.
-// 기존 코드와의 호환성을 위해 임시로 남겨둡니다.
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  startComicGenerationAPI,
+  getComicGenerationStatusAPI,
+  cancelComicGenerationAPI,
+  ComicGenerationStatus,
+} from '../api';
+import { useCallback, useEffect, useRef } from 'react';
+import { useAuth } from '../../auth/hooks';
+import { usePrevious } from '@uidotdev/usehooks';
+import { useSocket } from '../utils/socket';
+import { WebsocketEvent } from '../types';
+import { JournalingSessionInfo } from '@autiverse-monorepo/ts-core';
 
-import React from 'react';
-import { useComicGeneration as useComicGenerationQuery } from './useComicGenerationQuery';
+export const useComicGeneration = (
+  journalEntryId: string | null,
+) => {
+  const { jwt } = useAuth();
 
-interface UseComicGenerationProps {
-  journalEntryId: string | null;
-  onComplete?: (comicData: any) => void;
-}
+  const queryClient = useQueryClient();
 
-export const useComicGeneration = ({ 
-  journalEntryId, 
-  onComplete 
-}: UseComicGenerationProps) => {
-  const {
-    status,
-    startGeneration,
-    cancelGeneration,
-    isLoading,
-    startError,
-    cancelError
-  } = useComicGenerationQuery(journalEntryId);
-        
-  // onComplete 콜백 처리
-  React.useEffect(() => {
-    if (status.status === 'completed' && status.comic_data && onComplete) {
-      onComplete(status.comic_data);
+  // 만화 생성 시작 mutation
+  const startGenerationMutation = useMutation({
+    mutationFn: () =>
+      startComicGenerationAPI(jwt!!, journalEntryId!!),
+    onSuccess: () => {
+      console.log('Comic generation started successfully');
+      // 상태 쿼리를 무효화하여 즉시 상태를 다시 가져오도록 함
+      if (journalEntryId) {
+        queryClient.invalidateQueries({
+          queryKey: ['comicGenerationStatus', journalEntryId],
+        });
+      }
+    },
+    onError: (error) => {
+      console.error('Error starting comic generation:', error);
+    },
+  });
+
+  // 만화 생성 취소 mutation
+  const cancelGenerationMutation = useMutation({
+    mutationFn: (journalEntryId: string) =>
+      cancelComicGenerationAPI(jwt!!, journalEntryId),
+    onSuccess: () => {
+      console.log('Comic generation cancelled successfully');
+      if (journalEntryId) {
+        queryClient.invalidateQueries({
+          queryKey: ['comicGenerationStatus', journalEntryId],
+        });
+      }
+    },
+    onError: (error) => {
+      console.error('Error cancelling comic generation:', error);
+    },
+  });
+
+  // 만화 생성 상태 쿼리
+  const statusQuery = useQuery({
+    queryKey: ['comicGenerationStatus', journalEntryId],
+    queryFn: () => getComicGenerationStatusAPI(jwt!!, journalEntryId!),
+    enabled: !!journalEntryId,
+  });
+
+  // 만화 생성 시작 함수
+  const startGeneration = useCallback(
+    () => {
+
+      console.log("Start comic generation....")
+      if (!journalEntryId) {
+        console.error('journalEntryId is required to start comic generation');
+        return;
+      }
+      startGenerationMutation.mutate();
+    },
+    [journalEntryId, startGenerationMutation],
+  );
+
+  // 만화 생성 취소 함수
+  const cancelGeneration = useCallback(() => {
+    if (!journalEntryId) {
+      console.error('journalEntryId is required to cancel comic generation');
+      return;
+    }
+
+    cancelGenerationMutation.mutate(journalEntryId);
+  }, [journalEntryId, cancelGenerationMutation]);
+
+  const { eventSubject$ } = useSocket(jwt);
+  useEffect(() => {
+    const subscription = eventSubject$.subscribe((event) => {
+      console.log('Websocket event: ', event);
+      switch (event.event) {
+        case WebsocketEvent.ComicGenerationProgress:
+        case WebsocketEvent.ComicGenerationCompleted:
+        case WebsocketEvent.ComicGenerationStarted:
+        case WebsocketEvent.ComicGenerationError:
+          if (event.data.journal_entry_id == journalEntryId) {
+            const status: ComicGenerationStatus = {
+              status: event.data.status.startsWith('generating-')
+                ? 'generating'
+                : event.data.status,
+              progress: event.data.status.startsWith('generating-')
+                ? parseInt(event.data.status.split('-')[1]) * 20
+                : 0,
+              message: '',
+              comic_data: event.data.comic_data,
+            };
+
+            queryClient.setQueryData(
+              ['comicGenerationStatus', journalEntryId],
+              (old: ComicGenerationStatus | undefined) => {
+                return status;
+              },
+            );
+            if (event.event == WebsocketEvent.ComicGenerationCompleted) {
+
+
+              console.log("Comic generation completed, Immediate result response: ", event.data.chatbot_response)
+              /*
+              queryClient.setQueryData(
+                ['session', journalEntryId],
+                (old: JournalingSessionInfo | undefined) => {
+                  if (old != null) {
+                    return {
+                      ...old,
+                      panels: event.data.comic_data,
+                      messages: event.data.chatbot_response ? (old.messages.length > 0 ? [...old.messages || [], {
+                        id: (Date.now() + 2).toString(),
+                        text: event.data.chatbot_response.response,
+                        isUser: false,
+                        timestamp: new Date(),
+                        intent: event.data.chatbot_response.intent,
+                        metadata: event.data.chatbot_response.metadata,
+                      }] : old.messages) : old.messages,
+                    };
+                  }
+                  return old;
+                },
+              );*/              
+              queryClient.invalidateQueries({
+                queryKey: ['session', journalEntryId],
+              });
             }
-  }, [status.status, status.comic_data, onComplete]);
+          }
+          break;
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [eventSubject$, queryClient, journalEntryId]);
 
   return {
-    status,
+    // 상태
+    status: statusQuery.data || {
+      status: 'idle' as const,
+      progress: 0,
+      message: '',
+    },
+
+    // 로딩 상태
+    isLoading:
+      startGenerationMutation.isPending || cancelGenerationMutation.isPending,
+    isStarting: startGenerationMutation.isPending,
+    isCancelling: cancelGenerationMutation.isPending,
+    isStatusLoading: statusQuery.isLoading,
+
+    // 에러 상태
+    startError: startGenerationMutation.error,
+    cancelError: cancelGenerationMutation.error,
+    statusError: statusQuery.error,
+
+    // 액션
     startGeneration,
     cancelGeneration,
-    isLoading,
-    startError,
-    cancelError
+
+    // 에러 리셋
+    resetStartError: startGenerationMutation.reset,
+    resetCancelError: cancelGenerationMutation.reset,
   };
-}; 
+};

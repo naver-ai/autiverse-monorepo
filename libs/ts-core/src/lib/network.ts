@@ -67,13 +67,12 @@ export class NetworkHelper {
           return url;
         },
         getSessionEndpoint: (sessionId: string) => `/api/v1/app/chatbot/session/${sessionId}`,
-        getAutoComicGenerationEndpoint: (sessionId: string) => `/api/v1/app/chatbot/auto-comic-generation/${sessionId}`,
         GALLERY: '/api/v1/app/chatbot/gallery',
       },
       COMIC_GENERATION: {
-        START: '/api/v1/app/comic-generation/start',
-        getStatusEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/status/${journalEntryId}`,
-        getCancelEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/cancel/${journalEntryId}`,
+        getStartEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/${journalEntryId}/start`,
+        getStatusEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/${journalEntryId}/status`,
+        getCancelEndpoint: (journalEntryId: string) => `/api/v1/app/comic-generation/${journalEntryId}/cancel`,
       },
       SPEECH: { 
         CLOVA: '/api/v1/app/speech/clova',

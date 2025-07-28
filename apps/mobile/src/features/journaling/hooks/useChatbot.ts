@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
-import { NetworkHelper } from '@autiverse-monorepo/ts-core';
+import { ChatbotResponse, ChatMessage, JournalingSessionInfo, MessageIntent, NetworkHelper } from '@autiverse-monorepo/ts-core';
 import { useAuthStore } from '../../auth/store';
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { nanoid } from 'nanoid';  
 
-const createNewSessionAPI = async (jwt: string, location?: string, people?: Array<string>) => {
+const createNewSessionAPI = async (jwt: string, location?: string, people?: Array<string>): Promise<ChatbotResponse> => {
 
   const requestBody = {
     location: location,
@@ -19,7 +20,7 @@ const createNewSessionAPI = async (jwt: string, location?: string, people?: Arra
   return response.data;
 }
 
-const createNewSessionWithSuggestionsAPI = async (jwt: string) => {
+const createNewSessionWithSuggestionsAPI = async (jwt: string): Promise<ChatbotResponse> => {
 
   const response = await NetworkHelper.axiosClient.post(
     NetworkHelper.ENDPOINTS.APP.CHATBOT.START_WITH_SUGGESTION,
@@ -30,46 +31,33 @@ const createNewSessionWithSuggestionsAPI = async (jwt: string) => {
   return response.data;
 }
 
+const sendMessageAPI = async (jwt: string, journalEntryId: string, message: string, intent?: MessageIntent, audioFilename?: string): Promise<ChatbotResponse> => {
+  const response = await NetworkHelper.axiosClient.post(
+    NetworkHelper.ENDPOINTS.APP.CHATBOT.SEND,
+    { journal_entry_id: journalEntryId, message: message, intent: intent, audio_filename: audioFilename },
+    { headers: await NetworkHelper.getHeaders(jwt) }
+  )
 
+  return response.data;
+}
 
-export const useChatbot = () => {
+export const useChatbot = (afterStart?: (data: ChatbotResponse, withSuggestion: boolean) => void) => {
   
   const queryClient = useQueryClient();
 
   const { jwt } = useAuthStore();
 
-  const loadSessionInfo = useCallback(async (sessionId: string) => {
-    if (!sessionId) {
-      console.log('No sessionId available for loadSessionInfo');
-      return null;
-    }
-    
-    try {
-      console.log('Loading session info for sessionId:', sessionId);
-      const response = await NetworkHelper.axiosClient.get(
-        NetworkHelper.ENDPOINTS.APP.CHATBOT.getSessionEndpoint(sessionId)
-      );
-      if (response.status === 200) {
-        const data = response.data;
-        console.log('Session info received:');
-        return data;
-      } else {
-        console.error('Failed to load session info, status:', response.status);
-        return null;
-      }
-    } catch (error) {
-      console.error('Error loading session info:', error);
-      return null;
-    }
-  }, []);
-
   const startChatbotMutation = useMutation({
     mutationFn: (args: {location?: string, people?: Array<string>}) => createNewSessionAPI(jwt!!, args.location, args.people),
     onSuccess: (data) => {
       console.log('Successfully created new session:', data);
-      queryClient.setQueryData(['chatSession'], () => {
+      queryClient.setQueryData(['session', data.journal_entry_id], () => {
         return data;
       });
+
+      if (afterStart) {
+        afterStart(data, false);
+      }
     },
     onError: (error) => {
       console.error('Failed to create new session:', error);
@@ -80,63 +68,62 @@ export const useChatbot = () => {
     mutationFn: () => createNewSessionWithSuggestionsAPI(jwt!!),
     onSuccess: (data) => {
       console.log('Successfully created new session with suggestion:', data);
-      queryClient.setQueryData(['chatSession'], () => {
+      queryClient.setQueryData(['session', data.journal_entry_id], () => {
         return data;
       });
+
+      if (afterStart) {
+        afterStart(data, true);
+      }
     },
   })
 
-  const sendMessage = useCallback(async (sessionId: string, messageText: string, audioFilename?: string) => {
-    if (!sessionId || !messageText.trim()) return null;
-
-    try {
-      const response = await NetworkHelper.axiosClient.post(
-        NetworkHelper.ENDPOINTS.APP.CHATBOT.SEND,
-        {
-          journal_entry_id: sessionId,
-          message: messageText,
-          audio_filename: audioFilename,
-        }
-      );
-
-      if (response.status === 200) {
-        const data = response.data;
-        return data;
-      } else {
-        console.error('Failed to send message, status:', response.status);
-        return null;
+  const addMockMessages = (journalEntryId: string, messages: ChatMessage[]) => {
+    queryClient.setQueryData(['session', journalEntryId], (oldData: any) => {
+      if(oldData) {
+        return {
+          ...oldData,
+          messages: [...oldData.messages, ...messages]
+        };
       }
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      return null;
-    }
-  }, []);
+    });
+  }
 
-  const startAutoComicGeneration = useCallback(async (sessionId: string) => {
-    try {
-      const response = await NetworkHelper.axiosClient.post(
-        NetworkHelper.ENDPOINTS.APP.CHATBOT.getAutoComicGenerationEndpoint(sessionId)
-      );
+  const sendMessageMutation = useMutation({
+    mutationFn: (args: {journalEntryId: string, message: string, intent?: MessageIntent, audioFilename?: string}) => sendMessageAPI(jwt!!, args.journalEntryId, args.message, args.intent, args.audioFilename),
+    onSuccess: (data) => {
+      console.log('Successfully sent message:', data);
 
-      if (response.status === 200) {
-        const data = response.data;
-        return data;
-      } else {
-        console.error('Failed to start auto comic generation, status:', response.status);
-        return null;
-      }
-    } catch (error) {
-      console.error('Failed to start auto comic generation:', error);
-      return null;
+      queryClient.setQueryData(['session', data.journal_entry_id], (oldData: JournalingSessionInfo) => {
+        if(oldData) {
+          return {
+            ...oldData,
+            stage: data.stage,
+            focusedPanel: data.focusedPanel || oldData.focusedPanel,
+            events: data.data?.events || oldData.events,
+            summary: data.data?.summary || oldData.summary,
+            panels: data.data?.panels || oldData.panels,
+            messages: [...oldData.messages, {
+              id: data.message_id || nanoid(),
+              text: data.response,
+              isUser: false,
+              intent: data.intent,
+              metadata: data.metadata
+            }]
+          };
+        }else return oldData;
+      });
     }
-  }, []);
+  })
 
   return {
     // Actions
-    loadSessionInfo,
     startChatbot: startChatbotMutation.mutateAsync,
     startChatbotWithSuggestion: startChatbotWithSuggestionMutation.mutateAsync,
-    sendMessage,
-    startAutoComicGeneration,
+    isStartingChatbot: startChatbotMutation.isPending || startChatbotWithSuggestionMutation.isPending,
+    sendMessage: sendMessageMutation.mutateAsync,
+    isSendingMessage: sendMessageMutation.isPending,
+    sendMessageError: sendMessageMutation.error,
+    addMockMessages,
   };
 }; 

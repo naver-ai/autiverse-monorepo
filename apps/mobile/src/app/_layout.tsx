@@ -6,6 +6,7 @@ import { useAuth } from '../features/auth/hooks';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useFonts } from 'expo-font';
+import { PaperProvider } from 'react-native-paper';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -18,9 +19,11 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   return <QueryClientProvider client={queryClient}>
-    <GestureHandlerRootView>
-      <RootNavigator />
-    </GestureHandlerRootView>
+      <PaperProvider>
+        <GestureHandlerRootView>
+          <RootNavigator />
+        </GestureHandlerRootView>
+      </PaperProvider>
   </QueryClientProvider>
 }
 

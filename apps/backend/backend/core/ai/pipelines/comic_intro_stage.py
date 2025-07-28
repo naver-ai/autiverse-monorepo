@@ -118,26 +118,7 @@ class ComicIntroStage:
             return journal_entry.dyad.child_gender
         return "male"  # fallback
     
-    def _get_vocative_particle(self, name: str) -> str:
-        """한국어 종성에 따른 호격 조사 처리 함수"""
-        if not name or len(name) == 0:
-            return ''
-        
-        last_char = name[-1]
-        code = ord(last_char)
-        
-        # 한글 범위 체크 (가-힣: 44032-55203)
-        if code < 44032 or code > 55203:
-            return ''
-        
-        # 종성 계산: (유니코드 - 44032) % 28
-        unicode_val = code - 44032
-        jong = unicode_val % 28
-        
-        # 종성이 있으면 '이', 없으면 ''
-        return '이' if jong != 0 else ''
-        
-    def start_conversation(self, location: str = None, people: List[str] = None) -> str:
+    def start_conversation(self, location: str = None, people: List[str] = None) -> Message:
         """대화 시작"""
         # Journal entry stage 업데이트
         update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Intro)
@@ -158,14 +139,14 @@ class ComicIntroStage:
         
         # 초기 메시지 생성
         initial_message = self._generate_intro_message(location, people)
-        create_message(
+        message = create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             initial_message, MessageRole.Assistant, JournalEntryStage.Intro
         )
         
-        return initial_message
+        return message
     
-    def start_conversation_with_suggestion(self) -> str:
+    def start_conversation_with_suggestion(self) -> Message:
         """대화 시작 (뭘 쓸지 모르겠네 버튼용)"""
         # Journal entry stage 업데이트
         update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Intro)
@@ -196,14 +177,14 @@ class ComicIntroStage:
         
         # 초기 메시지 생성 (suggestion 모드)
         initial_message = self._generate_suggestion_message()
-        create_message(
+        message = create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             initial_message, MessageRole.Assistant, JournalEntryStage.Intro
         )
         
-        return initial_message
+        return message
     
-    def process_message(self, user_message: str, audio_filename: str = None) -> str:
+    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message:
         """사용자 메시지 처리"""
         # 현재 interaction turn 가져오기
         interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Intro)
@@ -212,19 +193,21 @@ class ComicIntroStage:
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             user_message, MessageRole.User, JournalEntryStage.Intro,
+            intent=intent,
             audio_filename=audio_filename
         )
         
         # 봇 응답 생성
-        bot_response = self._generate_response(user_message)
+        bot_response, response_intent = self._generate_response(user_message, intent)
         
         # 봇 응답 저장
-        create_message(
+        message = create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
-            bot_response, MessageRole.Assistant, JournalEntryStage.Intro
+            bot_response, MessageRole.Assistant, JournalEntryStage.Intro,
+            intent=response_intent
         )
         
-        return bot_response
+        return message
     
     def analyze_events(self) -> Dict[str, Any]:
         """이벤트 분석"""
@@ -397,12 +380,8 @@ CONVERSATION:
         """초기 인사 메시지 생성"""
         if location and people:
             # 사람들의 이름에 종성에 따른 조사 적용
-            people_with_particles = []
-            for person in people:
-                particle = self._get_vocative_particle(person)
-                people_with_particles.append(f"{person}{particle}")
             
-            return f"오늘 {location}에서 {', '.join(people_with_particles)}랑 무슨 일이 있었는지 너무 궁금해! 나한테 다 이야기해줘! 😊"
+            return f"오늘 {location}에서 {', '.join(people)}하고 무슨 일이 있었는지 너무 궁금해! 나한테 다 이야기해줘! 😊"
         else:
             return "대박대박!! 딱 쓰고 싶은 게 있었구나!! 오늘 있었던 무슨 일을 일기로 써볼까? 😊"
     
@@ -434,7 +413,7 @@ CONVERSATION:
         else:
             return "오늘 뭐했어? 😊"
     
-    def _generate_response(self, user_message: str) -> str:
+    def _generate_response(self, user_message: str, intent: MessageIntent | None = None) -> str:
         """사용자 메시지에 대한 응답 생성"""
         client = openai.OpenAI()
         
@@ -537,7 +516,7 @@ Recent conversation:
             max_tokens=150
         )
 
-        return response.choices[0].message.content
+        return response.choices[0].message.content, None
     
     def _get_or_create_interaction_turn(self, stage: JournalEntryStage) -> Any:
         """현재 단계의 interaction turn 가져오기 또는 생성"""

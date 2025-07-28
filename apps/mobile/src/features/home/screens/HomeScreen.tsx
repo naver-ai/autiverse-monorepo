@@ -18,6 +18,9 @@ import { DyadProfileView } from '../components/DyadProfileView';
 import { check, PERMISSIONS, RESULTS, request } from 'react-native-permissions';
 import { JournalEntryStage } from '@autiverse-monorepo/ts-core';
 import { Modal } from '../../../components/Modal';
+import { useAuth } from '../../auth/hooks';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { continueSessionAPI } from '../../journaling/api';
 const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen() {
@@ -28,7 +31,6 @@ export default function HomeScreen() {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const buttonScaleAnim = useRef(new Animated.Value(1)).current;
   const [showContinueModal, setShowContinueModal] = useState(false);
-  const [isButtonPressed, setIsButtonPressed] = useState(false);
 
   useEffect(() => {
     
@@ -75,28 +77,33 @@ export default function HomeScreen() {
 
   console.log("latestEntry", latestEntry)
 
-  const handleContinue = async () => {
-    setShowContinueModal(false);
-    
-    try {
-      // 이어쓰기 시작 시점을 백엔드에 기록
-      const { continueSessionAPI } = await import('../../journaling/api');
-      await continueSessionAPI(latestEntry!.id, latestEntry!.stage);
-    } catch (error) {
-      console.error('Failed to record continue session:', error);
-      // 에러가 발생해도 이어쓰기는 계속 진행
+  const {jwt} = useAuth();
+
+  const queryClient = useQueryClient();
+
+  const {mutate: continueSession} = useMutation({
+    mutationFn: async () => {
+      await continueSessionAPI(jwt!!, latestEntry!.id, latestEntry!.stage);
+    },
+    onMutate: () => {
+      setShowContinueModal(false);
+    },
+    onSuccess: () => {
+      router.push({
+        pathname: '/(app)/create-comic',
+        params: {
+          journalEntryId: latestEntry!.id,
+          stage: latestEntry!.stage,
+          continueExistingStr: 'true'
+        }
+      });
+      queryClient.invalidateQueries({ queryKey: ['session', latestEntry!.id] });
     }
-    
-    // 기존 작업 이어가기 - 해당 stage로 직접 이동
-    router.push({
-      pathname: '/(app)/create-comic',
-      params: {
-        journalEntryId: latestEntry!.id,
-        stage: latestEntry!.stage,
-        continueExistingStr: 'true'
-      }
-    });
-  };
+  })
+
+  const handleContinue = useCallback(() => {
+    continueSession()  
+  }, [continueSession]);
 
   const handleStartNew = () => {
     setShowContinueModal(false);
@@ -191,14 +198,16 @@ export default function HomeScreen() {
             <View className="flex flex-row gap-4 justify-center">
               <TailwindButton
                 onPress={handleContinue}
-                buttonStyleClassName="bg-blue-500 rounded-2xl py-4"
+                roundedClassName="rounded-2xl"
+                buttonStyleClassName="bg-blue-500 py-4"
                 title={t('Home.ContinueModal.Continue')}
                 titleClassName="text-white text-center text-2xl"
               />
               
               <TailwindButton
                 onPress={handleStartNew}
-                buttonStyleClassName="bg-gray-200 rounded-2xl py-4"
+                roundedClassName="rounded-2xl"
+                buttonStyleClassName="bg-gray-200 py-4"
                 title={t('Home.ContinueModal.StartNew')}
                 titleClassName="text-gray-700 text-center text-2xl"
               />

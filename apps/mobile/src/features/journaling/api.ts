@@ -1,9 +1,4 @@
-import { NetworkHelper } from '@autiverse-monorepo/ts-core';
-
-export interface ComicGenerationRequest {
-  journal_entry_id: string;
-  panel_contents: Record<string, string>;
-}
+import { JournalingSessionInfo, NetworkHelper } from '@autiverse-monorepo/ts-core';
 
 export interface ComicGenerationStatus {
   status: 'idle' | 'generating' | 'completed' | 'error' | 'cancelled';
@@ -12,38 +7,49 @@ export interface ComicGenerationStatus {
   comic_data?: any;
 }
 
-export const startComicGenerationAPI = async (request: ComicGenerationRequest): Promise<void> => {
-  const response = await NetworkHelper.axiosClient.post(
-    NetworkHelper.ENDPOINTS.APP.COMIC_GENERATION.START,
-    request,
+export const getSessionInfoAPI = async ({token, sessionId}: {token: string, sessionId: string}): Promise<JournalingSessionInfo> => {
+  const response = await NetworkHelper.axiosClient.get(
+    NetworkHelper.ENDPOINTS.APP.CHATBOT.getSessionEndpoint(sessionId),
     {
-      headers: await NetworkHelper.getHeaders(),
+      headers: await NetworkHelper.getHeaders(token)
+    }
+  );
+
+  return response.data;
+};
+
+export const startComicGenerationAPI = async (token: string, journalEntryId: string): Promise<void> => {
+  const response = await NetworkHelper.axiosClient.post(
+    NetworkHelper.ENDPOINTS.APP.COMIC_GENERATION.getStartEndpoint(journalEntryId),
+    null,
+    {
+      headers: await NetworkHelper.getHeaders(token),
     }
   );
   return response.data;
 };
 
-export const getComicGenerationStatusAPI = async (journalEntryId: string): Promise<ComicGenerationStatus> => {
+export const getComicGenerationStatusAPI = async (token: string, journalEntryId: string): Promise<ComicGenerationStatus> => {
   const response = await NetworkHelper.axiosClient.get(
     NetworkHelper.ENDPOINTS.APP.COMIC_GENERATION.getStatusEndpoint(journalEntryId),
     {
-      headers: await NetworkHelper.getHeaders()
+      headers: await NetworkHelper.getHeaders(token)
     }
   );
   return response.data;
 };
 
-export const cancelComicGenerationAPI = async (params: { journalEntryId: string }): Promise<void> => {
+export const cancelComicGenerationAPI = async (token: string, journalEntryId: string): Promise<void> => {
   const response = await NetworkHelper.axiosClient.delete(
-    NetworkHelper.ENDPOINTS.APP.COMIC_GENERATION.getCancelEndpoint(params.journalEntryId),
+    NetworkHelper.ENDPOINTS.APP.COMIC_GENERATION.getCancelEndpoint(journalEntryId),
     {
-      headers: await NetworkHelper.getHeaders()
+      headers: await NetworkHelper.getHeaders(token)
     }
   );
   return response.data;
 };
 
-export const uploadAudioFile = async (audioUri: string, journalEntryId: string, stage?: string, interactionTurnId?: string): Promise<{ filename: string }> => {
+export const uploadAudioFile = async (token: string, audioUri: string, journalEntryId: string, stage?: string, interactionTurnId?: string): Promise<{ filename: string }> => {
   try {
     const formData = new FormData();
     
@@ -67,6 +73,7 @@ export const uploadAudioFile = async (audioUri: string, journalEntryId: string, 
       formData,
       {
         headers: {
+          ...await NetworkHelper.getHeaders(token),
           'Content-Type': 'multipart/form-data',
         },
       }
@@ -79,7 +86,7 @@ export const uploadAudioFile = async (audioUri: string, journalEntryId: string, 
   }
 }; 
 
-export const updateComicTitleAPI = async (journalEntryId: string, title: string): Promise<any> => {
+export const updateComicTitleAPI = async (token: string, journalEntryId: string, title: string): Promise<any> => {
   try {
     const response = await NetworkHelper.axiosClient.post(
       NetworkHelper.ENDPOINTS.APP.CHATBOT.UPDATE_TITLE,
@@ -88,7 +95,7 @@ export const updateComicTitleAPI = async (journalEntryId: string, title: string)
         title: title
       },
       {
-        headers: await NetworkHelper.getHeaders(),
+        headers: await NetworkHelper.getHeaders(token),
       }
     );
 
@@ -99,7 +106,7 @@ export const updateComicTitleAPI = async (journalEntryId: string, title: string)
   }
 };
 
-export const continueSessionAPI = async (journalEntryId: string, stage: string): Promise<any> => {
+export const continueSessionAPI = async (token: string, journalEntryId: string, stage: string): Promise<any> => {
   try {
     const response = await NetworkHelper.axiosClient.post(
       NetworkHelper.ENDPOINTS.APP.CHATBOT.CONTINUE_SESSION,
@@ -108,7 +115,7 @@ export const continueSessionAPI = async (journalEntryId: string, stage: string):
         stage: stage
       },
       {
-        headers: await NetworkHelper.getHeaders(),
+        headers: await NetworkHelper.getHeaders(token),
       }
     );
 
@@ -125,12 +132,12 @@ export interface PlacePerson {
   avatar_config?: any;
 }
 
-export const getPlacePeopleAPI = async (placeId: string): Promise<{ place_id: string; people: PlacePerson[] }> => {
+export const getPlacePeopleAPI = async ({placeId, token}: {placeId: string, token: string}): Promise<{ place_id: string; people: PlacePerson[] }> => {
   try {
     const response = await NetworkHelper.axiosClient.get(
       NetworkHelper.ENDPOINTS.APP.CHATBOT.getPlacePeopleEndpoint(placeId),
       {
-        headers: await NetworkHelper.getHeaders(),
+        headers: await NetworkHelper.getHeaders(token),
       }
     );
 

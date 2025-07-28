@@ -29,7 +29,6 @@ export const createDyadApi = async (data: DyadInfo) => {
 export const createAgentApi = async (args: {dyadId: string, data: { interest: string, agent_name: string, agent_config?: Record<string, any> }}) => {
     const token = localStorage.getItem('auth_token') || undefined;
     
-    console.log(args)
     const response = await NetworkHelper.axiosClient.post(
         NetworkHelper.ENDPOINTS.ADMIN.DYADS.getAddAgentEndpoint(args.dyadId),
         args.data,

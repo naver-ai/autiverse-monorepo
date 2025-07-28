@@ -1,26 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { styleTemplates } from '../../../styles';
+import { UserButtonMode } from '../types';
+import { MessageIntent } from '@autiverse-monorepo/ts-core';
+import { useSession } from '../hooks/useSession';
+import { useTranslation } from 'react-i18next';
 
 interface ChatButtonsProps {
-  showYesNoButtons: boolean;
-  showEmotionButtons: boolean;
-  showNextButton: boolean;
-  buttonTexts: { left: string; right: string };
+  sessionId: string;
+  buttonMode: UserButtonMode|null;
   isDisabled: boolean;
-  sendMessage: (message: string, audioFilename?: string) => void;
+  sendMessage: (message: string, intent?: MessageIntent, audioFilename?: string) => void;
   onButtonsVisibilityChange: (hasButtons: boolean) => void;
 }
 
 export const ChatButtons: React.FC<ChatButtonsProps> = ({
-  showYesNoButtons,
-  showEmotionButtons,
-  showNextButton,
-  buttonTexts,
+  sessionId,
+  buttonMode,
   isDisabled,
   sendMessage,
   onButtonsVisibilityChange
 }) => {
+
+  const {t} = useTranslation();
+
   const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
 
   const emotionButtons = [
@@ -38,6 +41,44 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
     { text: '지루했다', emoji: '😴' }
   ];
 
+
+  const { sessionInfo } = useSession({ sessionId });
+  const lastBotMessage = sessionInfo?.messages?.filter((m) => !m.isUser).pop();
+
+  // 버튼 내용 결정
+  const buttonTexts = useMemo<{left: {label: string, intent: MessageIntent}, right: {label: string, intent: MessageIntent}} | undefined>(() => {
+    const previousBotIntent = lastBotMessage?.intent
+
+    switch(previousBotIntent) {
+      case MessageIntent.PromptIssueExist:
+        return {
+          left: {label: t('ChatInput.ButtonLabels.Wrong'), intent: MessageIntent.AnswerNegative},
+          right: {label: t('ChatInput.ButtonLabels.AllCorrect'), intent: MessageIntent.AnswerPositive},
+        };
+      case MessageIntent.TransitionToTitle:
+        return {
+          left: {label: t('ChatInput.ButtonLabels.LetsDoIt'), intent: MessageIntent.AnswerPositive},
+          right: {label: t('ChatInput.ButtonLabels.Good'), intent: MessageIntent.AnswerPositive},
+        };
+      case MessageIntent.InitialTitleConfirm:
+        return {
+          left: {label: t('ChatInput.ButtonLabels.NotGood'), intent: MessageIntent.AnswerNegative},
+          right: {label: t('ChatInput.ButtonLabels.Good3'), intent: MessageIntent.AnswerPositive},
+        };
+      case MessageIntent.CustomTitleConfirm:
+        return {
+          left: {label: t('ChatInput.ButtonLabels.NoOther'), intent: MessageIntent.AnswerNegative},
+          right: {label: t('ChatInput.ButtonLabels.YesGood'), intent: MessageIntent.AnswerPositive},
+        }
+      default:
+        return undefined;
+    }
+  }, [lastBotMessage?.intent])
+
+  const showYesNoButtons = buttonMode === UserButtonMode.YES_NO_BUTTON && buttonTexts !== undefined;
+  const showEmotionButtons = buttonMode === UserButtonMode.EMOTION_BUTTON;
+  const showNextButton = buttonMode === UserButtonMode.NEXT_BUTTON;
+
   const handleEmotionClick = (emotion: string) => {
     if (isDisabled) return;
     
@@ -50,7 +91,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
 
   const handleEmotionComplete = () => {
     if (selectedEmotions.length > 0 && !isDisabled) {
-      sendMessage(selectedEmotions.join(', '));
+      sendMessage(selectedEmotions.join(', '), MessageIntent.AnswerEmotion);
       setSelectedEmotions([]);
     }
   };
@@ -70,7 +111,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
             className={`flex-1 px-6 py-4 rounded-xl justify-center ${
               isDisabled ? 'bg-gray-400' : 'bg-gray-500'
             }`}
-            onPress={() => sendMessage(buttonTexts.left)}
+            onPress={() => sendMessage(buttonTexts.left.label, buttonTexts.left.intent)}
             disabled={isDisabled}
             style={{
               backgroundColor: isDisabled ? '#9CA3AF' : '#6c757d',
@@ -82,13 +123,13 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
               elevation: 3,
             }}
           >
-            <Text className="text-white text-xl text-center" style={styleTemplates.withBoldFont}>{buttonTexts.left}</Text>
+            <Text className="text-white text-xl text-center" style={styleTemplates.withBoldFont}>{buttonTexts.left.label}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             className={`flex-1 px-6 py-4 rounded-xl justify-center ${
               isDisabled ? 'bg-gray-400' : 'bg-blue-500'
             }`}
-            onPress={() => sendMessage(buttonTexts.right)}
+            onPress={() => sendMessage(buttonTexts.right.label, buttonTexts.right.intent)}
             disabled={isDisabled}
             style={{
               backgroundColor: isDisabled ? '#9CA3AF' : '#4A90E2',
@@ -100,7 +141,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
               elevation: 3,
             }}
           >
-            <Text className="text-white text-xl text-center" style={styleTemplates.withBoldFont}>{buttonTexts.right}</Text>
+            <Text className="text-white text-xl text-center" style={styleTemplates.withBoldFont}>{buttonTexts.right.label}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -179,7 +220,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
             className={`px-6 py-4 rounded-xl justify-center ${
               isDisabled ? 'bg-gray-400' : 'bg-blue-500'
             }`}
-            onPress={() => sendMessage('다음')}
+            onPress={() => sendMessage('다음', MessageIntent.AnswerNext)}
             disabled={isDisabled}
             style={{
               backgroundColor: isDisabled ? '#9CA3AF' : '#4A90E2',

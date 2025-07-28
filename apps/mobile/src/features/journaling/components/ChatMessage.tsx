@@ -5,13 +5,15 @@ import { styleTemplates } from '../../../styles';
 import { useSpeech } from '../utils';
 import { getTTSOptionsFromAgentConfig } from '../utils/speechUtils';
 import { AgentImage } from './AgentImage';
+import { useSession } from '../hooks/useSession';
+import { useJournalingStore } from '../store';
 
 interface ChatMessageProps {
-  messages: ChatMessageType[];
-  isLoading: boolean;
+  journalEntryId: string;
   agentName: string;
   agentConfig?: any;
-  onTTSComplete?: () => void;
+  onTTSStart?: (messageId: string) => void;
+  onTTSComplete?: (messageId: string) => void;
 }
 
 // 이모티콘 제거 함수
@@ -20,22 +22,25 @@ const removeEmojis = (text: string): string => {
 };
 
 export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
-  messages,
-  isLoading,
+  journalEntryId,
   agentName,
   agentConfig,
+  onTTSStart,
   onTTSComplete
 }) => {
 
+  const {isSendingMessage, setIsInputActive} = useJournalingStore();
+
   const {startSpeech} = useSpeech()
 
-  const lastBotMessage = messages
-    .filter(m => !m.isUser)
-    .pop();
+  const {sessionInfo} = useSession({sessionId: journalEntryId});
+
+  const lastBotMessage = sessionInfo?.messages?.filter(m => !m.isUser)
+    ?.pop();
 
   // 새로운 봇 메시지가 올 때 자동으로 음성 재생
   useEffect(() => {
-    if (lastBotMessage && lastBotMessage.text && !isLoading) {
+    if (lastBotMessage && lastBotMessage.text && !isSendingMessage) {
       // 완료 메시지는 TabletComicChatbotScreen에서 처리하므로 여기서는 건너뛰기
       if (lastBotMessage.text.includes('우와~ 이렇게 멋진 그림 일기 완성이라니!')) {
         console.log('Completion message detected in ChatMessage, skipping TTS...');
@@ -48,27 +53,31 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
       // 즉시 음성 재생 (지연 없음)
       const cleanText = removeEmojis(lastBotMessage.text);
       if (cleanText.trim()) { // 빈 텍스트가 아닌 경우에만 재생
+        setIsInputActive(false);
+        onTTSStart?.(messageId);
         startSpeech(cleanText, {
           ...getTTSOptionsFromAgentConfig(agentConfig),
           onDone: () => {
             // TTS 완료 후 ChatInput 활성화
             if (onTTSComplete) {
-              onTTSComplete();
+              onTTSComplete(messageId);
             }
+            setIsInputActive(true);
           },
           onError: (error) => {
             console.error('TTS error:', error);
             // 에러 발생 시에도 ChatInput 활성화
             if (onTTSComplete) {
-              onTTSComplete();
+              onTTSComplete(messageId);
             }
+            setIsInputActive(true);
           }
         });
       }
     }
-  }, [lastBotMessage?.id, isLoading]);
+  }, [lastBotMessage?.id, isSendingMessage, onTTSStart, onTTSComplete]);
   
-  if (messages.length === 0) {
+  if (!sessionInfo || sessionInfo.messages?.length === 0) {
     return (
       <View className="items-center justify-center py-8">
         <Text className="text-lg text-gray-600 text-center" style={styleTemplates.withSemiboldFont}>
@@ -78,7 +87,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     );
   }
   
-  if (isLoading) {
+  if (isSendingMessage) {
     return (
       <View className="items-start">
         <View className="flex-row items-start">
