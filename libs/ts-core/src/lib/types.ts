@@ -174,7 +174,6 @@ export enum MessageIntent {
   InitialTitleConfirm = "initial_title_confirm",
   CustomTitleConfirm = "custom_title_confirm",
   PromptNext = "prompt_next",
-  PromptConfirm = "prompt_confirm",
   PromptEmotion = "prompt_emotion",
   
   PromptTextInput = "prompt_text_input",

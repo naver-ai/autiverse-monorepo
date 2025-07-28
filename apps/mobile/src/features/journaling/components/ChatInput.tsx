@@ -28,6 +28,15 @@ import { twMerge } from 'tailwind-merge';
 import colors from 'tailwindcss/colors';
 import { KeyboardIcon } from '../../../components/svg-images';
 import Reanimated, { Easing, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import { create } from 'zustand';
+
+export const useChatInputModalStore = create<{
+  isTextInputModalVisible: boolean;
+  setIsTextInputModalVisible: (isTextInputModalVisible: boolean) => void;
+}>((set) => ({
+  isTextInputModalVisible: false,
+  setIsTextInputModalVisible: (isTextInputModalVisible: boolean) => set({ isTextInputModalVisible }),
+}));
 
 interface ChatInputProps {
   journalEntryId: string;
@@ -74,6 +83,8 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     } = useVoiceRecorder();
 
     const { isSpeaking } = useSpeechState();
+
+    const { isTextInputModalVisible, setIsTextInputModalVisible } = useChatInputModalStore();
 
     const { sessionInfo } = useSession({ sessionId: journalEntryId });
     const messages = sessionInfo?.messages;
@@ -204,7 +215,9 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       [startVoiceRecording, completeVoiceRecording],
     );
 
-    const [isTextInputModalVisible, setIsTextInputModalVisible] = useState(false);
+    useEffect(()=>{
+      setIsTextInputModalVisible(false);
+    }, [])
 
     const onPressChatButton = useCallback(async ()=>{
       console.log("Pressing chat button...", isVoiceMode, isVoiceRecording);

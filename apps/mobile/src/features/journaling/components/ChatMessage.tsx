@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { ChatMessage as ChatMessageType } from '@autiverse-monorepo/ts-core';
 import { styleTemplates } from '../../../styles';
@@ -38,17 +38,27 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   const lastBotMessage = sessionInfo?.messages?.filter(m => !m.isUser)
     ?.pop();
 
+  const lastSpokenMessageId = useRef<string | undefined>(undefined);
+
+  useEffect(()=>{
+    lastSpokenMessageId.current = undefined;
+  }, [])
+
   // 새로운 봇 메시지가 올 때 자동으로 음성 재생
   useEffect(() => {
     if (lastBotMessage && lastBotMessage.text && !isSendingMessage) {
       // 완료 메시지는 TabletComicChatbotScreen에서 처리하므로 여기서는 건너뛰기
+      /*
       if (lastBotMessage.text.includes('우와~ 이렇게 멋진 그림 일기 완성이라니!')) {
         console.log('Completion message detected in ChatMessage, skipping TTS...');
         return;
-      }
+      }*/
       
       // 이전 메시지와 다른 경우에만 재생
       const messageId = lastBotMessage.id;
+      if(lastSpokenMessageId.current === messageId){
+        return;
+      }
       
       // 즉시 음성 재생 (지연 없음)
       const cleanText = removeEmojis(lastBotMessage.text);
@@ -63,6 +73,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               onTTSComplete(messageId);
             }
             setIsInputActive(true);
+            lastSpokenMessageId.current = messageId;
           },
           onError: (error) => {
             console.error('TTS error:', error);
@@ -71,6 +82,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
               onTTSComplete(messageId);
             }
             setIsInputActive(true);
+            lastSpokenMessageId.current = messageId;
           }
         });
       }
@@ -78,13 +90,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   }, [lastBotMessage?.id, isSendingMessage, onTTSStart, onTTSComplete]);
   
   if (!sessionInfo || sessionInfo.messages?.length === 0) {
-    return (
-      <View className="items-center justify-center py-8">
-        <Text className="text-lg text-gray-600 text-center" style={styleTemplates.withSemiboldFont}>
-          로딩중...
-        </Text>
-      </View>
-    );
+    return null;
   }
   
   if (isSendingMessage) {

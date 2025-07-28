@@ -4,7 +4,7 @@ import { View, Text } from 'react-native';
 import format from 'string-format';
 import { t } from 'i18next';
 import { ChatMessageComponent } from './ChatMessage';
-import { ChatInput, ChatInputRef } from './ChatInput';
+import { ChatInput, ChatInputRef, useChatInputModalStore } from './ChatInput';
 import { styleTemplates } from '../../../styles';
 import { useDyad } from '../../../api/dyad';
 import { useSession } from '../hooks/useSession';
@@ -90,11 +90,17 @@ export const ChatSidebar = ({
             }
         }else if(userButtonMode === null){
             if(lastSpokenMessageId != null && lastSpokenMessageId === lastBotMessage?.id ){
+
+                                
                 console.log("Last spoken message id is the same as the last bot message id. Start input mode...");
                 setIsInputActive(true);
                 
                 if(lastBotMessage?.intent !== MessageIntent.PromptTextInput){
                     chatInputRef.current?.startRecording();
+                }else{
+                    requestAnimationFrame(()=>{
+                    setIsTextInputModalVisible(true);
+                    })
                 }
                 
                 inputModeActiveForId.current = lastBotMessage?.id;
@@ -104,6 +110,7 @@ export const ChatSidebar = ({
     }
   }, [lastBotMessage?.id, lastBotMessage?.intent, comicGenerationStatus.status, lastSpokenMessageId, userButtonMode])
 
+  const { setIsTextInputModalVisible } = useChatInputModalStore();
 
   return (
     <SafeAreaView mode="padding" edges={['bottom', 'right']} className={className}>

@@ -25,6 +25,7 @@ import { ArrowLeftIcon } from '../../../components/svg-images';
 import format from 'string-format';
 import { useDyad } from '../../../api/dyad';
 import { HomeScreenBackground } from '../../../components/backgrounds';
+import { LoadingOverlay } from '../../../components/LoadingOverlay';
 
 
 const Header = ({handleEndSession}: {handleEndSession: () => void}) => {
@@ -80,7 +81,7 @@ export const JournalingScreen = () => {
     addMockMessages
   } = useChatbot();
 
-  const {sessionInfo} = useSession({sessionId: journalEntryId});
+  const {sessionInfo, isSessionInfoLoading} = useSession({sessionId: journalEntryId});
 
   const currentStage = sessionInfo?.stage;
 
@@ -252,7 +253,7 @@ export const JournalingScreen = () => {
           />
         </View>
       </View>
-      
+      <LoadingOverlay isLoading={isSessionInfoLoading} message={t('Journaling.Messages.Loading')}/>
     </Portal.Host>
   );
 };

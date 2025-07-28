@@ -65,6 +65,7 @@
             "End": "종료"
         },
         "Messages": {
+            "Loading": "일기를 불러오는 중...",
             "NextButton": "다음",
             "NextButtonPrompt": "다음 버튼을 눌러줘",
             "Revision1Confirmation": "다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~",
