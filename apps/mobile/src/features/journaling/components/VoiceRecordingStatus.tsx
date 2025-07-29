@@ -17,6 +17,7 @@ import Reanimated, {
   withSequence,
   withSpring
 } from 'react-native-reanimated';
+import { useAudioMetering } from '../utils/voiceRecordingUtils';
 
 export const VoiceRecordingStatus = memo(({
   agentName,
@@ -27,20 +28,39 @@ export const VoiceRecordingStatus = memo(({
   onComplete: () => void;
 }) => {
 
-  const {isRecording, audioMetering} = useVoiceRecorderState()
+  const {isRecording} = useVoiceRecorderState()
+
+  const audioMetering = useAudioMetering()
 
   const bounceScale = useSharedValue(1);
-  const animatedScale = useSharedValue(0);
 
   const {t} = useTranslation();
   const listeningText = useMemo(()=>{
     return format(t('ChatInput.VoiceRecording.ListeningTextTemplate'), { agentName: escapeJongseong(agentName)});
   }, [t, agentName]);
 
-  // Pulse animation style - audioMetering에 연동
+  // Pulse animation style - audioMetering에 직접 연동
   const pulseAnimatedStyle = useAnimatedStyle(() => {
+    if (!isRecording || !audioMetering.value) {
+      return {
+        transform: [{ scale: withSpring(0, {
+          damping: 15,
+          stiffness: 150,
+        }) }],
+      };
+    }
+    
+    // audioMetering: -160 ~ -40 -> scale: 0 ~ 1.2
+    const meteringValue = audioMetering.value;
+    const normalizedValue = Math.max(0, (meteringValue + 160) / 120); // 120 = -40 - (-160)
+    const targetScale = normalizedValue;
+    
     return {
-      transform: [{ scale: animatedScale.value }],
+      transform: [{ scale: withSpring(targetScale, {
+        damping: 15,
+        stiffness: 150,
+        mass: 0.5,
+      }) }],
     };
   });
 
@@ -51,27 +71,7 @@ export const VoiceRecordingStatus = memo(({
     };
   });
 
-  // 음성 레벨에 따른 스프링 애니메이션
-  useEffect(() => {
-    if (isRecording && audioMetering !== undefined) {
-      // audioMetering: -160 ~ -40 -> scale: 0 ~ 1.2
-      const meteringValue = audioMetering ?? -160;
-      const normalizedValue = Math.max(0, (meteringValue + 160) / 120); // 120 = -40 - (-160)
-      const targetScale = normalizedValue;
-      
-      animatedScale.value = withSpring(targetScale, {
-        damping: 15,
-        stiffness: 150,
-        mass: 0.5,
-      });
-    } else {
-      // 녹음 중지 시 기본 크기로
-      animatedScale.value = withSpring(0, {
-        damping: 15,
-        stiffness: 150,
-      });
-    }
-  }, [audioMetering, isRecording]);
+
 
   // Bounce 애니메이션
   useEffect(() => {

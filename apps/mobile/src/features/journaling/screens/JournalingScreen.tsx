@@ -26,6 +26,7 @@ import format from 'string-format';
 import { useDyad } from '../../../api/dyad';
 import { HomeScreenBackground } from '../../../components/backgrounds';
 import { LoadingOverlay } from '../../../components/LoadingOverlay';
+import { AudioMeteringProvider } from '../utils/voiceRecordingUtils';
 
 
 const Header = ({handleEndSession}: {handleEndSession: () => void}) => {
@@ -233,27 +234,29 @@ export const JournalingScreen = () => {
 
   return (
     <Portal.Host>
-      <View className='flex-1'>
-        <HomeScreenBackground/>
-        <Header handleEndSession={handleEndSession}/>
-        <View className="flex-row flex-1">
-          <View className="flex-[1.8] border-r-2 border-gray-200">
-              <ComicView
-                className="flex-1 relative"
-                comicGenerationStatus={comicGenerationStatus}
-                progressAnimation={progressAnimation}
+      <AudioMeteringProvider>
+        <View className='flex-1'>
+          <HomeScreenBackground/>
+          <Header handleEndSession={handleEndSession}/>
+          <View className="flex-row flex-1">
+            <View className="flex-[1.8] border-r-2 border-gray-200">
+                <ComicView
+                  className="flex-1 relative"
+                  comicGenerationStatus={comicGenerationStatus}
+                  progressAnimation={progressAnimation}
+                  sessionId={journalEntryId}
+                />
+            </View>
+            <ChatSidebar
+                className="flex-1 bg-white/50"
                 sessionId={journalEntryId}
-              />
+                comicGenerationStatus={comicGenerationStatus}
+                sendMessage={sendMessage}
+            />
           </View>
-          <ChatSidebar
-              className="flex-1 bg-white/50"
-              sessionId={journalEntryId}
-              comicGenerationStatus={comicGenerationStatus}
-              sendMessage={sendMessage}
-          />
         </View>
-      </View>
-      <LoadingOverlay isLoading={isSessionInfoLoading} message={t('Journaling.Messages.Loading')}/>
+        <LoadingOverlay isLoading={isSessionInfoLoading} message={t('Journaling.Messages.Loading')}/>
+      </AudioMeteringProvider>
     </Portal.Host>
   );
 };

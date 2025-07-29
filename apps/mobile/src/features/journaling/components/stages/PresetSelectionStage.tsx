@@ -26,6 +26,7 @@ import { getPlacePeopleAPI, PlacePerson } from '../../api';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../../auth/store';
 import { Place } from '@autiverse-monorepo/ts-core';
+import { AnimatedText } from '../../../../components/AnimatedText';
 
 const styles = StyleSheet.create({
   avatarImage: {
@@ -148,7 +149,7 @@ export const PresetSelectionStage = ({
   }, []);
 
   // TTS 애니메이션 훅 사용
-  const { ttsScalePulseStyle, ttsOpacityPulseStyle, ttsBorderColorStyle } = useSpeechAnimation(isTTSActive);
+  const { ttsScalePulseStyle, ttsBorderColorStyle } = useSpeechAnimation(isTTSActive);
 
   const onMessageViewLayout = useCallback((event: LayoutChangeEvent) => {
     const { height } = event.nativeEvent.layout;
@@ -171,14 +172,15 @@ export const PresetSelectionStage = ({
                   style={styles.avatarImage}
                 />
               </Reanimated.View>
-              <Reanimated.Text
-                className="text-2xl text-gray-800 leading-relaxed flex-1 text-center"
-                style={[styleTemplates.withBoldFont, ttsOpacityPulseStyle]}
-              >
-                {selectionStep === 'location'
+              <AnimatedText
+                textStyle={styleTemplates.withBoldFont}
+                textClassName="text-2xl text-gray-800 my-2"
+                text={selectionStep === 'location'
                   ? t('Journaling.PresetSelection.LocationSelectionMessage')
                   : format(t('Journaling.PresetSelection.PeopleSelectionMessageTemplate'), { location: selectedLocation?.name })}
-              </Reanimated.Text>
+                initialDelay={0}
+                charInterval={100}
+              />
             </View>
           </Reanimated.View>
         </Reanimated.View>

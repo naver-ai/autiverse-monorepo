@@ -19,6 +19,7 @@ import { AgentImage } from '../components/AgentImage';
 import { useSpeechAnimation } from '../hooks/useSpeechAnimation';
 import Reanimated from 'react-native-reanimated';
 import { appendJosa, UserLocale } from '@autiverse-monorepo/ts-core';
+import { AnimatedText } from '../../../components/AnimatedText';
 
 const { width, height } = Dimensions.get('window');
 
@@ -145,12 +146,14 @@ export function AgentIntroScreen() {
               className="bg-white rounded-3xl p-6 shadow-lg w-full border-2"
               style={ttsBorderColorStyle}
             >
-              <Reanimated.Text
-                className="text-2xl text-gray-800 leading-relaxed text-center mb-4"
-                style={[styleTemplates.withBoldFont, ttsOpacityPulseStyle]}
-              >
-                {greetingText}
-              </Reanimated.Text>
+              <AnimatedText
+                className="justify-center mb-4"
+                textStyle={styleTemplates.withBoldFont}
+                textClassName="text-2xl text-gray-800 my-2"
+                text={greetingText}
+                initialDelay={0}
+                charInterval={100}
+              />
 
               <View className="items-center">
                 <Text
