@@ -28,7 +28,7 @@ Title Generation Rules:
 1. Simple and fun titles that children can easily understand
 2. Concise within 10 characters
 3. Emojis can be used (1-2)
-4. Can include the child's name
+4. Do not include the child's name as the diary is written by the child
 5. Reflect the core content of the comic
 6. Focus on emotions or actions
 

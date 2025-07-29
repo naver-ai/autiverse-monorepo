@@ -69,6 +69,7 @@
             "NextButton": "다음",
             "NextButtonPrompt": "다음 버튼을 눌러줘",
             "Revision1Confirmation": "다행이다:) 그럼 네가 확인해준 내용을 내가 그림으로 그려볼게! 잠깐만 기다려줘~",
+            "ComicContextComplete": "내가 물어보는 질문에 잘 답해줘서 고마워. {child_name} 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~",
             "Revision2Confirmation": "내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~"
         },
         "UserResponses": {
