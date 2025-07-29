@@ -41,6 +41,8 @@ export const ChatSidebar = ({
     switch (lastBotMessage.intent) {
       case MessageIntent.PromptIssueExist:
         return UserButtonMode.YES_NO_BUTTON;
+      case MessageIntent.PromptRevision2IssueExist:
+        return UserButtonMode.YES_NO_BUTTON;
       case MessageIntent.PromptEmotion:
         return UserButtonMode.EMOTION_BUTTON;
       case MessageIntent.PromptNext:
@@ -50,7 +52,7 @@ export const ChatSidebar = ({
       case MessageIntent.CustomTitleConfirm:
         return UserButtonMode.YES_NO_BUTTON;
       case MessageIntent.TransitionToTitle:
-        return UserButtonMode.YES_NO_BUTTON;
+        return UserButtonMode.NEXT_BUTTON;
       default:
         return null;
     }

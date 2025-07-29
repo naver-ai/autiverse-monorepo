@@ -121,10 +121,19 @@ class Revision1Stage:
             elif self._is_positive_response(user_message, intent):
                 # 수정 완료, 만화 생성 시작 메시지 전송
                 journal = get_journal(self.db, self.journal_entry_id)
-                if journal and journal.comic_intro:
+                
+                # 수정 시도가 있었으면 revision_1 사용, 없으면 comic_intro 사용
+                if self.revision_count > 0 and journal and journal.revision_1:
+                    # 수정 시도가 있었으면 수정된 내용 사용
                     update_journal_data(
                         self.db, self.journal_entry_id,
-                        revision_1=journal.comic_intro
+                        comic_context=journal.revision_1
+                    )
+                elif journal and journal.comic_intro:
+                    # 수정 시도가 없었으면 원본 내용 사용
+                    update_journal_data(
+                        self.db, self.journal_entry_id,
+                        comic_context=journal.comic_intro
                     )
 
                 return t('Journaling.Messages.Revision1Confirmation', self._get_dyad().locale), MessageIntent.StartComicGeneration

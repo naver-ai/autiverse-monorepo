@@ -86,6 +86,8 @@
             "No": "No",
             "Wrong": "There's something wrong",
             "AllCorrect": "All correct",
+            "WrongRevision2": "There's something to fix",
+            "AllCorrectRevision2": "It's fine",
             "StillWrong": "Still wrong",
             "Enough": "That's enough now",
             "LetsDoIt": "Let's do it!",

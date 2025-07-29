@@ -116,6 +116,8 @@
             "No": "아니",
             "Wrong": "틀린 게 있어",
             "AllCorrect": "다 맞아",
+            "WrongRevision2": "고칠 부분 있어",
+            "AllCorrectRevision2": "괜찮아",
             "StillWrong": "아직 있어",
             "Enough": "이제 충분해",
             "LetsDoIt": "그러자!",

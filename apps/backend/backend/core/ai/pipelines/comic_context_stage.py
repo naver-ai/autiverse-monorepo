@@ -730,7 +730,7 @@ answer: "{answer}"
         """다음 질문 생성"""
         try:
             if not self.story_analysis:
-                return "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래??", MessageIntent.PromptNext
+                return "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래?? 준비되면 '다음' 버튼을 눌러줘!", MessageIntent.PromptNext
             
             # Content 이슈만 확인 (Flow, Order는 _reconstruct_panel에서 처리)
             content_issues = self.story_analysis.get("content", {})

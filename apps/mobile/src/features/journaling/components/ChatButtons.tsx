@@ -55,6 +55,11 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
           left: {label: t('ChatInput.ButtonLabels.Wrong'), intent: MessageIntent.AnswerNegative},
           right: {label: t('ChatInput.ButtonLabels.AllCorrect'), intent: MessageIntent.AnswerPositive},
         };
+      case MessageIntent.PromptRevision2IssueExist:
+        return {
+          left: {label: t('ChatInput.ButtonLabels.WrongRevision2'), intent: MessageIntent.AnswerNegative},
+          right: {label: t('ChatInput.ButtonLabels.AllCorrectRevision2'), intent: MessageIntent.AnswerPositive},
+        };
       case MessageIntent.TransitionToTitle:
         return {
           left: {label: t('ChatInput.ButtonLabels.LetsDoIt'), intent: MessageIntent.AnswerPositive},

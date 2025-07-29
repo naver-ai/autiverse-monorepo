@@ -195,7 +195,7 @@ class ChatbotController:
     async def _handle_revision_2_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
         """revision_2 단계 처리"""
         print(f"[DEBUG] _handle_revision_2_stage: message={message.strip()}, intent={intent}")
-        if message.strip() == "좋아!" or message.strip() == "그러자!":
+        if intent == MessageIntent.AnswerNext:
             # 사용자 메시지를 DB에 저장
             revision2_stage = Revision2Stage(self.db, journal_entry_id)
             interaction_turn = revision2_stage._get_or_create_interaction_turn(JournalEntryStage.Revision2)

@@ -72,11 +72,11 @@ Based on the above comic content, please generate a personalized completion mess
             
             
             # completion message 뒤에 "그럼 이제 일기 제목을 정하러 가볼까?" 메시지 추가
-            result = result + " 그럼 이제 일기 제목을 정하러 가볼까?"
+            result = result + " 이제 '다음' 버튼을 눌러서 일기 제목을 정하러 가보자!"
             
             return result
                 
         except Exception as e:
             print(f"Error generating completion message: {e}")
             default_message = f"우와~ 이렇게 멋진 그림 일기 완성이라니! 역시 {child_name_escaped}야. 내가 너한테 관심이 많다보니 질문이 많았는데 잘 답변해줘서 고마워. 덕분에 {child_name_escaped}에게 오늘 어떤 일이 있었는지 잘 알 수 있어 정말 너무나 기뻤어!!"
-            return default_message + " 그럼 이제 일기 제목을 정하러 가볼까?" 
+            return default_message + " 이제 '다음' 버튼을 눌러서 일기 제목을 정하러 가보자!" 

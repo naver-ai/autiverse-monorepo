@@ -103,10 +103,10 @@ class Revision2Stage:
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             initial_question, MessageRole.Assistant, JournalEntryStage.Revision2,
-            intent=MessageIntent.PromptIssueExist
+            intent=MessageIntent.PromptRevision2IssueExist
         )
         
-        return initial_question, MessageIntent.PromptIssueExist
+        return initial_question, MessageIntent.PromptRevision2IssueExist
     
     def process_message(self, user_message: str, user_intent: MessageIntent | None = None, audio_filename: str = None) -> Message:
         """사용자 메시지 처리"""
@@ -163,7 +163,7 @@ class Revision2Stage:
             # 구체적인 수정 내용이 들어온 경우
             try:
                 self._apply_user_correction(user_message)
-                return "네가 말해준 내용대로 바꿔봤어. 더 추가하거나 바꿀 곳 있어? 🤔", MessageIntent.PromptIssueExist
+                return "네가 말해준 내용대로 바꿔봤어. 더 추가하거나 바꿀 곳 있어? 🤔", MessageIntent.PromptRevision2IssueExist
             except Exception as e:
                 print(f"[DEBUG] revision_2: Error applying user correction: {e}")
                 return "수정하는데 문제가 생겼어. 다시 말해줘! 😅", MessageIntent.PromptOpenEndedAnswer
@@ -175,7 +175,7 @@ class Revision2Stage:
             # 현재 사용자 메시지가 저장되기 전의 마지막 봇 메시지를 찾기 위해 -2 인덱스 사용
             for i in range(len(messages) - 1, -1, -1):
                 if messages[i].role == MessageRole.Assistant:
-                    return messages[i].intent == MessageIntent.PromptIssueExist
+                    return messages[i].intent in [MessageIntent.PromptIssueExist, MessageIntent.PromptRevision2IssueExist]
             return False
         return False
     
@@ -325,4 +325,4 @@ User's correction request: {correction}
     
     def get_initial_question(self) -> tuple[str, MessageIntent]:
         """첫 번째 수정 질문을 반환합니다."""
-        return "완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔", MessageIntent.PromptIssueExist
+        return "우와앙~ 우리가 같이 만든 그림일기다! 지금부터 내용이 제대로 들어갔는지 확인해보자~ 수정하거나 추가하고 싶은 부분 있어? 🤔", MessageIntent.PromptRevision2IssueExist
