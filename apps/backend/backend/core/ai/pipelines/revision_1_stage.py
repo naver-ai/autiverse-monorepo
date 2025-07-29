@@ -123,17 +123,11 @@ class Revision1Stage:
                 journal = get_journal(self.db, self.journal_entry_id)
                 
                 # 수정 시도가 있었으면 revision_1 사용, 없으면 comic_intro 사용
-                if self.revision_count > 0 and journal and journal.revision_1:
-                    # 수정 시도가 있었으면 수정된 내용 사용
-                    update_journal_data(
-                        self.db, self.journal_entry_id,
-                        comic_context=journal.revision_1
-                    )
-                elif journal and journal.comic_intro:
+                if self.revision_count == 0:
                     # 수정 시도가 없었으면 원본 내용 사용
                     update_journal_data(
                         self.db, self.journal_entry_id,
-                        comic_context=journal.comic_intro
+                        revision_1=journal.comic_intro
                     )
 
                 return t('Journaling.Messages.Revision1Confirmation', self._get_dyad().locale), MessageIntent.StartComicGeneration

@@ -9,7 +9,10 @@ export function useSession({sessionId}: {sessionId: string}) {
     const {data, isLoading, error, refetch} = useQuery({
         queryKey: ['session', sessionId],
         queryFn: () => getSessionInfoAPI({token: jwt!, sessionId: sessionId}),
-        enabled: !!jwt
+        enabled: !!jwt,
+        staleTime: 0, // 항상 최신 데이터를 가져오도록 설정
+        refetchOnMount: true,
+        refetchOnWindowFocus: true
     })
 
     const queryClient = useQueryClient()

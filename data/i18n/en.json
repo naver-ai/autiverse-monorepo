@@ -43,6 +43,7 @@
             "NextButton": "Next",
             "NextButtonPrompt": "Please press the next button",
             "Revision1Confirmation": "Great!:) Then I'll draw what you confirmed for me! Please wait a moment~",
+            "ComicContextComplete": "Thank you for answering my questions well. Thanks to {child_name}, I think I can fill in the missing parts! Please wait a moment~",
             "Revision2Confirmation": "Thank you for answering my questions well. Thanks to you, I think I can fill in the missing parts! Please wait a moment~"
         },
         "UserResponses": {

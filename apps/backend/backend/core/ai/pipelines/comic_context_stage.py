@@ -8,6 +8,7 @@ from backend.database.crud.chatbot import update_journal_entry_stage, update_com
 from backend.database.crud.chatbot import get_messages_by_journal_entry_and_stage
 from backend.database.models import JournalEntryStage, MessageRole
 from backend.utils.i18n import t
+from backend.utils.korean import append_josa
 from backend.core.ai.pipelines.revision_2_stage import Revision2Stage
 from sqlmodel import Session
 import json
@@ -174,7 +175,11 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             # 완료 상태 확인
             if self.is_complete():
                 # 만화 생성 시작 신호 반환 (실제 만화 생성은 controller에서 처리)
-                response_message = t('Journaling.Messages.Revision1Confirmation', self._get_dyad().locale)
+                child_name = self._get_child_name()
+                child_name_with_josa = append_josa(child_name, '이', '')
+                response_message = t('Journaling.Messages.ComicContextComplete', self._get_dyad().locale).format(
+                    child_name=child_name_with_josa
+                )
                 response_intent = MessageIntent.StartComicGeneration
 
                 message = create_message(

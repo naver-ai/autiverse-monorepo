@@ -113,6 +113,8 @@ export const useChatbot = (afterStart?: (data: ChatbotResponse, withSuggestion: 
           };
         }else return oldData;
       });
+      // 강제로 쿼리 무효화하여 useSession이 새로운 데이터를 가져오도록 함
+      queryClient.invalidateQueries({queryKey: ['session', data.journal_entry_id]});
     }
   })
 
