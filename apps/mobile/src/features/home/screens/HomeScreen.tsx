@@ -3,10 +3,16 @@ import {
   View,
   Text,
   Dimensions,
-  Animated,
   Alert,
   Platform,
 } from 'react-native';
+import Animated, { 
+  FadeIn, 
+  FadeInDown, 
+  FadeInUp, 
+  SlideInDown,
+  Easing
+} from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -21,34 +27,13 @@ import { Modal } from '../../../components/Modal';
 import { useAuth } from '../../auth/hooks';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { continueSessionAPI } from '../../journaling/api';
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { dyad } = useDyad();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const buttonScaleAnim = useRef(new Animated.Value(1)).current;
   const [showContinueModal, setShowContinueModal] = useState(false);
-
-  useEffect(() => {
-    
-    // 로고와 텍스트 페이드인 애니메이션
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
 
   const latestEntry = useMemo(() => {
     if(dyad && dyad.journal_entries && dyad.journal_entries.length > 0){
@@ -130,7 +115,10 @@ export default function HomeScreen() {
       <DyadProfileView containerClassName="absolute top-12 left-8 z-10"/>
 
       {/* 갤러리 아이콘 */}
-     <TailwindButton
+      <Animated.View
+        entering={FadeInDown.delay(300).duration(800).easing(Easing.out(Easing.cubic))}
+      >
+        <TailwindButton
           onPress={handleGallery}
           containerClassName="absolute top-12 right-8 z-10"
           buttonStyleClassName="bg-white p-4 px-6"
@@ -139,17 +127,18 @@ export default function HomeScreen() {
           title={t('Home.ViewPastDiaries')}
           titleClassName="text-2xl"
         />
+      </Animated.View>
 
-      <View className="flex-1 items-center justify-center px-6 style={{ opacity: isButtonPressed ? 0.3 : 1 }}">
+      <View className="flex-1 items-center justify-center px-6">
         {/* 로고 영역 */}
         <Animated.View 
           className="flex-1 items-center justify-center"
-          style={{
-            opacity: fadeAnim,
-            transform: [{ scale: scaleAnim }],
-          }}
+          entering={FadeIn.delay(200).duration(1000).easing(Easing.out(Easing.cubic))}
         >
-          <View style={{ marginTop: 60 }}>
+          <Animated.View 
+            style={{ marginTop: 60 }}
+            entering={FadeInUp.delay(400).duration(800).easing(Easing.out(Easing.cubic))}
+          >
             <LogoImage 
               width={width * 0.6} 
               height={width * 0.18} 
@@ -157,27 +146,24 @@ export default function HomeScreen() {
                 marginBottom: 40,
               }}
             />
-          </View>
+          </Animated.View>
         </Animated.View>
 
         {/* 시작하기 버튼 영역 */}
-        <View className="w-full pb-20 items-center">
-          <Animated.View
-            style={{
-              transform: [{ scale: buttonScaleAnim }],
-            }}
-          >
-            <TailwindButton
-              onPress={handleStart}
-              containerClassName=""
-              buttonStyleClassName="bg-transparent px-8 py-6"
-              shadowClassName="shadow-none"
-              roundedClassName="rounded-full"
-              title={t('Home.WriteDiary')}
-              titleClassName={`text-3xl text-center`}
-            />
-          </Animated.View>
-        </View>
+        <Animated.View 
+          className="w-full pb-20 items-center"
+          entering={SlideInDown.delay(0).duration(800).easing(Easing.out(Easing.cubic))}
+        >
+          <TailwindButton
+            onPress={handleStart}
+            containerClassName=""
+            buttonStyleClassName="bg-transparent px-8 py-6"
+            shadowClassName="shadow-none"
+            roundedClassName="rounded-full"
+            title={t('Home.WriteDiary')}
+            titleClassName={`text-3xl text-center`}
+          />
+        </Animated.View>
       </View>
 
       {/* 이어가기 팝업 */}
@@ -187,27 +173,31 @@ export default function HomeScreen() {
         dismissOnPressOutside={true}
         onPop={() => setShowContinueModal(false)}
       >
-        <Text className="text-2xl text-center mb-8 leading-10" style={styleTemplates.withBoldFont}>
-              {t('Home.ContinueModal.Message')}
-            </Text>
+        <Animated.View
+          entering={FadeIn.duration(300)}
+        >
+          <Text className="text-2xl text-center mb-8 leading-10" style={styleTemplates.withBoldFont}>
+                {t('Home.ContinueModal.Message')}
+              </Text>
 
-            <View className="flex flex-row gap-4 justify-center">
-              <TailwindButton
-                onPress={handleContinue}
-                roundedClassName="rounded-2xl"
-                buttonStyleClassName="bg-blue-500 py-4"
-                title={t('Home.ContinueModal.Continue')}
-                titleClassName="text-white text-center text-2xl"
-              />
-              
-              <TailwindButton
-                onPress={handleStartNew}
-                roundedClassName="rounded-2xl"
-                buttonStyleClassName="bg-gray-200 py-4"
-                title={t('Home.ContinueModal.StartNew')}
-                titleClassName="text-gray-700 text-center text-2xl"
-              />
-            </View>
+              <View className="flex flex-row gap-4 justify-center">
+                <TailwindButton
+                  onPress={handleContinue}
+                  roundedClassName="rounded-2xl"
+                  buttonStyleClassName="bg-blue-500 py-4"
+                  title={t('Home.ContinueModal.Continue')}
+                  titleClassName="text-white text-center text-2xl"
+                />
+                
+                <TailwindButton
+                  onPress={handleStartNew}
+                  roundedClassName="rounded-2xl"
+                  buttonStyleClassName="bg-gray-200 py-4"
+                  title={t('Home.ContinueModal.StartNew')}
+                  titleClassName="text-gray-700 text-center text-2xl"
+                />
+              </View>
+        </Animated.View>
       </Modal>
     </SafeAreaView>
   );
