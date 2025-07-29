@@ -11,7 +11,7 @@ import { AgentImage } from '../AgentImage';
 import { useDyad } from '../../../../api/dyad';
 import { UserLocale, appendJosa } from '@autiverse-monorepo/ts-core';
 import { useSpeechAnimation } from '../../hooks/useSpeechAnimation'
-import Reanimated from 'react-native-reanimated';
+import Reanimated, { FadeIn, Easing } from 'react-native-reanimated';
 import { AnimatedText } from '../../../../components/AnimatedText';
 import { twMerge } from 'tailwind-merge';
 import { Image } from 'expo-image';
@@ -334,7 +334,8 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
       <View className="flex-1 px-6">
         {/* 상단 Agent + 문구 영역 */}
         <View className="pt-8 pb-4">
-          <Reanimated.View style={ttsBorderColorStyle} className="bg-white rounded-3xl p-6 shadow-lg w-full border-2 border-gray-200">
+          <Reanimated.View entering={FadeIn.easing(Easing.ease)} 
+              style={ttsBorderColorStyle} className="bg-white rounded-3xl p-6 shadow-lg w-full border-2 border-gray-200">
             <View className="flex-row items-center">
               <Reanimated.View style={ttsScalePulseStyle}>
                 <AgentImage

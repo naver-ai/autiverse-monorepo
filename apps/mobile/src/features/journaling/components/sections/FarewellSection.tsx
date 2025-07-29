@@ -10,7 +10,7 @@ import { getTTSOptionsFromAgentConfig } from '../../utils/speechUtils';
 import { useDyad } from '../../../../api/dyad';
 import { appendJosa, UserLocale } from '@autiverse-monorepo/ts-core';
 import { useSpeechAnimation } from '../../hooks/useSpeechAnimation';
-import Reanimated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
+import Reanimated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing, FadeIn } from 'react-native-reanimated';
 import { AnimatedText } from '../../../../components/AnimatedText';
 import { TailwindButton } from '../../../../components/TailwindButton';
 
@@ -110,7 +110,9 @@ const FarewellSection = forwardRef<FarewellSectionRef, FarewellSectionProps>(
         <View className="flex-1 px-6">  
           {/* 중앙 인사말 영역 */}
           <View className="flex-1 items-center justify-center">
-            <Reanimated.View style={ttsBorderColorStyle} className="rounded-2xl p-10 w-[70vw] border-2 border-gray-200">
+            <Reanimated.View 
+                    entering={FadeIn.easing(Easing.ease)}
+                    style={ttsBorderColorStyle} className="rounded-2xl p-10 w-[70vw] border-2 border-gray-200">
               <AnimatedText className="mb-2 justify-center" textClassName="text-3xl text-gray-800 my-2" textStyle={styleTemplates.withBoldFont} text={farewellMessage} initialDelay={0} charInterval={100} />
               
               <View className="items-center mt-12">

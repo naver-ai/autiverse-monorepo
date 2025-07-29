@@ -7,6 +7,7 @@ import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { NetworkHelper } from '@autiverse-monorepo/ts-core';
 import { SharedValue, useSharedValue } from 'react-native-reanimated';
+import { AxiosError } from 'axios';
 
 // AudioMetering Context
 interface AudioMeteringContextType {
@@ -152,6 +153,8 @@ export async function transcribeAudio(
       throw new Error('오디오 파일을 찾을 수 없습니다.');
     }
 
+    console.log("Transcribing audio:", audioUri);
+
     // Create form data for backend API
     const formData = new FormData();
     formData.append('audio_file', {
@@ -161,12 +164,9 @@ export async function transcribeAudio(
     } as any);
     formData.append('people_names', JSON.stringify(peopleNames));
     formData.append('place_names', JSON.stringify(placeNames));
-
-    // Get the speech recognition endpoint from NetworkHelper
-    const endpoint = NetworkHelper.ENDPOINTS.APP.SPEECH.RECOGNIZE;
     
     // Call backend speech recognition API using NetworkHelper
-    const response = await NetworkHelper.axiosClient.post(endpoint, formData, {
+    const response = await NetworkHelper.axiosClient.post(NetworkHelper.ENDPOINTS.APP.SPEECH.RECOGNIZE, formData, {
       headers: {
         ...(await NetworkHelper.getHeaders(token)),
         'Content-Type': 'multipart/form-data',
@@ -180,7 +180,8 @@ export async function transcribeAudio(
     
     return transcribedText;
   } catch (error) {
-    console.error('음성 변환 실패:', error);
+    const axiosError = error as AxiosError;
+    console.error('음성 변환 실패:', error, axiosError.cause, axiosError.toJSON());
     throw error;
   }
 }

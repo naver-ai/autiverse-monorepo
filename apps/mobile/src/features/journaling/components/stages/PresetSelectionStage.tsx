@@ -27,6 +27,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../../auth/store';
 import { Place } from '@autiverse-monorepo/ts-core';
 import { AnimatedText } from '../../../../components/AnimatedText';
+import { useRouter } from 'expo-router';
 
 const styles = StyleSheet.create({
   avatarImage: {
@@ -89,6 +90,8 @@ export const PresetSelectionStage = ({
   const { dyad, agentConfig } = useDyad();
 
   const {jwt} = useAuthStore();
+
+  const router = useRouter();
 
   const {data: peopleInPlace, isLoading: isLoadingPeopleInPlace, error: peopleInPlaceError} = useQuery({
     queryKey: ['peopleInPlace', selectedLocation?.id],
@@ -156,11 +159,36 @@ export const PresetSelectionStage = ({
     setMessageViewHeight(height);
   }, []);
 
+  const onBackButtonPress = useCallback(() => {
+    if(selectionStep === 'location'){
+      stopTTSAndExecute(() => {
+        if(router.canGoBack()){
+          router.back();
+        }else{
+          router.replace('/(app)/home');
+        }
+      });
+    }else{
+      stopTTSAndExecute(() => setSelectionStep('location'));
+    }
+  }, [selectionStep]);
+
   return (
     <SafeAreaView className="flex-1">
+
+        <TailwindButton
+                containerClassName="self-start my-6 ml-6"
+                buttonStyleClassName={`p-2 bg-transparent`}
+                shadowClassName="shadow-none"
+                titleClassName={`text-gray-600 text-xl`}
+                disabledTitleClassName="text-gray-400"
+                title={selectionStep === 'location' ? t('Journaling.PresetSelection.Dismiss') : t('Journaling.PresetSelection.BackToLocation')}
+                onPress={onBackButtonPress}
+                disabled={isTTSActive}
+              />
         {/* 상단 메시지 */}
         <Reanimated.View 
-          className={"absolute top-0 left-0 right-0 mx-6 mt-12 z-10"} 
+          className={"absolute top-0 left-0 right-0 mx-6 mt-24 z-10"} 
           entering={ZoomIn.easing(Easing.ease)}
           onLayout={onMessageViewLayout}
         >
@@ -186,6 +214,8 @@ export const PresetSelectionStage = ({
         </Reanimated.View>
 
         {selectionStep === 'location' ? (<ContentFrame messageViewHeight={messageViewHeight} footer={
+          <>
+          
           <View className="border-t-2 border-gray-200 pt-6 pb-6 mt-4 px-6 flex flex-row items-center">
           <TailwindButton
               containerClassName="flex-1 mr-2"
@@ -209,7 +239,7 @@ export const PresetSelectionStage = ({
               onPress={() => stopTTSAndExecute(onFreeStart)}
               disabled={isTTSActive || isStartingChatbot}
             />
-        </View>
+        </View></>
         }>
           <View className="flex-1 flex flex-row items-center justify-center flex-wrap mb-4">
               {dyad && dyad.places.length > 0 ? (
@@ -248,19 +278,6 @@ export const PresetSelectionStage = ({
         </ContentFrame>) : (
           <ContentFrame messageViewHeight={messageViewHeight} footer={
             <View className="border-t-2 border-gray-200 pt-6 pb-6 mt-4 px-6 flex">
-
-            {/* 뒤로가기 버튼 */}
-              <TailwindButton
-                key={`back-to-location-${selectedLocation?.id}`}
-                containerClassName="self-start mb-3"
-                buttonStyleClassName={`p-2 bg-transparent`}
-                shadowClassName="shadow-none"
-                titleClassName={`text-blue-500 text-xl ${isTTSActive ? 'text-gray-400' : ''}`}
-                disabledTitleClassName="text-gray-400"
-                title={t('Journaling.PresetSelection.BackToLocation')}
-                onPress={() => stopTTSAndExecute(() => setSelectionStep('location'))}
-                disabled={isTTSActive}
-              />
 
                 <TailwindButton
               buttonStyleClassName={`rounded-xl p-5 ${

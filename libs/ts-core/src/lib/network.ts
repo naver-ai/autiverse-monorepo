@@ -134,18 +134,4 @@ export class NetworkHelper {
 
     return this.axiosInstance;
   }
-
-  /**
-   * Get internal axios client for backend-to-backend communication
-   * @param baseUrl - The base URL for internal communication
-   * @returns AxiosInstance
-   */
-  public static getInternalClient(baseUrl: string): AxiosInstance {
-    return axios.create({
-      baseURL: baseUrl,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  }
 }

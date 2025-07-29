@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   Dimensions,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -14,10 +13,9 @@ import { styleTemplates } from '../../../styles';
 import { useDyad } from '../../../api/dyad';
 import { useSpeech } from '../utils';
 import { getTTSOptionsFromAgentConfig } from '../utils/speechUtils';
-import { getImageSource } from '../utils/imageUtils';
 import { AgentImage } from '../components/AgentImage';
 import { useSpeechAnimation } from '../hooks/useSpeechAnimation';
-import Reanimated from 'react-native-reanimated';
+import Reanimated, { ZoomIn, Easing } from 'react-native-reanimated';
 import { appendJosa, UserLocale } from '@autiverse-monorepo/ts-core';
 import { AnimatedText } from '../../../components/AnimatedText';
 
@@ -101,7 +99,7 @@ export function AgentIntroScreen() {
   useEffect(() => {
     if (autoNavigate && !hasNavigated) {
       setHasNavigated(true);
-      router.push({
+      router.replace({
         pathname: '/(app)/preset-selection',
       });
     }
@@ -144,6 +142,7 @@ export function AgentIntroScreen() {
           <View className="pt-8 pb-4">
             <Reanimated.View 
               className="bg-white rounded-3xl p-6 shadow-lg w-full border-2"
+              entering={ZoomIn.easing(Easing.ease)}
               style={ttsBorderColorStyle}
             >
               <AnimatedText

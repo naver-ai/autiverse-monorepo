@@ -151,15 +151,20 @@ async def get_comic_generation_status(journal_entry_id: str, db: Annotated[Sessi
     """만화 생성 상태 조회"""
     try:
         status = get_comic_status(db, journal_entry_id)
-        if not status:
-            raise HTTPException(status_code=404, detail="만화 생성 작업을 찾을 수 없습니다.")
-        
-        progress, message = get_progress_and_message(status)
-        return ComicGenerationResponse(
-            status=status,
-            progress=progress,
-            message=message
-        )
+        if status:
+            print(f"[DEBUG] Comic generation status: {status}")
+            progress, message = get_progress_and_message(status)
+            return ComicGenerationResponse(
+                status=status,
+                progress=progress,
+                message=message
+            )
+        else:
+            return ComicGenerationResponse(
+                status="idle",
+                progress=0,
+                message=""
+            )
     finally:
         db.close()
 

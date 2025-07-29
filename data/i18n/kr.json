@@ -42,6 +42,7 @@
             "IWantToWriteSomething": "오늘은 내가 쓰고 싶은 게 있어!",
             "NextStepTemplate": "다음 단계로 ({count}명 선택됨)",
             "BackToLocation": "← 장소 다시 선택",
+            "Dismiss": "← 홈으로 돌아가기",
             "Preparing": "준비 중...",
             "LocationDataError": "장소 정보를 불러올 수 없습니다",
             "PeopleDataError": "사람 정보를 불러올 수 없습니다",
