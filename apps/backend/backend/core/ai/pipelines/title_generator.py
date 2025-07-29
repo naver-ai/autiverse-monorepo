@@ -48,7 +48,7 @@ Respond in JSON format:
 Based on the above content, please generate a korean title that {child_name} would like."""
 
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini-2025-04-14",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -85,10 +85,10 @@ Based on the above content, please generate a korean title that {child_name} wou
     def process_custom_title_feedback(self, user_feedback: str, custom_title: str, child_name: str, reject_count: int = 0) -> tuple[str, MessageIntent | None]:
         """사용자 제안 제목에 대한 피드백 처리"""
         if user_feedback in ["응, 좋아!"]:
-            return f"제목 너무 멋지다~ 완성된 일기 다 확인했으면 다음 버튼을 눌러줘!", MessageIntent.PromptNext
+            return f"제목 너무 멋지다! 완성된 일기 다 확인했으면 다음 버튼을 눌러줘!", MessageIntent.PromptNext
         else:
             # 2번 이상 클릭했을 때 다른 응답
             if reject_count >= 2:
-                return "내가 잘못 들어서 미안해.. 어떤 제목으로 하고 싶은지 채팅으로 쳐서 정확하게 알려줘! 😢", MessageIntent.PromptTextInput
+                return "내가 잘 못 들어서 미안해.. 어떤 제목으로 하고 싶은지 채팅으로 쳐서 정확하게 알려줘! 😢", MessageIntent.PromptTextInput
             else:
                 return "그럼 어떤 제목으로 하고 싶어?", MessageIntent.PromptOpenEndedAnswer

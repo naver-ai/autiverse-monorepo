@@ -55,7 +55,7 @@ Respond with just the completion message in Korean."""
 Based on the above comic content, please generate a personalized completion message for {child_name}."""
 
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini-2025-04-14",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
