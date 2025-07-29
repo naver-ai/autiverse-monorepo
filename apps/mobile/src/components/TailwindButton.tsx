@@ -1,8 +1,9 @@
-import { ButtonProps, Pressable, View, Text, PressableProps, GestureResponderEvent } from "react-native";
+import { ButtonProps, Pressable, View, Text, PressableProps, GestureResponderEvent, Platform } from "react-native";
 import { styleTemplates } from "../styles";
 import { useMemo, useCallback, useRef } from "react";
 import { twMerge } from 'tailwind-merge'
 import Animated, { useSharedValue, withTiming, withSpring, useAnimatedStyle, interpolate, Easing } from "react-native-reanimated";
+import * as Haptics from 'expo-haptics';
 
 export const TailwindButton = (props: {
     containerClassName?: string
@@ -75,6 +76,17 @@ export const TailwindButton = (props: {
         }
     }, [props.disabled, props.onPress, props.delayPress])
 
+
+    const handleLongPress = useCallback((e: GestureResponderEvent)=>{
+        if(props.disabled){
+            return
+        }
+
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+        
+        props.onLongPress?.(e)
+    }, [props.disabled, props.onLongPress])
+
     return <Animated.View accessible={false} className={containerClassName} removeClippedSubviews={true} style={containerAnimStyle}>
         <Pressable 
             accessible={false} 
@@ -82,7 +94,7 @@ export const TailwindButton = (props: {
             disabled={props.disabled} 
             android_ripple={rippleConfig} 
             onPress={handlePress} 
-            onLongPress={props.onLongPress}
+            onLongPress={handleLongPress}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
             className={buttonClassName}
