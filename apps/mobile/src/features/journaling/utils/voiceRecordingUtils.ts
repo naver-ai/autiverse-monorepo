@@ -1,10 +1,33 @@
+import React from 'react';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, createContext, useContext } from 'react';
 import { create } from 'zustand';
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { NetworkHelper } from '@autiverse-monorepo/ts-core';
+import { SharedValue, useSharedValue } from 'react-native-reanimated';
+
+// AudioMetering Context
+interface AudioMeteringContextType {
+  audioMetering: SharedValue<number | undefined>;
+}
+
+const AudioMeteringContext = createContext<AudioMeteringContextType | null>(null);
+
+export const AudioMeteringProvider = ({ children }: { children: React.ReactNode }) => {
+  const audioMetering = useSharedValue<number | undefined>(undefined);
+  
+  return React.createElement(AudioMeteringContext.Provider, { value: { audioMetering } }, children);
+};
+
+export const useAudioMetering = (): SharedValue<number | undefined> => {
+  const context = useContext(AudioMeteringContext);
+  if (!context) {
+    throw new Error('useAudioMetering must be used within AudioMeteringProvider');
+  }
+  return context.audioMetering;
+};
 
 // Global singleton for recording instance
 let globalRecordingInstance: Audio.Recording | null = null;
@@ -15,8 +38,6 @@ interface VoiceRecorderStore {
   canRecord: boolean;
   setIsRecording: (recording: boolean) => void;
   setCanRecord: (canRecord: boolean) => void;
-  setAudioMetering: (audioMetering: number | undefined) => void;
-  audioMetering?: number;
   reset: () => void;
 }
 
@@ -25,13 +46,14 @@ export const useVoiceRecorderState = create<VoiceRecorderStore>((set) => ({
   canRecord: false,
   setIsRecording: (recording) => set({ isRecording: recording }),
   setCanRecord: (canRecord) => set({ canRecord: canRecord }),
-  setAudioMetering: (audioMetering) => set({ audioMetering: audioMetering }),
-  reset: () => set({ isRecording: false, audioMetering: undefined, canRecord: false }),
+  reset: () => set({ isRecording: false, canRecord: false }),
 }));
 
 export function useVoiceRecorder() {
-  const { isRecording, canRecord, audioMetering, setIsRecording, setCanRecord, reset, setAudioMetering } = useVoiceRecorderState();
+  const { isRecording, canRecord, setIsRecording, setCanRecord, reset } = useVoiceRecorderState();
   const { t } = useTranslation();
+
+  const audioMetering = useAudioMetering();
 
   useEffect(() => {
     (async () => {
@@ -67,9 +89,9 @@ export function useVoiceRecorder() {
       const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY,
         (status) => {
-          setAudioMetering(status.metering);
+          audioMetering.value = status.metering;
         },
-        100
+        150
       );
       globalRecordingInstance = recording;
       setIsRecording(true);
@@ -95,7 +117,7 @@ export function useVoiceRecorder() {
       return null;
     }finally{
       setIsRecording(false);
-      setAudioMetering(undefined);
+      audioMetering.value = undefined;
     }
   }, [isRecording, setIsRecording]);
 
