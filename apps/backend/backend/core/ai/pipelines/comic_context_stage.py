@@ -125,12 +125,19 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             )
             
             # 첫 번째 분석 질문 생성
-            initial_question, intent = self._generate_first_question()
+            initial_question, intent, focused_panel = self._generate_first_question()
+            
+            # focus panel 정보를 metadata에 포함
+            metadata_json = {}
+            if focused_panel:
+                metadata_json["focused_panel"] = focused_panel
+                print(f"[DEBUG] comic_context: start_context_analysis focused_panel = {focused_panel}")
             
             message = create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
                 initial_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
-                intent=intent
+                intent=intent,
+                metadata_json=metadata_json
             )
             
             return message
@@ -191,13 +198,20 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                 return message
             else:
               # 다음 질문 생성
-              next_question, next_intent = self._get_next_question()
+              next_question, next_intent, focused_panel = self._get_next_question()
+              
+              # focus panel 정보를 metadata에 포함
+              metadata_json = {}
+              if focused_panel:
+                  metadata_json["focused_panel"] = focused_panel
+                  print(f"[DEBUG] comic_context: focused_panel = {focused_panel}")
               
               # 봇 응답 저장
               message = create_message(
                   self.db, self.journal_entry_id, interaction_turn.id,
                   next_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
-                  intent=next_intent
+                  intent=next_intent,
+                  metadata_json=metadata_json
               )
               
               return message
@@ -642,7 +656,7 @@ answer: "내가 그냥 지나갔어."
 <panels_original>
 "panel1": "나는 친구들과 놀이터에서 숨바꼭질을 했다.",  
 "panel2": "",  
-"panel3": "나는 숨었지만 민수가 나를 찾았다. 그리고 그는 놀란 표정으로 나를 쳐다봤다.",  
+"panel3": "나는 숨었지만 민수가 나를 찾고는 놀란 표정으로 나를 쳐다봤다.",  
 "panel4": "나는 신났다."
 <new_QA>
 question: "어디서 숨었어?"
@@ -731,11 +745,11 @@ answer: "{answer}"
         except json.JSONDecodeError:
             print("Failed to parse reconstruction response")
     
-    def _get_next_question(self) -> tuple[str, MessageIntent]:
-        """다음 질문 생성"""
+    def _get_next_question(self) -> tuple[str, MessageIntent, str]:
+        """다음 질문 생성 - focus panel 정보도 함께 반환"""
         try:
             if not self.story_analysis:
-                return "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래?? 준비되면 '다음' 버튼을 눌러줘!", MessageIntent.PromptNext
+                return "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래?? 준비되면 '다음' 버튼을 눌러줘!", MessageIntent.PromptNext, None
             
             # Content 이슈만 확인 (Flow, Order는 _reconstruct_panel에서 처리)
             content_issues = self.story_analysis.get("content", {})
@@ -766,7 +780,19 @@ answer: "{answer}"
             if not has_real_issues:
                 # comic_context 완료 시 다음 단계로 넘어감
                 update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Revision2)
-                return "완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔", MessageIntent.PromptIssueExist
+                return "완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔", MessageIntent.PromptIssueExist, None
+            
+            # Focus panel 결정 - 첫 번째로 누락된 정보가 있는 패널 찾기
+            panels = ["A", "B", "C", "D"]
+            panel_mapping = {"A": "panel1", "B": "panel2", "C": "panel3", "D": "panel4"}
+            focused_panel = None
+            
+            for panel in panels:
+                panel_issues = content_issues.get(panel, [])
+                # 빈 문자열이 아닌 첫 번째 패널 찾기
+                if panel_issues and any(issue for issue in panel_issues if issue and issue != ''):
+                    focused_panel = panel_mapping[panel]
+                    break
             
             # DB에서 ComicContext stage의 모든 메시지를 conversation_history로 가져오기
             messages = get_messages_by_journal_entry_and_stage(self.db, self.journal_entry_id, JournalEntryStage.ComicContext)
@@ -856,7 +882,8 @@ ABCD STRUCTURE:
 
 === Output Format (JSON only) ===
 {{
-  "question": "question in Korean"
+  "question": "question in Korean",
+  "focused_panel": "panel1" or "panel2" or "panel3" or "panel4" or null
 }}
 
 - Write items in natural Korean during real use. (The examples below stay English for clarity only.)  
@@ -884,7 +911,8 @@ conversation_summary:
 
 Output:
 {{
-"question": "고등어 해부라니 너무 신기하다! 🐟 그런데 학교에서 언제 했던 거야?"
+"question": "고등어 해부라니 너무 신기하다! 🐟 그런데 학교에서 언제 했던 거야?",
+"focused_panel": "panel1"
 }}
 
 ### Example 1b - Emotion Question
@@ -909,7 +937,8 @@ A: "쉬는 시간에"
 
 Output:
 {{
-"question": "고등어 해부 쇼를 하고 민수가 대박이라고 했구나! 😊 그럼 그 때 기분이 어땠어?"
+"question": "고등어 해부 쇼를 하고 민수가 대박이라고 했구나! 😊 그럼 그 때 기분이 어땠어?",
+"focused_panel": "panel4"
 }}
 
 ### Example 2
@@ -944,7 +973,8 @@ A: "완전 떨려"
 
 Output:
 {{
-"question": "네가 떨린다니 나도 떨린다! 😅 롤러코스터라니 정말 대박이겠어! 그럼 어머니랑 그 이야기는 어디서 했어?"
+"question": "네가 떨린다니 나도 떨린다! 😅 롤러코스터라니 정말 대박이겠어! 그럼 어머니랑 그 이야기는 어디서 했어?",
+"focused_panel": "panel1"
 }}
 
 ### Example 3
@@ -978,7 +1008,8 @@ A: "모른다고"
 
 Output:
 {{
-"question": "아이구.. 진짜 기억이 안 나는구나 😅 그럼 상상해보자! 소현이는 왜 운걸까? 1) 갑자기 다른 친구가 괴롭혔을까? 2) 선생님께 혼났을까? 3) 슬픈 일이 생각났을까?"
+"question": "아이구.. 진짜 기억이 안 나는구나 😅 그럼 상상해보자! 소현이는 왜 운걸까? 1) 갑자기 다른 친구가 괴롭혔을까? 2) 선생님께 혼났을까? 3) 슬픈 일이 생각났을까?",
+"focused_panel": "panel2"
 }}"""
             
             
@@ -1020,28 +1051,29 @@ Please generate a question that addresses the FIRST missing information gap."""
                 result = response.choices[0].message.content
                 question_data = json.loads(result)
                 question = question_data["question"]
+                focused_panel_from_ai = question_data.get("focused_panel", focused_panel)
                 
                 # 기분을 물어보는 질문인지 확인
-                if "기분이 어땠어" in question:
-                    return question, MessageIntent.PromptEmotion
+                if "기분이 어땠어" in question or "기분이었어" in question:
+                    return question, MessageIntent.PromptEmotion, focused_panel_from_ai
                 else:
-                    return question, None
+                    return question, None, focused_panel_from_ai
                 
             except Exception as e:
                 print(f"[DEBUG] comic_context: Error generating question: {e}")
-                return "다음에 대해 말해줘!", None
+                return "다음에 대해 말해줘!", None, focused_panel
             
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in _get_next_question: {e}")
-            return "다음에 대해 말해줘!", None
+            return "다음에 대해 말해줘!", None, None
     
-    def _generate_first_question(self) -> tuple[str, MessageIntent]:
+    def _generate_first_question(self) -> tuple[str, MessageIntent, str]:
         """첫 번째 질문 생성"""
         try:
             return self._get_next_question()
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in _generate_first_question: {e}")
-            raise
+            return "다음에 대해 말해줘!", None, None
     
     def _get_or_create_interaction_turn(self, stage: JournalEntryStage) -> Any:
         """현재 단계의 interaction turn 가져오기 또는 생성"""

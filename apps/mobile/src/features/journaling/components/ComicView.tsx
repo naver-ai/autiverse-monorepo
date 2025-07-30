@@ -52,7 +52,7 @@ export const ComicView = ({
 
     const renderPanel = (panelId: string, panelIndex: number) => {
       const panel: ComicPanelInfo = (completeComicData as any)[panelId];
-      const isHighlighted = focusedPanel === panelId;
+      const isHighlighted = Boolean(focusedPanel && focusedPanel === panelId);
 
       return (
         <ComicPanel

@@ -171,25 +171,20 @@ class ChatbotController:
         context_stage = ComicContextStage(self.db, journal_entry_id)
         context_response_message = context_stage.process_message(message, intent, audio_filename)
         
-        # focusedPanel 설정 로직 추가
-        if context_stage.story_analysis:
-            # story_analysis에서 첫 번째로 누락된 정보가 있는 패널 찾기
-            content_issues = context_stage.story_analysis.get("content", {})
-            panels = ["A", "B", "C", "D"] # Assuming these are the panel keys
-            panel_mapping = {"A": "panel1", "B": "panel2", "C": "panel3", "D": "panel4"}
-            for panel in panels:
-                if content_issues.get(panel) and content_issues[panel]:  # 해당 패널에 누락된 정보가 있으면
-                    # A -> panel1, B -> panel2, C -> panel3                   
-                    panel_mapping = {"A": "panel1", "B": "panel2", "C": "panel3"}
-                    focused_panel = panel_mapping[panel]
-                    break
+        # focus panel 정보는 message의 metadata에서 가져오기
+        focused_panel = None
+        metadata = {}
+        if context_response_message.metadata_json:
+            metadata = context_response_message.metadata_json
+            focused_panel = metadata.get("focused_panel")
 
         return {
             "message_id": context_response_message.id,
             "response": context_response_message.content,
             "intent": context_response_message.intent,
             "stage": "comic_context",
-            "focusedPanel": focused_panel
+            "focusedPanel": focused_panel,
+            "metadata": metadata
         }
     
     async def _handle_revision_2_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
@@ -329,7 +324,15 @@ class ChatbotController:
                             }
         
         # 백엔드에서 내려주는 focusedPanel 사용
-        focused_panel = self._get_focused_panel(journal_entry_id, journal_entry.stage) if journal_entry.stage == JournalEntryStage.ComicContext else None
+        focused_panel = None
+        if journal_entry.stage == JournalEntryStage.ComicContext and messages:
+            # 가장 최근 Assistant 메시지의 metadata에서 focus panel 정보 가져오기
+            for msg in reversed(messages):
+                if msg.role == MessageRole.Assistant and msg.metadata_json:
+                    focused_panel = msg.metadata_json.get("focused_panel")
+                    if focused_panel:
+                        break
+        
         print(f"[DEBUG] get_session_info: stage={journal_entry.stage}, focused_panel={focused_panel}")
         
         # 메시지를 프론트엔드에서 사용할 수 있는 형태로 변환
@@ -418,35 +421,4 @@ class ChatbotController:
                 time.sleep(wait_interval)
             except Exception as e:
                 print(f"[DEBUG] {stage_name}: Error checking comic generation status: {e}")
-                time.sleep(wait_interval)
-    
-    def _get_focused_panel(self, journal_entry_id: str, stage) -> str:
-        """현재 질문하고 있는 패널을 찾아서 focusedPanel로 설정"""
-        if stage != JournalEntryStage.ComicContext:
-            print(f"[DEBUG] _get_focused_panel: stage is not ComicContext, returning None")
-            return None
-            
-        try:
-            # ComicContextStage 객체 생성 후 story_analysis 다시 생성
-            context_stage = ComicContextStage(self.db, journal_entry_id)
-            context_stage.story_analysis = context_stage._analyze_story_flow()  # story_analysis 다시 생성
-            
-            # story_analysis가 없으면 첫 번째 메시지("짜잔" 메시지)이므로 focusedPanel 설정하지 않음
-            if not context_stage.story_analysis:
-                print(f"[DEBUG] _get_focused_panel: story_analysis is None (first message), returning None")
-                return None
-            
-            # story_analysis에서 첫 번째로 누락된 정보가 있는 패널 찾기
-            content_issues = context_stage.story_analysis.get("content", {})
-            panels = ["A", "B", "C", "D"] # Assuming these are the panel keys
-            panel_mapping = {"A": "panel1", "B": "panel2", "C": "panel3", "D": "panel4"}
-            for panel in panels:
-                panel_issues = content_issues.get(panel, [])
-                # 빈 문자열이 아닌 첫 번째 패널 찾기
-                if panel_issues and any(issue for issue in panel_issues if issue and issue != ''):
-                    return panel_mapping[panel]
-        except Exception as e:
-            print(f"Error getting focused panel: {e}")
-        
-        print(f"[DEBUG] _get_focused_panel: returning None")
-        return None 
+                time.sleep(wait_interval) 
