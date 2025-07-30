@@ -239,14 +239,14 @@ export const JournalingScreen = () => {
           <HomeScreenBackground/>
           <Header handleEndSession={handleEndSession}/>
           <View className="flex-row flex-1">
-            <View className="flex-[1.8] border-r-2 border-gray-200">
+            <SafeAreaView edges={['left', 'bottom']} className="flex-[1.8] border-r-2 border-gray-200">
                 <ComicView
                   className="flex-1 relative"
                   comicGenerationStatus={comicGenerationStatus}
                   progressAnimation={progressAnimation}
                   sessionId={journalEntryId}
                 />
-            </View>
+            </SafeAreaView>
             <ChatSidebar
                 className="flex-1 bg-white/50"
                 sessionId={journalEntryId}

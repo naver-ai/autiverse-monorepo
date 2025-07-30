@@ -2,7 +2,9 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ComicPanelView } from '../../comic/components/ComicPanelView';
+import { GridView } from '../../../components/GridView';
 import { styleTemplates } from '../../../styles';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -60,7 +62,7 @@ export default function ComicDetailScreen() {
   const displayTitle = `[${month}/${day} (${dayOfWeek})] ${baseTitle}`;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
@@ -73,9 +75,14 @@ export default function ComicDetailScreen() {
         </Text>
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* 4개 패널을 2x2로 배치 */}
-        <View style={styles.comicGrid}>
+        {/* GridView를 사용하여 2x2 패널 배치 */}
+        <GridView
+          numColumns={2}
+          numRows={2}
+          gapX={8}
+          gapY={8}
+          className="flex-1"
+        >
           {panelsData.map((panel: any, index: number) => {
             // revision_2에서 해당 패널의 스토리 가져오기
             const panelKey = `panel${index + 1}`;
@@ -94,15 +101,14 @@ export default function ComicDetailScreen() {
                 <ComicPanelView
                   panelIndex={index}
                   panel={panelData}
-                  panelSize={200}
+                  panelSize={undefined}
                   showStory={true}
                 />
               </View>
             );
           })}
-        </View>
-      </ScrollView>
-    </View>
+        </GridView>
+    </SafeAreaView>
   );
 }
 
@@ -116,8 +122,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 20,
-    paddingBottom: 12,
+    paddingVertical: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E9ECEF',
@@ -145,14 +150,8 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   panelContainer: {
-    width: '48%',
-    height: 320,
+    width: '100%',
+    height: '100%',
     maxHeight: 320,
-  },
-  comicGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 8,
   },
 }); 

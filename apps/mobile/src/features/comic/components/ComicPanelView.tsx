@@ -1,11 +1,12 @@
 import { ComicPanelInfo } from "@autiverse-monorepo/ts-core";
-import { View, Text } from "react-native";
+import { View, Text, LayoutChangeEvent } from "react-native";
+import { useCallback, useState } from "react";
 import { styleTemplates } from "../../../styles";
 import { convertPanelGridToMatrix, getTileColor } from "../utils";
 
 
 export const ComicPanelView = ({
-  panelIndex, panel, isHighlighted = false, panelSize = 200, showStory = true
+  panelIndex, panel, isHighlighted = false, panelSize, showStory = true
 }: {
   panelIndex: number;
   panel: ComicPanelInfo;
@@ -18,11 +19,25 @@ export const ComicPanelView = ({
     return null;
   }
 
-  const gridSize = panelSize / 5;
+  // 동적 패널 사이즈를 위한 상태
+  const [dynamicPanelSize, setDynamicPanelSize] = useState<number | null>(null);
+
+  // panelSize가 제공되지 않았을 때 사용할 동적 사이즈 계산
+  const effectivePanelSize = panelSize || dynamicPanelSize || 200; // 기본값 200
+  const gridSize = effectivePanelSize / 5;
+
+  const onLayoutPanelArea = useCallback((event: LayoutChangeEvent) => {
+    // panelSize가 제공되지 않았을 때만 동적 사이즈 설정
+    if (!panelSize) {
+      const { width, height } = event.nativeEvent.layout;
+      const containerSize = Math.min(width, height);
+      setDynamicPanelSize(containerSize);
+    }
+  }, [panelSize])
 
   return (
     <View
-      className={`flex-1 mx-1 p-2 bg-white rounded-lg ${isHighlighted ? 'border-orange-300 border-2 shadow-orange-300' : 'border-gray-200'}`}
+      className={`flex-1 mx-1 p-2 bg-white rounded-lg ${isHighlighted ? 'border-orange-300 border-4 shadow-orange-300' : 'border-gray-200'}`}
       style={isHighlighted && {
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.3,
@@ -41,8 +56,9 @@ export const ComicPanelView = ({
       )}
 
       {/* 5x5 그리드 */}
-      <View className="flex-1 justify-center items-center">
-        <View style={{ width: panelSize, height: panelSize }}>
+      <View className="flex-1 justify-center items-center" 
+      onLayout={onLayoutPanelArea}>
+        <View style={{ width: effectivePanelSize, height: effectivePanelSize }}>
           {/* backend에서 받은 layout 데이터를 5x5 grid로 변환 */}
           {panel?.grid && panel.grid.length > 0 ? (
             // 5x5 빈 그리드 생성 후 layout 데이터로 채우기

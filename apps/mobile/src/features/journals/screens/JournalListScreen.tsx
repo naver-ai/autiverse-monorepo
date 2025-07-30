@@ -83,7 +83,7 @@ export default function JournalListScreen() {
         <View style={{ width: 60 }} />
       </View>
       <FlashList
-        style={{ flex: 1 }}
+        style={{flex: 1}}
         contentContainerStyle={{
           paddingVertical: 30,
           paddingBottom: 100,

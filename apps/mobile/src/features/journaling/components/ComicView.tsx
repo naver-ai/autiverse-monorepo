@@ -10,6 +10,7 @@ import { Revision1TextView } from './Revision1TextView';
 import { useSession } from '../hooks/useSession';
 import { ComicPanelInfo, CompleteComicData, MessageIntent } from '@autiverse-monorepo/ts-core';
 import { ComicGenerationStatus } from '../api';
+import { GridView } from '../../../components/GridView';
 
 export const ComicView = ({
   className,
@@ -37,51 +38,6 @@ export const ComicView = ({
     }
     return convertComicDataToPanels(comicData);
   }, [comicData]);
-
-  // 만화 패널 렌더링 함수
-  const renderComicPanels = () => {
-    if (!completeComicData) {
-      return (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-lg text-gray-600 text-center" style={styleTemplates.withSemiboldFont}>
-            {t('ChatStage.DefaultComicMessage')}
-          </Text>
-        </View>
-      );
-    }
-
-    const renderPanel = (panelId: keyof CompleteComicData, panelIndex: number) => {
-      const panel: ComicPanelInfo = (completeComicData as any)[panelId];
-      const isHighlighted = Boolean(focusedPanel && focusedPanel === panelId);
-
-      return (
-        <ComicPanelView
-          key={panelId}
-          panelIndex={panelIndex}
-          panel={panel}
-          isHighlighted={isHighlighted}
-          panelSize={200}
-        />
-      );
-    };
-
-    return (
-      <View className="flex-1 p-4">
-        <View className="flex-1">
-          {/* 첫 번째 행 */}
-          <View className="flex-row flex-1 mb-4">
-            {renderPanel('panel1', 0)}
-            {renderPanel('panel2', 1)}
-          </View>
-          {/* 두 번째 행 */}
-          <View className="flex-row flex-1">
-            {renderPanel('panel3', 2)}
-            {renderPanel('panel4', 3)}
-          </View>
-        </View>
-      </View>
-    );
-  };
 
   // revision-1 단계에서는 Revision1TextView 사용
   if (currentStage === 'revision_1') {
@@ -149,7 +105,30 @@ export const ComicView = ({
             {/* 기존 만화 또는 기본 메시지 */}
             <View className={`flex-1 ${comicGenerationStatus.status === 'generating' || comicGenerationStatus.status?.startsWith('generating') ? 'opacity-30' : ''}`}>
               {comicData && (currentStage === 'comic_context' || currentStage === 'revision_2' || currentStage === 'title' || currentStage === 'complete') ? (
-                renderComicPanels()
+                completeComicData ? (
+                  <GridView numColumns={2} numRows={2} gapX={16} gapY={16} className="flex-1 m-4 mb-2">
+                    {['panel1', 'panel2', 'panel3', 'panel4'].map((panelId, index) => {
+                      const panel: ComicPanelInfo = (completeComicData as any)[panelId];
+                      const isHighlighted = Boolean(focusedPanel && focusedPanel === panelId);
+                      
+                      return (
+                        <ComicPanelView
+                          key={panelId}
+                          panelIndex={index}
+                          panel={panel}
+                          isHighlighted={isHighlighted}
+                          panelSize={undefined}
+                        />
+                      );
+                    })}
+                  </GridView>
+                ) : (
+                  <View className="flex-1 items-center justify-center">
+                    <Text className="text-lg text-gray-600 text-center" style={styleTemplates.withSemiboldFont}>
+                      {t('ChatStage.DefaultComicMessage')}
+                    </Text>
+                  </View>
+                )
               ) : (
                 <View className="flex-1 items-center justify-center">
                   <Text className="text-lg text-gray-600 text-center" style={styleTemplates.withSemiboldFont}>
