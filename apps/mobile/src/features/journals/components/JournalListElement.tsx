@@ -1,11 +1,11 @@
 import { TouchableOpacity, View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { useMemo } from 'react';
 import { styleTemplates } from '../../../styles';
-import { getTileColor } from '../../journaling/utils';
+import { ComicPanelView } from '../../comic/components/ComicPanelView';
 // @ts-ignore
 import format from 'string-format';
 import { useTranslation } from 'react-i18next';
-import { ComicGridItem, ComicGridItemType, escapeJongseong, GalleryComicItem } from '@autiverse-monorepo/ts-core';
+import { escapeJongseong, GalleryComicItem } from '@autiverse-monorepo/ts-core';
 import { twMerge } from 'tailwind-merge';
 
 export const JournalListElement = ({
@@ -68,63 +68,12 @@ export const JournalListElement = ({
             <View className="flex-row justify-between flex-1">
               {[0, 1].map((panelIndex: number) => (
                 <View key={panelIndex} className="flex-1 justify-center items-center">
-                  {comic.panels[panelIndex]?.grid &&
-                  comic.panels[panelIndex].grid.length > 0
-                    ? // 5x5 그리드 (원본 크기)
-                      (() => {
-                        const panel = comic.panels[panelIndex];
-                        const grid = Array.from({ length: 5 }, () =>
-                          Array.from({ length: 5 }, () => ({
-                            type: ComicGridItemType.Empty,
-                            content: '',
-                            position: [0, 0],
-                          } as ComicGridItem)),
-                        );
-
-                        // layout 데이터를 5x5로 배치 (원본 그대로)
-                        panel.grid.forEach((item: any) => {
-                          const [x, y] = item.position || [0, 0];
-                          const safeX = Math.max(0, Math.min(4, Math.floor(x)));
-                          const safeY = Math.max(0, Math.min(4, Math.floor(y)));
-
-                          grid[safeY][safeX] = {
-                            type: item.type || ComicGridItemType.Empty,
-                            content: item.content || '',
-                            position: [safeX, safeY],
-                          };
-                        });
-
-                        return grid.map((row: any[], y: number) => (
-                          <View key={y} className="flex-row h-[26px]">
-                            {row.map((tile: any, x: number) => (
-                              <View
-                                key={`${x}-${y}`}
-                                className="w-[26px] h-[26px] border border-gray-300 rounded-sm bg-white justify-center items-center p-0.5"
-                                style={{ backgroundColor: getTileColor(tile.type) }}
-                              >
-                                <Text
-                                  className="text-xs text-center"
-                                  style={styleTemplates.withSemiboldFont}
-                                  numberOfLines={1}
-                                >
-                                  {tile.content}
-                                </Text>
-                              </View>
-                            ))}
-                          </View>
-                        ));
-                      })()
-                    : // 빈 5x5 그리드 표시
-                      Array.from({ length: 5 }, (_, y) => (
-                        <View key={y} className="flex-row h-[26px]">
-                          {Array.from({ length: 5 }, (_, x) => (
-                            <View
-                              key={`${x}-${y}`}
-                              className="w-[26px] h-[26px] border border-gray-300 rounded-sm bg-white justify-center items-center p-0.5"
-                            />
-                          ))}
-                        </View>
-                      ))}
+                  <ComicPanelView
+                    panelIndex={panelIndex}
+                    panel={comic.panels[panelIndex]}
+                    panelSize={130}
+                    showStory={false}
+                  />
                 </View>
               ))}
             </View>
@@ -133,63 +82,12 @@ export const JournalListElement = ({
             <View className="flex-row justify-between flex-1 gap-0.5">
               {[2, 3].map((panelIndex: number) => (
                 <View key={panelIndex} className="flex-1 justify-center items-center">
-                  {comic.panels[panelIndex]?.grid &&
-                  comic.panels[panelIndex].grid.length > 0
-                    ? // 5x5 그리드 (원본 크기)
-                      (() => {
-                        const panel = comic.panels[panelIndex];
-                        const grid = Array.from({ length: 5 }, () =>
-                          Array.from({ length: 5 }, () => ({
-                            type: ComicGridItemType.Empty,
-                            content: '',
-                            position: [0, 0],
-                          })),
-                        );
-
-                        // layout 데이터를 5x5로 배치 (원본 그대로)
-                        panel.grid.forEach((item: any) => {
-                          const [x, y] = item.position || [0, 0];
-                          const safeX = Math.max(0, Math.min(4, Math.floor(x)));
-                          const safeY = Math.max(0, Math.min(4, Math.floor(y)));
-
-                          grid[safeY][safeX] = {
-                            type: item.type || ComicGridItemType.Empty,
-                            content: item.content || '',
-                            position: [safeX, safeY],
-                          };
-                        });
-
-                        return grid.map((row: any[], y: number) => (
-                          <View key={y} className="flex-row h-[26px]">
-                            {row.map((tile: any, x: number) => (
-                              <View
-                                key={`${x}-${y}`}
-                                className="w-[26px] h-[26px] border border-gray-300 rounded-sm bg-white justify-center items-center p-0.5"
-                                style={{ backgroundColor: getTileColor(tile.type) }}
-                              >
-                                <Text
-                                  className="text-xs text-center"
-                                  style={styleTemplates.withSemiboldFont}
-                                  numberOfLines={1}
-                                >
-                                  {tile.content}
-                                </Text>
-                              </View>
-                            ))}
-                          </View>
-                        ));
-                      })()
-                    : // 빈 5x5 그리드 표시
-                      Array.from({ length: 5 }, (_, y) => (
-                        <View key={y} className="flex-row h-[26px]">
-                          {Array.from({ length: 5 }, (_, x) => (
-                            <View
-                              key={`${x}-${y}`}
-                              className="w-[26px] h-[26px] border border-gray-300 rounded-sm bg-white justify-center items-center p-0.5"
-                            />
-                          ))}
-                        </View>
-                      ))}
+                  <ComicPanelView
+                    panelIndex={panelIndex}
+                    panel={comic.panels[panelIndex]}
+                    panelSize={130}
+                    showStory={false}
+                  />
                 </View>
               ))}
             </View>

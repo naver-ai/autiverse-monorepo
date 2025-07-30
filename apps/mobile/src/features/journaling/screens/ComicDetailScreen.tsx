@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { getTileColor } from '../utils';
+import { ComicPanelView } from '../../comic/components/ComicPanelView';
 import { styleTemplates } from '../../../styles';
 
 const { width } = Dimensions.get('window');
@@ -71,7 +71,6 @@ export default function ComicDetailScreen() {
         <Text style={[styles.title, styleTemplates.withBoldFont]}>
           {displayTitle}
         </Text>
-        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -84,76 +83,20 @@ export default function ComicDetailScreen() {
               ? revision2Data[panelKey] 
               : null;
             
+            // ComicPanelView에 전달할 패널 데이터 생성
+            const panelData = {
+              content: storyContent && !storyContent.startsWith('null') ? storyContent : '',
+              grid: panel?.grid || []
+            };
+            
             return (
               <View key={index} style={styles.panelContainer}>
-                {/* 스토리 텍스트 */}
-                <View style={styles.storyTextContainer}>
-                  <Text style={[styles.storyText, styleTemplates.withSemiboldFont]}>
-                    <Text style={[styles.panelNumber, styleTemplates.withBoldFont]}>{index + 1}. </Text>
-                    {storyContent && !storyContent.startsWith('null') && storyContent}
-                  </Text>
-                </View>
-
-              {/* 5x5 그리드 */}
-              <View style={styles.gridContainer}>
-                <View style={styles.gridWrapper}>
-                  {panel?.grid && panel.grid.length > 0 ? (
-                    // 5x5 빈 그리드 생성 후 layout 데이터로 채우기
-                    (() => {
-                      // 5x5 빈 그리드 생성
-                      const grid = Array.from({ length: 5 }, () => 
-                        Array.from({ length: 5 }, () => ({
-                          type: 'empty',
-                          content: '',
-                          position: [0, 0]
-                        }))
-                      );
-                      
-                      // layout 데이터를 position에 따라 배치
-                      panel.grid.forEach((item: any) => {
-                        const [x, y] = item.position || [0, 0];
-                        // NaN 값 방지
-                        const safeX = isNaN(x) ? 0 : Math.max(0, Math.min(4, Math.floor(x)));
-                        const safeY = isNaN(y) ? 0 : Math.max(0, Math.min(4, Math.floor(y)));
-                        
-                        grid[safeY][safeX] = {
-                          type: item.type || 'empty',
-                          content: item.content || '',
-                          position: [safeX, safeY]
-                        };
-                      });
-                      
-                      // 5x5 grid 렌더링
-                      return grid.map((row: any[], y: number) => (
-                        <View key={y} style={styles.gridRow}>
-                          {row.map((tile: any, x: number) => (
-                            <View
-                              key={`${x}-${y}`}
-                              style={[styles.gridTile, { backgroundColor: getTileColor(tile.type) }]}
-                            >
-                              <Text style={[styles.gridTileText, styleTemplates.withSemiboldFont]} numberOfLines={2}>
-                                {tile.content}
-                              </Text>
-                            </View>
-                          ))}
-                        </View>
-                      ));
-                    })()
-                  ) : (
-                    // 빈 그리드 표시 (5x5)
-                    Array.from({ length: 5 }, (_, y) => (
-                      <View key={y} style={styles.gridRow}>
-                        {Array.from({ length: 5 }, (_, x) => (
-                          <View
-                            key={`${x}-${y}`}
-                            style={styles.gridTile}
-                          />
-                        ))}
-                      </View>
-                    ))
-                  )}
-                                  </View>
-                </View>
+                <ComicPanelView
+                  panelIndex={index}
+                  panel={panelData}
+                  panelSize={200}
+                  showStory={true}
+                />
               </View>
             );
           })}
@@ -174,7 +117,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'ios' ? 60 : 20,
-    paddingBottom: 20,
+    paddingBottom: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E9ECEF',
@@ -202,73 +145,9 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   panelContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 8,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
     width: '48%',
-    height: 280,
-    maxHeight: 280,
-  },
-  storyTextContainer: {
-    marginBottom: 0,
-    padding: 8,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#007AFF',
-  },
-  storyText: {
-    fontSize: 14,
-    color: '#495057',
-    lineHeight: 20,
-    ...styleTemplates.withSemiboldFont,
-  },
-  panelNumber: {
-    fontWeight: 'bold',
-    color: '#007AFF',
-    ...styleTemplates.withBoldFont,
-  },
-  gridContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  gridWrapper: {
-    width: 180,
-    height: 180,
-  },
-  gridRow: {
-    flexDirection: 'row',
-    height: 40,
-  },
-  gridTile: {
-    width: 40,
-    height: 40,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 4,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 3,
-  },
-  gridTileText: {
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 16,
-    color: '#333',
-    ...styleTemplates.withSemiboldFont,
+    height: 320,
+    maxHeight: 320,
   },
   comicGrid: {
     flexDirection: 'row',

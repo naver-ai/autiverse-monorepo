@@ -137,6 +137,7 @@ export enum ComicGridItemType {
   Tell = "tell",
   Emotion = "emotion",
   Empty = "empty",
+  Location = "location",
 }
 
 export interface ComicGridItem {

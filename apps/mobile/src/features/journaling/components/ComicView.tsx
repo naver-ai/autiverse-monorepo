@@ -3,11 +3,11 @@ import { View, Text, Animated } from 'react-native';
 import { useTranslation } from 'react-i18next';
 // @ts-ignore
 import format from 'string-format';
-import { convertComicDataToPanels } from '../utils';
+import { convertComicDataToPanels } from '../../comic/utils';
 import { styleTemplates } from '../../../styles';
-import { ComicPanel } from './ComicPanel';
+import { ComicPanelView } from '../../comic/components/ComicPanelView';
 import { useSession } from '../hooks/useSession';
-import { ComicPanelInfo, MessageIntent } from '@autiverse-monorepo/ts-core';
+import { ComicPanelInfo, CompleteComicData, MessageIntent } from '@autiverse-monorepo/ts-core';
 import { ComicGenerationStatus } from '../api';
 
 export const ComicView = ({
@@ -49,17 +49,17 @@ export const ComicView = ({
       );
     }
 
-    const renderPanel = (panelId: string, panelIndex: number) => {
-      const panel: ComicPanelInfo = (completeComicData as any)[panelId];
+    const renderPanel = (panelId: keyof CompleteComicData, panelIndex: number) => {
+      const panel: ComicPanelInfo = completeComicData[panelId];
       const isHighlighted = focusedPanel === panelId;
 
       return (
-        <ComicPanel
+        <ComicPanelView
           key={panelId}
-          panelId={panelId}
           panelIndex={panelIndex}
           panel={panel}
           isHighlighted={isHighlighted}
+          panelSize={200}
         />
       );
     };
