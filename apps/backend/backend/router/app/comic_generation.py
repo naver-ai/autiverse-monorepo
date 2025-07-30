@@ -27,7 +27,7 @@ def get_progress_and_message(status: str) -> tuple[int, str]:
         'generating-2': (40, "두번째 칸을 그리고 있어!"),
         'generating-3': (60, "세번째 칸을 그리고 있어!"),
         'generating-4': (80, "이제 마지막 칸이다!!"),
-        'completed': (100, "만화 생성 완료!"),
+        'completed': (99, "만화 생성 완료!"),
         'error': (0, "만화 생성 중 오류가 발생했습니다."),
         'cancelled': (0, "만화 생성이 취소되었습니다.")
     }
