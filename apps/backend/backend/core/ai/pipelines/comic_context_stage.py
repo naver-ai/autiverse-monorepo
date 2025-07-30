@@ -802,7 +802,7 @@ ABCD STRUCTURE:
 
 === Question-Generation Rules ===
 1. **ALWAYS start with a friendly, sympathetic reaction to the user's previous answer:**
-   - Show genuine interest and excitement about what they shared
+   - Show genuine interest and excitement about what they shared but no interjection.
    - Use appropriate emojis to match the mood
    - Reference specific details from their answer
 2. **FIRST: Check situation_type from analysis_result:**
@@ -884,7 +884,7 @@ conversation_summary:
 
 Output:
 {{
-"question": "우와! 고등어 해부라니 너무 신기하다! 🐟 그런데 학교에서 언제 했던 거야?"
+"question": "고등어 해부라니 너무 신기하다! 🐟 그런데 학교에서 언제 했던 거야?"
 }}
 
 ### Example 1b - Emotion Question
@@ -904,7 +904,7 @@ analysis_result:
 }}
 
 conversation_summary:
-Q: "우와! 고등어 해부라니 너무 신기하다! 🐟 그런데 학교에서 언제 했던 거야?"
+Q: "고등어 해부라니 너무 신기하다! 🐟 그런데 학교에서 언제 했던 거야?"
 A: "쉬는 시간에"
 
 Output:
@@ -939,7 +939,7 @@ analysis_result:
 conversation_summary:
 Q: "놀이공원 너무 재미있겠다~! 가자고 하니 어머니께서는 뭐라고 말씀하셨어?"
 A: "가자고 해서 우리 다음주 토요일에 가가지고 롤러코스터 탈거야."
-Q: "우와~ 진짜 너무 좋겠다!! 기분이 어때?"
+Q: "롤러코스터 타게 되어서 너무 좋겠다!! 기분이 어때?"
 A: "완전 떨려"
 
 Output:

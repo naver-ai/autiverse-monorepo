@@ -99,7 +99,7 @@ class Revision2Stage:
                 print(f"[DEBUG] revision_2: Loaded second_panel data: {second_panels}")
         
         # 첫 번째 수정 질문 생성
-        initial_question = "우와앙~ 우리가 같이 만든 그림일기다! 지금부터 내용이 제대로 들어갔는지 확인해보자~ 수정하거나 추가하고 싶은 부분 있어? 🤔"
+        initial_question = "우와앙~ 우리가 같이 만든 그림일기다! 지금부터 내용이 제대로 들어갔는지 확인해보자. 수정하거나 추가하고 싶은 부분 있어? 🤔"
         create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             initial_question, MessageRole.Assistant, JournalEntryStage.Revision2,
@@ -151,7 +151,6 @@ class Revision2Stage:
                     return "어디를 어떻게 수정해볼까?? 🤔", MessageIntent.PromptOpenEndedAnswer
             elif self._is_positive_response(user_message, user_intent): #수정할 곳이 없다
                 # 수정 완료, 완료 단계로
-                self._complete_journal_entry()
                 # 완성된 그림 일기 내용을 바탕으로 개인화된 마무리 메시지 생성
                 comic_data = self._get_completed_comic_data()
                 completion_message = self.completion_message_generator.generate_completion_message(comic_data, self.child_name)
@@ -285,22 +284,6 @@ User's correction request: {correction}
             print(f"[DEBUG] revision_2: Failed to parse revision response: {e}")
         except Exception as e:
             print(f"[DEBUG] revision_2: Unexpected error in _apply_user_correction: {e}")
-    
-    def _complete_journal_entry(self) -> None:
-        """journal entry 완료 처리"""        
-        try:
-            # 최종 수정사항 적용 (revision_2를 comic_context에 반영)
-            journal = get_journal(self.db, self.journal_entry_id)
-            if journal and journal.revision_2:
-                update_journal_data(
-                    self.db, self.journal_entry_id,
-                    comic_context=journal.revision_2
-                )
-                
-        except Exception as e:
-            print(f"[DEBUG] revision_2: Error in _complete_journal_entry: {e}")
-            raise
-    
 
     
     def _get_or_create_interaction_turn(self, stage: JournalEntryStage) -> InteractionTurn:
@@ -325,4 +308,4 @@ User's correction request: {correction}
     
     def get_initial_question(self) -> tuple[str, MessageIntent]:
         """첫 번째 수정 질문을 반환합니다."""
-        return "우와앙~ 우리가 같이 만든 그림일기다! 지금부터 내용이 제대로 들어갔는지 확인해보자~ 수정하거나 추가하고 싶은 부분 있어? 🤔", MessageIntent.PromptRevision2IssueExist
+        return "우와앙~ 우리가 같이 만든 그림일기다! 지금부터 내용이 제대로 들어갔는지 확인해보자. 수정하거나 추가하고 싶은 부분 있어? 🤔", MessageIntent.PromptRevision2IssueExist

@@ -163,7 +163,7 @@ class ChatbotController:
             "message_id": message.id,
             "response": message.content,
             "intent": message.intent,
-            "stage": "comic_context" if message.intent == MessageIntent.StartComicGeneration else "revision_1"
+            "stage": "revision_1"  # comic generation이 시작되어도 revision_1로 유지
         }
     
     async def _handle_comic_context_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
