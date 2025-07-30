@@ -70,7 +70,7 @@ export default function JournalListScreen() {
           </View>
         ) : (
           <View style={styles.comicsGrid}>
-            {comics.map((comic: any) => <JournalListElement key={comic.id} comic={comic} onPress={() => handleComicPress(comic)} />)}
+            {comics.map((comic) => <JournalListElement key={comic.id} comic={comic} onPress={() => handleComicPress(comic)} />)}
           </View>
         )}
       </ScrollView>

@@ -1,4 +1,4 @@
-import { ComicData, ComicPanel } from '@autiverse-monorepo/ts-core';
+import { IncompleteComicData, ComicPanelInfo, CompleteComicData } from '@autiverse-monorepo/ts-core';
 
 // 타일 타입별 색상 정의
 export const getTileColor = (type: string) => {
@@ -13,19 +13,17 @@ export const getTileColor = (type: string) => {
   }
 };
 
-// ComicData를 Record<string, Panel> 형태로 변환
-export const convertComicDataToPanels = (comicData: ComicData) => {
-  if (!comicData) return null;
+export const convertComicDataToPanels = (comicData: IncompleteComicData): CompleteComicData => {
   
   // admin-web의 TabletFourSceneComic과 동일한 구조로 변환
   const panels: Record<string, any> = {};
   
   // backend에서 오는 데이터 구조를 처리
   // 1. 이미 올바른 구조인 경우 (admin-web과 동일)
-  if (comicData.panel1 && typeof comicData.panel1 === 'object' && (comicData.panel1 as ComicPanel).content !== undefined) {
+  if (comicData.panel1 && typeof comicData.panel1 === 'object' && (comicData.panel1 as ComicPanelInfo).content !== undefined) {
     panels.panel1 = {
-      content: (comicData.panel1 as ComicPanel).content || '',
-      grid: (comicData.panel1 as ComicPanel).grid || []
+      content: (comicData.panel1 as ComicPanelInfo).content || '',
+      grid: (comicData.panel1 as ComicPanelInfo).grid || []
     };
   } else if (comicData.panel1) {
     // 2. 단순 문자열인 경우
@@ -41,10 +39,10 @@ export const convertComicDataToPanels = (comicData: ComicData) => {
     };
   }
   
-  if (comicData.panel2 && typeof comicData.panel2 === 'object' && (comicData.panel2 as ComicPanel).content !== undefined) {
+  if (comicData.panel2 && typeof comicData.panel2 === 'object' && (comicData.panel2 as ComicPanelInfo).content !== undefined) {
     panels.panel2 = {
-      content: (comicData.panel2 as ComicPanel).content || '',
-      grid: (comicData.panel2 as ComicPanel).grid || []
+      content: (comicData.panel2 as ComicPanelInfo).content || '',
+      grid: (comicData.panel2 as ComicPanelInfo).grid || []
     };
   } else if (comicData.panel2) {
     panels.panel2 = {
@@ -58,10 +56,10 @@ export const convertComicDataToPanels = (comicData: ComicData) => {
     };
   }
   
-  if (comicData.panel3 && typeof comicData.panel3 === 'object' && (comicData.panel3 as ComicPanel).content !== undefined) {
+  if (comicData.panel3 && typeof comicData.panel3 === 'object' && (comicData.panel3 as ComicPanelInfo).content !== undefined) {
     panels.panel3 = {
-      content: (comicData.panel3 as ComicPanel).content || '',
-      grid: (comicData.panel3 as ComicPanel).grid || []
+      content: (comicData.panel3 as ComicPanelInfo).content || '',
+      grid: (comicData.panel3 as ComicPanelInfo).grid || []
     };
   } else if (comicData.panel3) {
     panels.panel3 = {
@@ -75,10 +73,10 @@ export const convertComicDataToPanels = (comicData: ComicData) => {
     };
   }
   
-  if (comicData.panel4 && typeof comicData.panel4 === 'object' && (comicData.panel4 as ComicPanel).content !== undefined) {
+  if (comicData.panel4 && typeof comicData.panel4 === 'object' && (comicData.panel4 as ComicPanelInfo).content !== undefined) {
     panels.panel4 = {
-      content: (comicData.panel4 as ComicPanel).content || '',
-      grid: (comicData.panel4 as ComicPanel).grid || []
+      content: (comicData.panel4 as ComicPanelInfo).content || '',
+      grid: (comicData.panel4 as ComicPanelInfo).grid || []
     };
   } else if (comicData.panel4) {
     panels.panel4 = {
@@ -92,7 +90,7 @@ export const convertComicDataToPanels = (comicData: ComicData) => {
     };
   }
   
-  return panels;
+  return panels as CompleteComicData;
 };
 
 // 현재 요일 가져오기

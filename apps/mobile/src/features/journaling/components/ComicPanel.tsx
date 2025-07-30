@@ -2,11 +2,12 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { getTileColor } from '../utils';
 import { styleTemplates } from '../../../styles';
+import { ComicPanelInfo } from '@autiverse-monorepo/ts-core';
 
 interface ComicPanelProps {
   panelId: string;
   panelIndex: number;
-  panel: any;
+  panel: ComicPanelInfo;
   isHighlighted: boolean;
 }
 

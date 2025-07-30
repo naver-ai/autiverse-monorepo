@@ -130,16 +130,38 @@ export interface Preset {
   dayInfo?: string[];
 }
 
-export interface ComicPanel {
-  content: string;
-  grid: any[];
+export enum ComicGridItemType {
+  Figure = "figure",
+  Object = "object",
+  Think = "think",
+  Tell = "tell",
+  Emotion = "emotion",
+  Empty = "empty",
 }
 
-export interface ComicData {
-  panel1?: ComicPanel | string;
-  panel2?: ComicPanel | string;
-  panel3?: ComicPanel | string;
-  panel4?: ComicPanel | string;
+export interface ComicGridItem {
+  type: ComicGridItemType;
+  content: string;
+  position: [number, number];
+}
+
+export interface ComicPanelInfo {
+  content: string;
+  grid: Array<ComicGridItem>;
+}
+
+export interface IncompleteComicData {
+  panel1?: ComicPanelInfo | string;
+  panel2?: ComicPanelInfo | string;
+  panel3?: ComicPanelInfo | string;
+  panel4?: ComicPanelInfo | string;
+}
+
+export interface CompleteComicData {
+  panel1: ComicPanelInfo;
+  panel2: ComicPanelInfo;
+  panel3: ComicPanelInfo;
+  panel4: ComicPanelInfo;
 }
 
 // Backend API response types
@@ -152,7 +174,7 @@ export interface JournalingSessionInfo {
   events?: string[] | null;
   summary?: string | null;
   title?: string | null;
-  panels?: ComicData | null;
+  panels?: IncompleteComicData | null;
   message_count: number;
   focusedPanel?: string | null;
   messages: ChatMessage[];
@@ -187,4 +209,22 @@ export enum MessageIntent {
   AnswerNegative = "answer_negative",
   AnswerNext = "answer_next",
   AnswerEmotion = "answer_emotion"
+}
+
+export interface GalleryComicItem {
+  id: string | null;
+  journal_entry_id: string;
+  stage: JournalEntryStage;
+  status: JournalEntryStatus;
+  title: string | null;
+  created_at: string | null;
+  panels: ComicPanelInfo[];
+  revision_2: any; // Journal 데이터 (stage별로 선택된 데이터)
+  child_name: string;
+  agent_name: string;
+}
+
+export interface GalleryResponse {
+  dyad_id: string;
+  comics: GalleryComicItem[];
 }

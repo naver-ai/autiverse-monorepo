@@ -1,4 +1,4 @@
-import { Dyad, NetworkHelper } from "@autiverse-monorepo/ts-core";
+import { Dyad, NetworkHelper, GalleryResponse } from "@autiverse-monorepo/ts-core";
 import { useAuthStore } from "../features/auth/store";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -14,7 +14,7 @@ export async function getDyadAPI(jwt: string): Promise<Dyad> {
     return response.data;
   }
 
-export async function getGalleryAPI(jwt: string): Promise<any> {
+export async function getGalleryAPI(jwt: string): Promise<GalleryResponse> {
     const response = await NetworkHelper.axiosClient.get(
       NetworkHelper.ENDPOINTS.APP.CHATBOT.GALLERY,
       {

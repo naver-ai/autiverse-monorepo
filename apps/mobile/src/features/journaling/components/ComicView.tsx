@@ -7,7 +7,7 @@ import { convertComicDataToPanels } from '../utils';
 import { styleTemplates } from '../../../styles';
 import { ComicPanel } from './ComicPanel';
 import { useSession } from '../hooks/useSession';
-import { MessageIntent } from '@autiverse-monorepo/ts-core';
+import { ComicPanelInfo, MessageIntent } from '@autiverse-monorepo/ts-core';
 import { ComicGenerationStatus } from '../api';
 
 export const ComicView = ({
@@ -30,7 +30,7 @@ export const ComicView = ({
   const currentStage = sessionInfo?.stage;
   const focusedPanel = sessionInfo?.focusedPanel;
 
-  const convertComicDataToPanelsMemo = React.useMemo(() => {
+  const completeComicData = React.useMemo(() => {
     if(!comicData) {
       return null;
     }
@@ -39,7 +39,7 @@ export const ComicView = ({
 
   // 만화 패널 렌더링 함수
   const renderComicPanels = () => {
-    if (!convertComicDataToPanelsMemo) {
+    if (!completeComicData) {
       return (
         <View className="flex-1 items-center justify-center">
           <Text className="text-lg text-gray-600 text-center" style={styleTemplates.withSemiboldFont}>
@@ -50,7 +50,7 @@ export const ComicView = ({
     }
 
     const renderPanel = (panelId: string, panelIndex: number) => {
-      const panel = convertComicDataToPanelsMemo[panelId];
+      const panel: ComicPanelInfo = (completeComicData as any)[panelId];
       const isHighlighted = focusedPanel === panelId;
 
       return (

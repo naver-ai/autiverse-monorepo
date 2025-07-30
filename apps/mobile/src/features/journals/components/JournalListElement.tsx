@@ -5,7 +5,7 @@ import { getTileColor } from '../../journaling/utils';
 // @ts-ignore
 import format from 'string-format';
 import { useTranslation } from 'react-i18next';
-import { escapeJongseong } from '@autiverse-monorepo/ts-core';
+import { ComicGridItem, ComicGridItemType, escapeJongseong, GalleryComicItem } from '@autiverse-monorepo/ts-core';
 
 const styles = StyleSheet.create({
   badge: {
@@ -112,7 +112,7 @@ export const JournalListElement = ({
   onPress,
   style
 }: {
-  comic: any;
+  comic: GalleryComicItem;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
 }) => {
@@ -170,10 +170,10 @@ export const JournalListElement = ({
                         const panel = comic.panels[panelIndex];
                         const grid = Array.from({ length: 5 }, () =>
                           Array.from({ length: 5 }, () => ({
-                            type: 'empty',
+                            type: ComicGridItemType.Empty,
                             content: '',
                             position: [0, 0],
-                          })),
+                          } as ComicGridItem)),
                         );
 
                         // layout 데이터를 5x5로 배치 (원본 그대로)
@@ -183,7 +183,7 @@ export const JournalListElement = ({
                           const safeY = Math.max(0, Math.min(4, Math.floor(y)));
 
                           grid[safeY][safeX] = {
-                            type: item.type || 'empty',
+                            type: item.type || ComicGridItemType.Empty,
                             content: item.content || '',
                             position: [safeX, safeY],
                           };
@@ -239,7 +239,7 @@ export const JournalListElement = ({
                         const panel = comic.panels[panelIndex];
                         const grid = Array.from({ length: 5 }, () =>
                           Array.from({ length: 5 }, () => ({
-                            type: 'empty',
+                            type: ComicGridItemType.Empty,
                             content: '',
                             position: [0, 0],
                           })),
@@ -252,7 +252,7 @@ export const JournalListElement = ({
                           const safeY = Math.max(0, Math.min(4, Math.floor(y)));
 
                           grid[safeY][safeX] = {
-                            type: item.type || 'empty',
+                            type: item.type || ComicGridItemType.Empty,
                             content: item.content || '',
                             position: [safeX, safeY],
                           };
