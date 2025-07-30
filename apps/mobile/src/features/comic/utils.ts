@@ -1,4 +1,5 @@
 import { ComicGridItem, ComicGridItemType, ComicPanelInfo, CompleteComicData, IncompleteComicData } from '@autiverse-monorepo/ts-core';
+import colors from 'tailwindcss/colors';
 
 export interface ComicGridTile {
   type: string;
@@ -54,9 +55,18 @@ export const convertPanelGridToMatrix = (panelGrid: ComicGridItem[]): ComicGridT
  * @param type - 타일 타입
  * @returns 색상 코드
  */
-export const getTileColor = (type: ComicGridItemType): string => {
-  switch (type) {
-    case 'figure': return '#FFE0B2';  // 연한 주황색 (인물)
+export const getTileColor = (item: ComicGridItem): string => {
+  if(item.content === '나') {
+    return colors.orange[400];  // 연한 주황색 (인물)
+  }
+  switch (item.type) {
+    case 'figure': {
+      if(item.content === '나') {
+        return colors.orange[400];  // 연한 주황색 (인물)
+      } else {
+        return colors.fuchsia[300];  // 연한 주황색 (인물)
+      }
+    }
     case 'object': return '#B2DFDB';  // 연한 청록색 (물건)
     case 'location': return '#E1BEE7';  // 연한 보라색 (장소)
     case 'think': return '#C8E6C9';  // 연한 초록색 (생각)
@@ -65,39 +75,6 @@ export const getTileColor = (type: ComicGridItemType): string => {
     default: return '#FFFFFF';  // 흰색 (빈 칸)
   }
 };
-
-/**
- * 그리드 크기별 스타일 설정
- */
-export const getGridSizeStyles = (size: 'small' | 'medium' | 'large') => {
-  switch (size) {
-    case 'small':
-      return {
-        tileSize: 26,
-        fontSize: 12,
-        padding: 1,
-      };
-    case 'medium':
-      return {
-        tileSize: 40,
-        fontSize: 12,
-        padding: 4,
-      };
-    case 'large':
-      return {
-        tileSize: 50,
-        fontSize: 14,
-        padding: 6,
-      };
-    default:
-      return {
-        tileSize: 40,
-        fontSize: 12,
-        padding: 4,
-      };
-  }
-};
-
 
 export const convertComicDataToPanels = (comicData: IncompleteComicData): CompleteComicData => {
   const panels: Record<string, any> = {};

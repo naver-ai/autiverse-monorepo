@@ -8,7 +8,7 @@ import { styleTemplates } from '../../../styles';
 import { ComicPanelView } from '../../comic/components/ComicPanelView';
 import { Revision1TextView } from './Revision1TextView';
 import { useSession } from '../hooks/useSession';
-import { ComicPanelInfo, CompleteComicData, MessageIntent } from '@autiverse-monorepo/ts-core';
+import { ComicPanelInfo, CompleteComicData } from '@autiverse-monorepo/ts-core';
 import { ComicGenerationStatus } from '../api';
 import { GridView } from '../../../components/GridView';
 
@@ -108,7 +108,7 @@ export const ComicView = ({
                 completeComicData ? (
                   <GridView numColumns={2} numRows={2} gapX={16} gapY={16} className="flex-1 m-4 mb-2">
                     {['panel1', 'panel2', 'panel3', 'panel4'].map((panelId, index) => {
-                      const panel: ComicPanelInfo = (completeComicData as any)[panelId];
+                      const panel: ComicPanelInfo = completeComicData[panelId as keyof CompleteComicData];
                       const isHighlighted = Boolean(focusedPanel && focusedPanel === panelId);
                       
                       return (

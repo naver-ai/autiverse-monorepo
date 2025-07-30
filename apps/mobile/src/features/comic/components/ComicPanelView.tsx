@@ -3,6 +3,7 @@ import { View, Text, LayoutChangeEvent } from "react-native";
 import { useCallback, useState } from "react";
 import { styleTemplates } from "../../../styles";
 import { convertPanelGridToMatrix, getTileColor } from "../utils";
+import { Pawn } from "./Pawn";
 
 
 export const ComicPanelView = ({
@@ -37,7 +38,7 @@ export const ComicPanelView = ({
 
   return (
     <View
-      className={`flex-1 mx-1 p-2 bg-white rounded-lg ${isHighlighted ? 'border-orange-300 border-4 shadow-orange-300' : 'border-gray-200'}`}
+      className={`flex-1 mx-1 p-2 bg-white rounded-lg ${isHighlighted ? 'border-orange-300 border-4' : 'border-gray-200'}`}
       style={isHighlighted && {
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.3,
@@ -66,34 +67,75 @@ export const ComicPanelView = ({
               const grid = convertPanelGridToMatrix(panel.grid);
 
               // 5x5 grid 렌더링
-              return grid.map((row: any[], y: number) => (
+              return grid.map((row, y) => (
                 <View key={y} style={{ flexDirection: 'row', height: gridSize }}>
-                  {row.map((tile: any, x: number) => (
-                    <View
-                      key={`${x}-${y}`}
-                      style={{
-                        width: gridSize,
-                        height: gridSize,
-                        borderWidth: 1,
-                        borderColor: '#ddd',
-                        borderRadius: 4,
-                        backgroundColor: getTileColor(tile.type),
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        padding: 4
-                      }}
-                    >
-                      <Text style={{
-                        fontSize: 12,
-                        textAlign: 'center',
-                        lineHeight: 14,
-                        color: '#333',
-                        ...styleTemplates.withSemiboldFont
-                      }} numberOfLines={2}>
-                        {tile.content}
-                      </Text>
-                    </View>
-                  ))}
+                  {row.map((tile: any, x: number) => {
+                    if(tile.content === '나' && tile.type !== 'figure') {
+                      
+                    }
+                    // 빈 셀이거나 내용이 없으면 렌더링하지 않음
+                    if (tile.type === 'empty' || !tile.content) {
+                      return (
+                        <View
+                          key={`${x}-${y}`}
+                          style={{
+                            width: gridSize,
+                            height: gridSize,
+                            backgroundColor: 'transparent',
+                          }}  
+                        />
+                      );
+                    }
+
+                    // figure 타입이면 Pawn 컴포넌트 표시
+                    if (tile.type === 'figure' || tile.content === '나') {
+                      return (
+                        <View
+                          key={`${x}-${y}`}
+                          style={{
+                            position: 'relative',
+                            width: gridSize,
+                            height: gridSize,
+                            padding: 4
+                          }}  
+                        >
+                          <Pawn bodyWidth={gridSize-8} bandColor={getTileColor(tile)} bodyPosition={{x: gridSize / 2, y: gridSize / 2}} label={tile.content} />
+                        </View>
+                      );
+                    }
+
+                    if(tile.type === 'location') {
+                      console.log("location: ", tile)
+                    }
+
+                    // 다른 타입들은 기존대로 텍스트 표시
+                    return (
+                      <View
+                        key={`${x}-${y}`}
+                        style={{
+                          width: gridSize,
+                          height: gridSize,
+                          borderWidth: 1,
+                          borderColor: '#ddd',
+                          borderRadius: 4,
+                          backgroundColor: getTileColor(tile),
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          padding: 4
+                        }}  
+                      >
+                        <Text style={{
+                          fontSize: 12,
+                          textAlign: 'center',
+                          lineHeight: 14,
+                          color: '#333',
+                          ...styleTemplates.withSemiboldFont
+                        }} numberOfLines={2}>
+                          {tile.content}
+                        </Text>
+                      </View>
+                    );
+                  })}
                 </View>
               ));
             })()
@@ -107,12 +149,9 @@ export const ComicPanelView = ({
                     style={{
                       width: gridSize,
                       height: gridSize,
-                      borderWidth: 1,
-                      borderColor: '#ddd',
-                      borderRadius: 4,
-                      backgroundColor: '#FFFFFF',
-                      justifyContent: 'center',
-                      alignItems: 'center'
+                      borderWidth: 0.5,
+                      borderColor: '#f0f0f0',
+                      backgroundColor: 'transparent',
                     }} />
                 ))}
               </View>
