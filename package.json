@@ -116,6 +116,7 @@
     "yup": "^1.6.1",
     "zustand": "^5.0.5",
     "expo-linear-gradient": "~14.1.5",
-    "expo-haptics": "~14.1.4"
+    "expo-haptics": "~14.1.4",
+    "@shopify/flash-list": "1.7.6"
   }
 }

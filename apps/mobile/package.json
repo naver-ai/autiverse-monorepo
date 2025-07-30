@@ -32,7 +32,8 @@
     "expo-device": "*",
     "expo-application": "*",
     "expo-haptics": "*",
-    "react-native-permissions": "*"
+    "react-native-permissions": "*",
+    "@shopify/flash-list": "*"
   },
   "devDependencies": {
     "@react-native-community/cli": "^19.1.0"

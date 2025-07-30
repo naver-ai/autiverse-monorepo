@@ -6,106 +6,7 @@ import { getTileColor } from '../../journaling/utils';
 import format from 'string-format';
 import { useTranslation } from 'react-i18next';
 import { ComicGridItem, ComicGridItemType, escapeJongseong, GalleryComicItem } from '@autiverse-monorepo/ts-core';
-
-const styles = StyleSheet.create({
-  badge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-    borderRadius: 10,
-    zIndex: 1,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-
-  comicCard: {
-    width: '31%',
-    aspectRatio: 1.2, // 더 낮은 직사각형 비율 (가로:세로 = 6:5)
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 8,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  comicPreview: {
-    width: '100%',
-    flex: 1,
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginTop: 20, // 날짜와 뱃지 공간 확보
-    marginBottom: 6,
-  },
-
-  panelsPreview: {
-    width: '100%',
-    height: '100%',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    gap: 2,
-  },
-  panelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    flex: 1,
-    gap: 2,
-  },
-
-  panelPreview: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  previewGridRow: {
-    flexDirection: 'row',
-    height: 23,
-  },
-  previewGridTile: {
-    width: 23,
-    height: 23,
-    borderWidth: 0.5,
-    borderColor: '#DDD',
-    borderRadius: 1,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 1,
-  },
-  previewGridTileText: {
-    fontSize: 7,
-    textAlign: 'center',
-    lineHeight: 12,
-    color: '#333',
-  },
-  emptyPreview: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-  },
-  emptyPreviewText: {
-    fontSize: 12,
-    color: '#6C757D',
-  },
-
-  comicTitle: {
-    fontSize: 13,
-    color: '#212529',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-});
+import { twMerge } from 'tailwind-merge';
 
 export const JournalListElement = ({
   comic,
@@ -124,16 +25,16 @@ export const JournalListElement = ({
     const isComplete = stage === 'complete';
     return (
       <View
-        style={[
-          styles.badge,
-          { backgroundColor: isComplete ? '#28A745' : '#FFC107' },
-        ]}
+        className={twMerge(
+          'absolute top-1.5 right-1.5 px-1.5 py-1 rounded-full z-10',
+          isComplete ? 'bg-green-500' : 'bg-yellow-400'
+        )}
       >
         <Text
-          style={[
-            styles.badgeText,
-            { color: isComplete ? '#FFFFFF' : '#000000' },
-          ]}
+          className={twMerge(
+            'text-xs font-bold',
+            isComplete ? 'text-white' : 'text-black'
+          )}
         >
           {isComplete ? '완성' : '미완성'}
         </Text>
@@ -151,18 +52,22 @@ export const JournalListElement = ({
   }, [comic, t]);
 
   return (
-    <TouchableOpacity key={comic.id} style={styles.comicCard} onPress={onPress}>
+    <TouchableOpacity 
+      key={comic.id} 
+      className="w-[400px] h-[450px] bg-white rounded-xl p-2 mb-4 shadow-lg shadow-black/10" 
+      onPress={onPress}
+    >
       {/* Badge - 오른쪽 상단 */}
       {renderBadge(comic.stage)}
 
-      <View style={styles.comicPreview}>
+      <View className="w-full flex-1 rounded-lg overflow-hidden mt-5 mb-1.5">
         {comic.panels && comic.panels.length > 0 ? (
           // 4개 패널을 2x2 그리드로 배치한 미리보기
-          <View style={styles.panelsPreview}>
+          <View className="w-full h-full flex-col justify-between">
             {/* 첫 번째 행: 패널 1, 2 */}
-            <View style={styles.panelRow}>
+            <View className="flex-row justify-between flex-1">
               {[0, 1].map((panelIndex: number) => (
-                <View key={panelIndex} style={styles.panelPreview}>
+                <View key={panelIndex} className="flex-1 justify-center items-center">
                   {comic.panels[panelIndex]?.grid &&
                   comic.panels[panelIndex].grid.length > 0
                     ? // 5x5 그리드 (원본 크기)
@@ -190,20 +95,16 @@ export const JournalListElement = ({
                         });
 
                         return grid.map((row: any[], y: number) => (
-                          <View key={y} style={styles.previewGridRow}>
+                          <View key={y} className="flex-row h-[26px]">
                             {row.map((tile: any, x: number) => (
                               <View
                                 key={`${x}-${y}`}
-                                style={[
-                                  styles.previewGridTile,
-                                  { backgroundColor: getTileColor(tile.type) },
-                                ]}
+                                className="w-[26px] h-[26px] border border-gray-300 rounded-sm bg-white justify-center items-center p-0.5"
+                                style={{ backgroundColor: getTileColor(tile.type) }}
                               >
                                 <Text
-                                  style={[
-                                    styles.previewGridTileText,
-                                    styleTemplates.withSemiboldFont,
-                                  ]}
+                                  className="text-xs text-center"
+                                  style={styleTemplates.withSemiboldFont}
                                   numberOfLines={1}
                                 >
                                   {tile.content}
@@ -215,11 +116,11 @@ export const JournalListElement = ({
                       })()
                     : // 빈 5x5 그리드 표시
                       Array.from({ length: 5 }, (_, y) => (
-                        <View key={y} style={styles.previewGridRow}>
+                        <View key={y} className="flex-row h-[26px]">
                           {Array.from({ length: 5 }, (_, x) => (
                             <View
                               key={`${x}-${y}`}
-                              style={styles.previewGridTile}
+                              className="w-[26px] h-[26px] border border-gray-300 rounded-sm bg-white justify-center items-center p-0.5"
                             />
                           ))}
                         </View>
@@ -229,9 +130,9 @@ export const JournalListElement = ({
             </View>
 
             {/* 두 번째 행: 패널 3, 4 */}
-            <View style={styles.panelRow}>
+            <View className="flex-row justify-between flex-1 gap-0.5">
               {[2, 3].map((panelIndex: number) => (
-                <View key={panelIndex} style={styles.panelPreview}>
+                <View key={panelIndex} className="flex-1 justify-center items-center">
                   {comic.panels[panelIndex]?.grid &&
                   comic.panels[panelIndex].grid.length > 0
                     ? // 5x5 그리드 (원본 크기)
@@ -259,20 +160,16 @@ export const JournalListElement = ({
                         });
 
                         return grid.map((row: any[], y: number) => (
-                          <View key={y} style={styles.previewGridRow}>
+                          <View key={y} className="flex-row h-[26px]">
                             {row.map((tile: any, x: number) => (
                               <View
                                 key={`${x}-${y}`}
-                                style={[
-                                  styles.previewGridTile,
-                                  { backgroundColor: getTileColor(tile.type) },
-                                ]}
+                                className="w-[26px] h-[26px] border border-gray-300 rounded-sm bg-white justify-center items-center p-0.5"
+                                style={{ backgroundColor: getTileColor(tile.type) }}
                               >
                                 <Text
-                                  style={[
-                                    styles.previewGridTileText,
-                                    styleTemplates.withSemiboldFont,
-                                  ]}
+                                  className="text-xs text-center"
+                                  style={styleTemplates.withSemiboldFont}
                                   numberOfLines={1}
                                 >
                                   {tile.content}
@@ -284,11 +181,11 @@ export const JournalListElement = ({
                       })()
                     : // 빈 5x5 그리드 표시
                       Array.from({ length: 5 }, (_, y) => (
-                        <View key={y} style={styles.previewGridRow}>
+                        <View key={y} className="flex-row h-[26px]">
                           {Array.from({ length: 5 }, (_, x) => (
                             <View
                               key={`${x}-${y}`}
-                              style={styles.previewGridTile}
+                              className="w-[26px] h-[26px] border border-gray-300 rounded-sm bg-white justify-center items-center p-0.5"
                             />
                           ))}
                         </View>
@@ -298,9 +195,10 @@ export const JournalListElement = ({
             </View>
           </View>
         ) : (
-          <View style={styles.emptyPreview}>
+          <View className="w-full h-full justify-center items-center bg-gray-50">
             <Text
-              style={[styles.emptyPreviewText, styleTemplates.withBoldFont]}
+              className="text-sm text-center"
+              style={styleTemplates.withBoldFont}
             >
               만화 없음
             </Text>
@@ -310,7 +208,8 @@ export const JournalListElement = ({
 
       {/* Title - 하단 */}
       <Text
-        style={[styles.comicTitle, styleTemplates.withSemiboldFont]}
+        className="text-lg text-center mt-2"
+        style={styleTemplates.withSemiboldFont}
         numberOfLines={2}
       >
         {comic.created_at

@@ -1,49 +1,65 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../features/auth/store';
 import { getGalleryAPI } from '../../../api/dyad';
 import { useQuery } from '@tanstack/react-query';
 import { styleTemplates } from '../../../styles';
 import { JournalListElement } from '../components/JournalListElement';
+import { FlashList } from '@shopify/flash-list';
 
 export default function JournalListScreen() {
   const router = useRouter();
   const { jwt } = useAuthStore();
 
-  const { data: galleryData, isLoading, error } = useQuery({
+  const {
+    data: galleryData,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['gallery'],
     queryFn: () => getGalleryAPI(jwt!!),
-    enabled: !!jwt
+    enabled: !!jwt,
   });
 
   const handleComicPress = (comic: any) => {
     router.push({
       pathname: '/comic-detail',
-      params: { 
+      params: {
         comicId: comic.id,
         panels: JSON.stringify(comic.panels),
         revision2: JSON.stringify(comic.revision_2),
         childName: comic.child_name,
         agentName: comic.agent_name,
         createdAt: comic.created_at,
-        title: comic.title || ''
-      }
+        title: comic.title || '',
+      },
     });
   };
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
-        <Text style={[styles.loadingText, styleTemplates.withBoldFont]}>지금까지 쓴 일기 불러오는 중...</Text>
+      <View className="flex-1 bg-slate-50">
+        <Text style={[styles.loadingText, styleTemplates.withBoldFont]}>
+          지금까지 쓴 일기 불러오는 중...
+        </Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <Text style={[styles.errorText, styleTemplates.withBoldFont]}>지금까지 쓴 일기를 불러오는데 실패했습니다.</Text>
+      <View className="flex-1 bg-slate-50">
+        <Text style={[styles.errorText, styleTemplates.withBoldFont]}>
+          지금까지 쓴 일기를 불러오는데 실패했습니다.
+        </Text>
       </View>
     );
   }
@@ -51,38 +67,53 @@ export default function JournalListScreen() {
   const comics = galleryData?.comics || [];
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-slate-50 flex">
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Text style={[styles.backButtonText, styleTemplates.withBoldFont]}>← 뒤로</Text>
+          <Text style={[styles.backButtonText, styleTemplates.withBoldFont]}>
+            ← 뒤로
+          </Text>
         </TouchableOpacity>
-        <Text style={[styles.title, styleTemplates.withBoldFont]}>지금까지 쓴 일기</Text>
+        <Text style={[styles.title, styleTemplates.withBoldFont]}>
+          지금까지 쓴 일기
+        </Text>
         <View style={{ width: 60 }} />
       </View>
-
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {comics.length === 0 ? (
+      <FlashList
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingVertical: 30,
+          paddingBottom: 100,
+          paddingHorizontal: 50,
+        }}
+        ItemSeparatorComponent={() => <View style={{ width: 30 }} />}
+        ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, styleTemplates.withBoldFont]}>아직 완성된 만화일기가 없어요</Text>
-          </View>
-        ) : (
-          <View style={styles.comicsGrid}>
-            {comics.map((comic) => <JournalListElement key={comic.id} comic={comic} onPress={() => handleComicPress(comic)} />)}
+            <Text style={[styles.emptyText, styleTemplates.withBoldFont]}>
+              아직 완성된 만화일기가 없어요
+            </Text>
           </View>
         )}
-      </ScrollView>
+        data={comics}
+        horizontal
+        renderItem={({ item }) => (
+          <JournalListElement
+            key={item.id}
+            comic={item}
+            onPress={() => handleComicPress(item)}
+          />
+        )}
+        keyExtractor={(item, index) => item.id || index.toString()}
+        estimatedItemSize={20}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -142,4 +173,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 100,
   },
-}); 
+});
