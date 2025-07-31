@@ -1,9 +1,10 @@
 import { Modal, message, Input, Form, Button } from "antd";
 import { useCreatePersonMutation } from "../api";
-import { useForm } from "react-hook-form";
+import { Control, FieldPath, useController, useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { FormItem } from "../../../components/react-hook-form-antd";
+import { AvatarColorPicker } from "./AvatarColorPicker";
 
 interface NewPersonModalProps {
     isOpen: boolean;
@@ -13,20 +14,12 @@ interface NewPersonModalProps {
 
 interface PersonFormData {
     name: string;
-    avatar_config?: string;
+    color: string;
 }
 
 const schema = yup.object({
     name: yup.string().required('Please input the person name'),
-    avatar_config: yup.string().test('is-json', 'Please enter valid JSON', function(value) {
-        if (!value) return true;
-        try {
-            JSON.parse(value);
-            return true;
-        } catch {
-            return false;
-        }
-    })
+    color: yup.string().required('Please select a color')
 }).required();
 
 export const NewPersonModal = ({ isOpen, dyadId, onClose }: NewPersonModalProps) => {
@@ -39,13 +32,13 @@ export const NewPersonModal = ({ isOpen, dyadId, onClose }: NewPersonModalProps)
 
     const onSubmit = async (data: PersonFormData) => {
         if (dyadId) {
-            const avatarConfig = data.avatar_config ? JSON.parse(data.avatar_config) : undefined;
-            
             createPersonMutation.mutate({
                 dyadId,
                 data: {
                     name: data.name,
-                    avatar_config: avatarConfig
+                    avatar_config: {
+                        color: data.color
+                    }
                 }
             }, {
                 onSuccess: () => {
@@ -85,16 +78,10 @@ export const NewPersonModal = ({ isOpen, dyadId, onClose }: NewPersonModalProps)
                 >
                     <Input autoFocus placeholder="Enter person name"/>
                 </FormItem>
-                <FormItem
-                    control={control}
-                    name="avatar_config"
-                    label="Avatar Config (JSON)"
-                >
-                    <Input.TextArea 
-                        placeholder="Enter avatar configuration as JSON (optional)"
-                        rows={4}
-                    />
-                </FormItem>
+                <div className="flex flex-row justify-between gap-2">
+                    <label className="text-sm">Avatar Color</label>
+                    <ColorPickerControl control={control} name="color" />
+                </div>
                 <div className="flex justify-end gap-2 mt-4">
                     <Button
                         onClick={() => {
@@ -117,3 +104,13 @@ export const NewPersonModal = ({ isOpen, dyadId, onClose }: NewPersonModalProps)
         </Modal>
     );
 }; 
+
+const ColorPickerControl = ({control, name}: {
+    control: Control<PersonFormData>;
+    name: FieldPath<PersonFormData>;
+}) => {
+
+    const { field } = useController({name, control});
+
+    return <AvatarColorPicker onClick={field.onChange} selectedColor={field.value} />
+}

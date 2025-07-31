@@ -1,9 +1,10 @@
-import { ComicPanelInfo } from "@autiverse-monorepo/ts-core";
+import { ComicPanelInfo, Person } from "@autiverse-monorepo/ts-core";
 import { View, Text, LayoutChangeEvent } from "react-native";
 import { useCallback, useState } from "react";
 import { styleTemplates } from "../../../styles";
 import { convertPanelGridToMatrix, getTileColor } from "../utils";
 import { Pawn } from "./Pawn";
+import { useDyad } from "../../../api/dyad";
 
 
 export const ComicPanelView = ({
@@ -19,6 +20,8 @@ export const ComicPanelView = ({
   if (!panel) {
     return null;
   }
+
+  const {dyad} = useDyad()
 
   // 동적 패널 사이즈를 위한 상태
   const [dynamicPanelSize, setDynamicPanelSize] = useState<number | null>(null);
@@ -86,6 +89,9 @@ export const ComicPanelView = ({
 
                     // figure 타입이면 Pawn 컴포넌트 표시
                     if (tile.type === 'figure' || tile.content === '나') {
+
+                      const person = dyad?.people.find((person: Person) => person.name === tile.content);
+                      const color = person?.avatar_config?.color || 'transparent'
                       return (
                         <View
                           key={`${x}-${y}`}
@@ -98,7 +104,7 @@ export const ComicPanelView = ({
                         >
                           <Pawn 
                             bodyWidth={gridSize-8} 
-                            bandColor={getTileColor(tile)} 
+                            bandColor={color} 
                             bodyPosition={{x: gridSize / 2, y: gridSize / 2}} 
                             label={tile.content}
                             actions={tile.action}

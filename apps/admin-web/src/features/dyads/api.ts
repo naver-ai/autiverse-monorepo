@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { NetworkHelper, Dyad, DyadInfo, Place, Agent } from '@autiverse-monorepo/ts-core';
+import { NetworkHelper, Dyad, DyadInfo, Place, Agent, AvatarConfig } from '@autiverse-monorepo/ts-core';
 
 export const getAllDyadsApi = async (): Promise<Array<Dyad>> => {
     const token = localStorage.getItem('auth_token') || undefined;
@@ -87,7 +87,7 @@ export const useDeleteAgentMutation = () => {
     return mutation
 }
 
-export const createPersonApi = async (args: {dyadId: string, data: { name: string, avatar_config?: Record<string, any> }}) => {
+export const createPersonApi = async (args: {dyadId: string, data: { name: string, avatar_config?: AvatarConfig }}) => {
     const token = localStorage.getItem('auth_token') || undefined;
     const response = await NetworkHelper.axiosClient.post(
         NetworkHelper.ENDPOINTS.ADMIN.DYADS.getAddPersonEndpoint(args.dyadId),
@@ -167,6 +167,39 @@ export const useDeletePersonMutation = () => {
     })
 
     return mutation
+}
+
+export const updatePersonColorApi = async (args: {dyadId: string, personId: string, color: string}) => {
+    const token = localStorage.getItem('auth_token') || undefined;
+    const response = await NetworkHelper.axiosClient.put(
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getUpdatePersonColorEndpoint(args.dyadId, args.personId),
+        { color: args.color },
+        { headers: NetworkHelper.getHeaders(token) }
+    );
+    return response.data;
+};
+
+export const useUpdatePersonColorMutation = () => {     
+    const queryClient = useQueryClient();
+    const mutation = useMutation({
+        mutationFn: updatePersonColorApi,
+        onSuccess: (data, args) => {
+            queryClient.setQueryData(['dyads'], (old: Dyad[]) => {
+                return old.map(dyad => {
+                    if (dyad.id === args.dyadId) {
+                        return { ...dyad, people: dyad.people.map(person => {
+                            if (person.id === args.personId) {
+                                return data
+                            }
+                            return person;
+                        }) };
+                    }
+                    return dyad;
+                });
+            });
+        }
+    });
+    return mutation;
 }
 
 export const useCreatePlaceMutation = () => {

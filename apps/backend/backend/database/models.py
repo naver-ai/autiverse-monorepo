@@ -157,6 +157,11 @@ class Place(SQLModel, ContextEntityBase, IdTimestampMixin, DyadIdMixin, table=Tr
             people=[person for person in self.people]
         )
 
+
+class AvatarConfig(BaseModel):
+    avatar_type: Optional[str] = None
+    color: Optional[str] = None
+    
 class Person(SQLModel, ContextEntityBase, IdTimestampMixin, DyadIdMixin, table=True):
 
     __table_args__ = (
@@ -168,6 +173,41 @@ class Person(SQLModel, ContextEntityBase, IdTimestampMixin, DyadIdMixin, table=T
     places: list['Place'] = Relationship(back_populates="people", sa_relationship_kwargs={'lazy': 'selectin'}, link_model=PlacePersonLink)
 
     dyad: Dyad = Relationship(back_populates="people", sa_relationship_kwargs={'lazy': 'selectin'})
+
+
+    @property
+    def avatar_config_typed(self) -> AvatarConfig | None:
+        return AvatarConfig.model_validate(self.avatar_config) if self.avatar_config else None
+    
+    @avatar_config_typed.setter
+    def avatar_config_typed(self, value: AvatarConfig | None):
+        self.avatar_config = value.model_dump() if value else None
+    
+    @property
+    def color(self) -> str | None:
+        return self.avatar_config_typed.color if self.avatar_config_typed else None
+    
+    @property
+    def avatar_type(self) -> str | None:
+        return self.avatar_config_typed.avatar_type if self.avatar_config_typed else None
+    
+    @color.setter
+    def color(self, value: str | None):
+        typed = self.avatar_config_typed
+        if typed:
+            typed.color = value
+            self.avatar_config_typed = typed
+        else:
+            self.avatar_config_typed = AvatarConfig(color=value)
+
+    @avatar_type.setter
+    def avatar_type(self, value: str | None):
+        typed = self.avatar_config_typed
+        if typed:
+            typed.avatar_type = value
+            self.avatar_config_typed = typed
+        else:
+            self.avatar_config_typed = AvatarConfig(avatar_type=value)
 
 class PersonIdMixin(BaseModel):
     person_id: str = Field(foreign_key=f"{Person.__tablename__}.id")

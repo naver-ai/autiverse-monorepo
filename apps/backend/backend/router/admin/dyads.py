@@ -82,6 +82,20 @@ async def delete_person(dyad_id: str, person_id: str, db: Annotated[AsyncSession
     return entity_orm
 
 
+class PersonColorUpdate(BaseModel):
+    color: str
+
+@router.put('/{dyad_id}/people/{person_id}/color', response_model=Person)
+async def update_person_color(dyad_id: str, person_id: str, args: PersonColorUpdate, db: Annotated[AsyncSession, Depends(with_db_session)]):
+    entity_orm = await db.get(Person, person_id)
+    if not entity_orm or entity_orm.dyad_id != dyad_id:
+        raise HTTPException(status_code=404, detail="Person not found")
+    entity_orm.color = args.color
+    await db.commit()
+    await db.refresh(entity_orm)
+    return entity_orm
+
+
 @router.post("/{dyad_id}/places/add", response_model=SharablePlace)
 async def add_place(dyad_id: str, args: ContextEntityCreate, db: Annotated[AsyncSession, Depends(with_db_session)]):
     try:

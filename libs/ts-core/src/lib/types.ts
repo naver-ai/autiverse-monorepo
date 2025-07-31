@@ -96,8 +96,13 @@ export interface Agent extends DBModel {
     dyad_id: string;
 }
 
+export interface AvatarConfig {
+    avatar_type?: string;
+    color?: string;
+}
+
 export interface Person extends ContextEntity {
-    avatar_config: {} | undefined
+    avatar_config: AvatarConfig | undefined
 }
 
 
