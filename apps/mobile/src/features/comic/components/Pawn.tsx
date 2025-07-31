@@ -13,7 +13,8 @@ export function Pawn({
     bodyWidth = PAWN_SVG_PIVOT_WIDTH,
     bandColor,
     bodyPosition = undefined,
-    label = undefined
+    label = undefined,
+    actions = undefined
 }: {
     bodyWidth?: number,
     bandColor?: string,
@@ -21,7 +22,8 @@ export function Pawn({
         x: number,
         y: number
     },
-    label?: string
+    label?: string,
+    actions?: Array<{type: 'tell'|'emotion'|'think', content: string}>
 }) {
     // Calculate scale factor based on bodyWidth relative to pivot width
     const scale = bodyWidth / PAWN_SVG_PIVOT_WIDTH
@@ -61,7 +63,44 @@ export function Pawn({
             >
               {label}
             </Text>
-              </View>
+            </View>
+          )
+        }
+        {/* 이 부분 (70-105 Line)은 'tell'|'emotion'|'think' 가 제대로 나오는지 확인만 하려고 둔 부분이라 삭제하시면 될 것 같습니다! */}
+        {
+          actions && actions.length > 0 && (
+            <View style={{
+              position: 'absolute',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              left: (bodyPosition?.x || 0) - bodyWidth / 2,
+              right: (bodyPosition?.x || 0) - bodyWidth / 2,
+              top: -50, // 피규어 위에 위치
+            }}>
+              {actions.map((action, index) => (
+                <View key={index} style={{
+                  backgroundColor: action.type === 'tell' ? '#BBDEFB' : 
+                                 action.type === 'think' ? '#C8E6C9' : 
+                                 action.type === 'emotion' ? '#F8BBD0' : '#FFFFFF',
+                  padding: 4,
+                  borderRadius: 8,
+                  marginBottom: 2,
+                  maxWidth: bodyWidth * 2,
+                }}>
+                  <Text style={{
+                    fontSize: 8,
+                    textAlign: 'center',
+                    color: '#333',
+                    ...styleTemplates.withSemiboldFont
+                  }} numberOfLines={2}>
+                    {action.type === 'tell' ? '💬' : 
+                     action.type === 'think' ? '💭' : 
+                     action.type === 'emotion' ? '😊' : ''} {action.content}
+                  </Text>
+                </View>
+              ))}
+            </View>
           )
         }
     </View>

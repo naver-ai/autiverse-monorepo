@@ -66,6 +66,13 @@ panel, act, figure, object, location, think, tell, emotion
 
 3. Figure and Location extraction
 • Always extract the subject of the action as figure
+  - Extract ONLY the person/character name who is performing the action
+  - Example: "엄마가 나에게 말했다" → figure:"엄마, 나" (both participants in conversation)
+  - Example: "나는 민수가 좋다고 생각했다" → figure:"나" (the one who is thinking)
+  - Example: "엄마가 나를 사랑한다고 말했다" → figure:"엄마" (the one who is speaking)
+  - Example: "엄마와 내가 대화했다" → figure:"엄마, 나" (both participants)
+  - Example: "나는 민수를 찾았다" → figure:"나, 민수" (both participants)
+  - Example: "나는 텀블러를 찾았다" → figure:"나" (tumbler is not a human)
 • Extract location ONLY when the action actually happens at that place (using ~에서, ~에, etc.)
   - Correct: "공원에서 놀았다" → location:"공원"
   - Correct: "버스정류장 밑으로 뛰어갔다" → location:"버스정류장 밑"
@@ -80,6 +87,9 @@ panel, act, figure, object, location, think, tell, emotion
 4. Object selection
 • Only physical objects that can be seen or touched should be listed as objects
 • Do not treat actions or verbs as objects
+• Do not treat spoken words or dialogue as objects
+• Do not treat location names as objects
+• IMPORTANT: Spoken, think, emotion content (tell, think, emotion) should NEVER be treated as object
 • Examples of objects: 축구공, 의자, 책, 가방, 공책
 • Examples of what are NOT objects: 점프, 달리기, 걷기, 뛰기
 
@@ -176,10 +186,22 @@ Panel 4: "{self.panels.get('panel4', '')}"
                 if panel_content and panel_content.strip():  # 내용이 있고 비어있지 않은 경우만
                     if progress_callback:
                         await progress_callback(60 + (i * 10), f"{i+1}번째 컷 그리는 중~")
+                    
+                    panel_num = panel_id.replace('panel', '')
+                    panel_elements = [elem for elem in story_analysis if elem.get('panel') == panel_num]
+                    
+                    # place 정보 추출 (첫 번째 location 사용)
+                    place = ""
+                    for elem in panel_elements:
+                        if elem.get('location'):
+                            place = elem['location']
+                            break
+                    
                     grid_layout = await self._determine_topology(panel_id, story_analysis)
                     result[panel_id] = {
                         "content": panel_content,
-                        "grid": grid_layout  # layout 데이터를 그대로 저장
+                        "place": place,
+                        "grid": grid_layout
                     }
                 else:
                     # 빈 패널도 완료된 것으로 처리
@@ -187,12 +209,14 @@ Panel 4: "{self.panels.get('panel4', '')}"
                         await progress_callback(60 + (i * 10), f"{i+1}번째 컷 처리 중~")
                     result[panel_id] = {
                         "content": "",
+                        "place": "",
                         "grid": []  # 빈 배열로 저장
                     }
             
             if progress_callback:
                 await progress_callback(100, "완성이닷!")
             return result
+            
         except Exception as e:
             print(f"Error generating comic: {e}")
             return {
@@ -214,18 +238,27 @@ Panel 4: "{self.panels.get('panel4', '')}"
             
             # Grid 위치 결정 (admin-web과 동일한 로그)
             layout = await self._determine_grid_positions(topology, panel_elements)
-            print(f"Grid layout for panel {panel_id}: {json.dumps(layout, ensure_ascii=False, indent=2)}")
             
             # layout 데이터를 그대로 반환 (5x5 grid로 변환하지 않음)
             return layout
         except Exception as e:
             print(f"Error determining topology for {panel_id}: {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
     async def _get_topology_relationships(self, panel_id: str, panel_elements: List[Dict]) -> List[Dict]:
         """Topology 관계 결정"""
         if not panel_elements:
             return []
+            
+        # Location 정보만 제거하여 topology에서 배제 (패널 속성으로는 유지)
+        filtered_elements = []
+        for element in panel_elements:
+            filtered_element = element.copy()
+            if 'location' in filtered_element:
+                filtered_element['location'] = ""  # topology에서는 제거
+            filtered_elements.append(filtered_element)
             
         system_prompt = """You are a comic panel topology designer that determines core relationships between figures and objects.
 
@@ -308,7 +341,7 @@ OUTPUT
 
         user_prompt = f"""Convert below elements to the topology:
 Input elements for panel {panel_id}:
-{json.dumps(panel_elements, ensure_ascii=False, indent=2)}"""
+{json.dumps(filtered_elements, ensure_ascii=False, indent=2)}"""
 
         response = self.openai.chat.completions.create(
             model='gpt-4.1-mini-2025-04-14',
@@ -319,10 +352,99 @@ Input elements for panel {panel_id}:
             temperature=0.2
         )
 
-        return json.loads(response.choices[0].message.content or '[]')
+        try:
+            topology = json.loads(response.choices[0].message.content or '[]')
+        except json.JSONDecodeError as e:
+            print(f"Error parsing topology JSON: {e}")
+            topology = []
+        
+        # topology에서 figure를 찾아서 action 추가하고, tell/think/emotion을 null로 처리
+        processed_tell_contents = set()
+        processed_think_contents = set()
+        processed_emotion_contents = set()
+        action_data = {}
+        
+        for rel in topology:
+            target1_content = str(rel.get('target 1', ''))
+            target2_content = str(rel.get('target 2', ''))
+            
+            # target이 figure인지 확인하고 action 추가
+            for elem in panel_elements:
+                if elem.get('figure'):
+                    figures = elem['figure'].split(', ')
+                    
+                    # target 1이 figure인 경우
+                    if target1_content in figures:
+                        if elem.get('tell'):
+                            processed_tell_contents.add(elem['tell'])
+                            if target1_content not in action_data:
+                                action_data[target1_content] = []
+                            # 중복 방지
+                            if not any(action['type'] == 'tell' and action['content'] == elem['tell'] for action in action_data[target1_content]):
+                                action_data[target1_content].append({'type': 'tell', 'content': elem['tell']})
+                        if elem.get('think'):
+                            processed_think_contents.add(elem['think'])
+                            if target1_content not in action_data:
+                                action_data[target1_content] = []
+                            # 중복 방지
+                            if not any(action['type'] == 'think' and action['content'] == elem['think'] for action in action_data[target1_content]):
+                                action_data[target1_content].append({'type': 'think', 'content': elem['think']})
+                        if elem.get('emotion'):
+                            processed_emotion_contents.add(elem['emotion'])
+                            if target1_content not in action_data:
+                                action_data[target1_content] = []
+                            # 중복 방지
+                            if not any(action['type'] == 'emotion' and action['content'] == elem['emotion'] for action in action_data[target1_content]):
+                                action_data[target1_content].append({'type': 'emotion', 'content': elem['emotion']})
+                    
+                    # target 2가 figure인 경우
+                    if target2_content in figures:
+                        if elem.get('tell'):
+                            processed_tell_contents.add(elem['tell'])
+                            if target2_content not in action_data:
+                                action_data[target2_content] = []
+                            # 중복 방지
+                            if not any(action['type'] == 'tell' and action['content'] == elem['tell'] for action in action_data[target2_content]):
+                                action_data[target2_content].append({'type': 'tell', 'content': elem['tell']})
+                        if elem.get('think'):
+                            processed_think_contents.add(elem['think'])
+                            if target2_content not in action_data:
+                                action_data[target2_content] = []
+                            # 중복 방지
+                            if not any(action['type'] == 'think' and action['content'] == elem['think'] for action in action_data[target2_content]):
+                                action_data[target2_content].append({'type': 'think', 'content': elem['think']})
+                        if elem.get('emotion'):
+                            processed_emotion_contents.add(elem['emotion'])
+                            if target2_content not in action_data:
+                                action_data[target2_content] = []
+                            # 중복 방지
+                            if not any(action['type'] == 'emotion' and action['content'] == elem['emotion'] for action in action_data[target2_content]):
+                                action_data[target2_content].append({'type': 'emotion', 'content': elem['emotion']})
+        
+        # topology에서 처리된 tell/think/emotion 내용을 null로 처리
+        filtered_topology = []
+        for rel in topology:
+            filtered_rel = rel.copy()
+            
+            # target이 tell/think/emotion 내용과 일치하면 null로 처리
+            target1_content = str(rel.get('target 1', ''))
+            target2_content = str(rel.get('target 2', ''))
+            
+            if target1_content in processed_tell_contents or target1_content in processed_think_contents or target1_content in processed_emotion_contents:
+                filtered_rel['target 1'] = None
+            if target2_content in processed_tell_contents or target2_content in processed_think_contents or target2_content in processed_emotion_contents:
+                filtered_rel['target 2'] = None
+                
+            filtered_topology.append(filtered_rel)
+        
+        # action_data를 filtered_topology에 추가 (나중에 사용하기 위해)
+        filtered_topology.append({'__action_data': action_data})
+        
+        return filtered_topology
 
     async def _determine_grid_positions(self, topology: List[Dict], elements: List[Dict]) -> List[Dict]:
         """Grid 위치 결정 (admin-web과 동일한 로그)"""
+        
         # 모든 요소들을 수집 (중복 방지)
         element_set = set()
         all_elements = []
@@ -341,18 +463,8 @@ Input elements for panel {panel_id}:
             # 물체 추가
             if element.get('object'):
                 add_element('object', element['object'])
-            # 말풍선 추가
-            if element.get('tell'):
-                add_element('tell', element['tell'])
-            # 생각 추가
-            if element.get('think'):
-                add_element('think', element['think'])
-            # 감정 추가
-            if element.get('emotion'):
-                add_element('emotion', element['emotion'])
 
         print(f"Elements to place: {json.dumps(all_elements, ensure_ascii=False, indent=2)}")
-        print(f"Topology relationships: {json.dumps(topology, ensure_ascii=False, indent=2)}")
 
         system_prompt = """You are a comic panel layout designer. You MUST follow these rules strictly:
 
@@ -361,13 +473,12 @@ Input elements for panel {panel_id}:
    - Column 0 is at the left, Column 4 is at the right
 2. Figures should be placed in rows 1-3
 3. Objects should be placed relative to their related figures
-4. Tell/think/emotion should be placed in any empty space next to the related figure
-5. Location information is only used for reference in topology relationships, do not place it in the grid
-6. ALL elements from "Elements to place" MUST be included in the output
-7. ALL elements mentioned in "Topology relationships" MUST be included in the output
-   - If an element appears in topology but not in "Elements to place", you MUST add it to the output
-   - Example: If topology has "A" but it's not in elements, still include it in output
-   - This is CRITICAL - no elements from topology should be missing
+4. Location information is ONLY used for reference in topology relationships, NEVER place it in the grid
+5. ONLY elements from "Elements to place" should be included in the output
+6. ALL elements mentioned in "Topology relationships" MUST be included in the output
+7. Location names (like "공원", "학교", etc.) should NEVER be placed in the grid
+8. Spoken words (tell), thoughts (think), and emotions (emotion) should NEVER be placed in the grid - they are handled as actions
+9. IMPORTANT: Even if you see tell/think/emotion content in topology relationships, DO NOT place them in the grid
 
 Topology to Grid Position Rules:
 1. Position relationships:
@@ -387,9 +498,6 @@ Topology to Grid Position Rules:
      Example: If A is "beside, above" B:
        * Either place them in the same row (satisfying "beside")
        * OR place A in a row with smaller number (satisfying "above")
-3. For think/tell/emotion:
-   - Place in any empty space adjacent to the related figure
-   - If there's a below/above relationship, maintain it
 
 IMPORTANT RULES:
 1. ALL elements from "Elements to place" MUST be included in the output
@@ -411,8 +519,8 @@ Example 1:
 Input elements:
 [
   {"type": "figure", "content": "나"},
-  {"type": "tell", "content": "얼른 가자!"},
-  {"type": "figure", "content": "민수"}
+  {"type": "figure", "content": "민수"},
+  {"type": "object", "content": "버스정류장"}
 ]
 
 Input topology:
@@ -426,7 +534,6 @@ Input topology:
 Expected output:
 [
   {"type": "figure", "content": "나", "position": [2, 2]},
-  {"type": "tell", "content": "얼른 가자!", "position": [1, 2]},
   {"type": "figure", "content": "민수", "position": [3, 2]},
   {"type": "object", "content": "버스정류장", "position": [2, 1]},
   {"type": "object", "content": "버스정류장", "position": [3, 1]}
@@ -454,8 +561,6 @@ Expected output:
   {"type": "object", "content": "수건", "position": [2, 2]}
 ]
 
-
-
 Return only a JSON array of grid positions. Use ONLY the elements provided in the input."""
 
         user_prompt = f"""Elements to place:
@@ -466,7 +571,7 @@ Topology relationships:
 
 Output format:
 [
-  {{"type": "figure|object|tell|think|emotion", "content": "text", "position": [x, y]}}
+  {{"type": "figure|object", "content": "text", "position": [x, y]}}
 ]
 
 IMPORTANT: The output MUST include ALL elements from both "Elements to place" and "Topology relationships". No elements should be missing."""
@@ -481,13 +586,23 @@ IMPORTANT: The output MUST include ALL elements from both "Elements to place" an
         )
 
         response_content = response.choices[0].message.content or '[]'
-        print(f"GPT Response: {response_content}")
         
         # 코드 블록 마커 제거
         clean_content = response_content.replace('```json\n', '').replace('```\n', '').replace('```', '').strip()
         print(f"Cleaned GPT Response: {clean_content}")
         
         layout = json.loads(clean_content)
-        print(f"Parsed layout: {json.dumps(layout, ensure_ascii=False, indent=2)}")
+        
+        # action 정보를 figure에 추가
+        action_data = None
+        for item in topology:
+            if '__action_data' in item:
+                action_data = item['__action_data']
+                break
+        
+        if action_data:
+            for item in layout:
+                if item['type'] == 'figure' and item['content'] in action_data:
+                    item['action'] = action_data[item['content']]
         
         return layout 

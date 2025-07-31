@@ -5,6 +5,7 @@ export interface ComicGridTile {
   type: string;
   content: string;
   position: [number, number];
+  action?: Array<{type: 'tell'|'emotion'|'think', content: string}>;
 }
 
 /**
@@ -35,6 +36,16 @@ export const convertPanelGridToMatrix = (panelGrid: ComicGridItem[]): ComicGridT
   
   // layout 데이터를 position에 따라 배치
   panelGrid.forEach((item: any) => {
+    // tell, think, emotion 타입은 grid에 배치하지 않음 (Pawn의 action으로만 표시)
+    if (item.type === 'tell' || item.type === 'think' || item.type === 'emotion') {
+      return;
+    }
+    
+    // location 타입도 grid에 배치하지 않음 (패널 속성으로만 표시)
+    if (item.type === 'location') {
+      return;
+    }
+    
     const [x, y] = item.position || [0, 0];
     // NaN 값 방지
     const safeX = isNaN(x) ? 0 : Math.max(0, Math.min(4, Math.floor(x)));
@@ -44,6 +55,7 @@ export const convertPanelGridToMatrix = (panelGrid: ComicGridItem[]): ComicGridT
       type: item.type || 'empty',
       content: item.content || '',
       position: [safeX, safeY],
+      action: item.action, // action 정보도 포함
     };
   });
   
@@ -68,10 +80,6 @@ export const getTileColor = (item: ComicGridItem): string => {
       }
     }
     case 'object': return '#B2DFDB';  // 연한 청록색 (물건)
-    case 'location': return '#E1BEE7';  // 연한 보라색 (장소)
-    case 'think': return '#C8E6C9';  // 연한 초록색 (생각)
-    case 'tell': return '#BBDEFB';  // 연한 파란색 (대화)
-    case 'emotion': return '#F8BBD0';  // 연한 분홍색 (감정)
     default: return '#FFFFFF';  // 흰색 (빈 칸)
   }
 };

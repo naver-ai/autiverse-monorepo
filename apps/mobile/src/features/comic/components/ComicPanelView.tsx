@@ -70,9 +70,6 @@ export const ComicPanelView = ({
               return grid.map((row, y) => (
                 <View key={y} style={{ flexDirection: 'row', height: gridSize }}>
                   {row.map((tile: any, x: number) => {
-                    if(tile.content === '나' && tile.type !== 'figure') {
-                      
-                    }
                     // 빈 셀이거나 내용이 없으면 렌더링하지 않음
                     if (tile.type === 'empty' || !tile.content) {
                       return (
@@ -99,13 +96,15 @@ export const ComicPanelView = ({
                             padding: 4
                           }}  
                         >
-                          <Pawn bodyWidth={gridSize-8} bandColor={getTileColor(tile)} bodyPosition={{x: gridSize / 2, y: gridSize / 2}} label={tile.content} />
+                          <Pawn 
+                            bodyWidth={gridSize-8} 
+                            bandColor={getTileColor(tile)} 
+                            bodyPosition={{x: gridSize / 2, y: gridSize / 2}} 
+                            label={tile.content}
+                            actions={tile.action}
+                          />
                         </View>
                       );
-                    }
-
-                    if(tile.type === 'location') {
-                      console.log("location: ", tile)
                     }
 
                     // 다른 타입들은 기존대로 텍스트 표시

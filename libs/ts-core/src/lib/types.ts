@@ -133,21 +133,19 @@ export interface Preset {
 export enum ComicGridItemType {
   Figure = "figure",
   Object = "object",
-  Think = "think",
-  Tell = "tell",
-  Emotion = "emotion",
   Empty = "empty",
-  Location = "location",
 }
 
 export interface ComicGridItem {
   type: ComicGridItemType;
   content: string;
   position: [number, number];
+  action?: Array<{type: 'tell'|'emotion'|'think', content: string}>;
 }
 
 export interface ComicPanelInfo {
   content: string;
+  place?: string;
   grid: Array<ComicGridItem>;
 }
 
