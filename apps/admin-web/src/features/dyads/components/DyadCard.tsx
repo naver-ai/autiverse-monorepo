@@ -2,10 +2,11 @@ import { Dyad } from "@autiverse-monorepo/ts-core"
 import { XMarkIcon } from "@heroicons/react/20/solid"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Button, Card, Collapse, Descriptions } from "antd"
-import { deleteAgentApi } from "../api"
+import { deleteAgentApi, useUpdateDyadColorMutation } from "../api"
 import { useAgentModalStore, usePersonModalStore, usePlaceModalStore } from "../store"
 import { PersonView } from "./PersonView"
 import { PlaceView } from "./PlaceView"
+import { ColorPickerPopoverButton } from "./AvatarColorPicker"
 
 export const DyadCard = (props: {
     dyad: Dyad
@@ -21,6 +22,8 @@ export const DyadCard = (props: {
             queryClient.invalidateQueries({ queryKey: ['dyads'] });
         }
     });
+
+    const updateDyadColorMutation = useUpdateDyadColorMutation()
 
     const items = [
         {
@@ -52,6 +55,16 @@ export const DyadCard = (props: {
             key: 'passcode',
             label: 'Passcode',
             children: props.dyad.passcode
+        },
+        {
+            key: 'avatar_config',
+            label: 'Avatar Color',
+            children: <ColorPickerPopoverButton selectedColor={props.dyad.avatar_config?.color} onChange={(color: string) => {
+                updateDyadColorMutation.mutate({
+                    dyadId: props.dyad.id,
+                    color: color
+                })
+            }}/>
         },
         {
             key: 'agents',

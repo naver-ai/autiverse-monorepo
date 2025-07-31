@@ -45,7 +45,51 @@ class UserLocale(StrEnum):
     English="English"
 
 
-class DyadInfo(IdTimestampMixin):
+
+class AvatarConfig(BaseModel):
+    avatar_type: Optional[str] = None
+    color: Optional[str] = None
+
+class WithAvatarConfig(BaseModel):
+
+    avatar_config: Optional[dict] = Field(sa_type=JSON, nullable=True, default=None)
+
+
+    @property
+    def avatar_config_typed(self) -> AvatarConfig | None:
+        return AvatarConfig.model_validate(self.avatar_config) if self.avatar_config else None
+    
+    @avatar_config_typed.setter
+    def avatar_config_typed(self, value: AvatarConfig | None):
+        self.avatar_config = value.model_dump() if value else None
+    
+    @property
+    def color(self) -> str | None:
+        return self.avatar_config_typed.color if self.avatar_config_typed else None
+    
+    @property
+    def avatar_type(self) -> str | None:
+        return self.avatar_config_typed.avatar_type if self.avatar_config_typed else None
+    
+    @color.setter
+    def color(self, value: str | None):
+        typed = self.avatar_config_typed
+        if typed:
+            typed.color = value
+            self.avatar_config_typed = typed
+        else:
+            self.avatar_config_typed = AvatarConfig(color=value)
+
+    @avatar_type.setter
+    def avatar_type(self, value: str | None):
+        typed = self.avatar_config_typed
+        if typed:
+            typed.avatar_type = value
+            self.avatar_config_typed = typed
+        else:
+            self.avatar_config_typed = AvatarConfig(avatar_type=value)
+
+class DyadInfo(IdTimestampMixin, WithAvatarConfig):
     model_config = ConfigDict(use_enum_values=True)
 
     locale: UserLocale = Field(sa_type=SQLEnum(UserLocale, native_enum=False), nullable=False, index=True)
@@ -89,12 +133,7 @@ class Dyad(SQLModel, DyadInfo, table=True):
 
     def to_sharable(self) -> 'SharableDyad':
         return SharableDyad(
-            **self.model_dump(include={"id", 
-                                                 "passcode", "alias", 
-                                                 "created_at", "updated_at", 
-                                                 "locale", "caregiver_type", 
-                                                 "child_gender", "child_name", "child_age"
-                                                 }),
+            **self.model_dump(exclude={"places", "agents", "people", "journal_entries"}),
             places=[place.to_sharable() for place in self.places],
             agents=[agent for agent in self.agents],
             people=[person for person in self.people],
@@ -156,58 +195,17 @@ class Place(SQLModel, ContextEntityBase, IdTimestampMixin, DyadIdMixin, table=Tr
             **self.model_dump(exclude={"people"}),
             people=[person for person in self.people]
         )
-
-
-class AvatarConfig(BaseModel):
-    avatar_type: Optional[str] = None
-    color: Optional[str] = None
     
-class Person(SQLModel, ContextEntityBase, IdTimestampMixin, DyadIdMixin, table=True):
+class Person(SQLModel, ContextEntityBase, IdTimestampMixin, DyadIdMixin, WithAvatarConfig, table=True):
 
     __table_args__ = (
         UniqueConstraint("name", "dyad_id", name="uix_person_name_dyad_id"),
     )
 
-    avatar_config: Optional[dict] = Field(sa_column=Column(JSON, nullable=True), default=None)
-
     places: list['Place'] = Relationship(back_populates="people", sa_relationship_kwargs={'lazy': 'selectin'}, link_model=PlacePersonLink)
 
     dyad: Dyad = Relationship(back_populates="people", sa_relationship_kwargs={'lazy': 'selectin'})
 
-
-    @property
-    def avatar_config_typed(self) -> AvatarConfig | None:
-        return AvatarConfig.model_validate(self.avatar_config) if self.avatar_config else None
-    
-    @avatar_config_typed.setter
-    def avatar_config_typed(self, value: AvatarConfig | None):
-        self.avatar_config = value.model_dump() if value else None
-    
-    @property
-    def color(self) -> str | None:
-        return self.avatar_config_typed.color if self.avatar_config_typed else None
-    
-    @property
-    def avatar_type(self) -> str | None:
-        return self.avatar_config_typed.avatar_type if self.avatar_config_typed else None
-    
-    @color.setter
-    def color(self, value: str | None):
-        typed = self.avatar_config_typed
-        if typed:
-            typed.color = value
-            self.avatar_config_typed = typed
-        else:
-            self.avatar_config_typed = AvatarConfig(color=value)
-
-    @avatar_type.setter
-    def avatar_type(self, value: str | None):
-        typed = self.avatar_config_typed
-        if typed:
-            typed.avatar_type = value
-            self.avatar_config_typed = typed
-        else:
-            self.avatar_config_typed = AvatarConfig(avatar_type=value)
 
 class PersonIdMixin(BaseModel):
     person_id: str = Field(foreign_key=f"{Person.__tablename__}.id")

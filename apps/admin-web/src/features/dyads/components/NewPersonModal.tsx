@@ -4,7 +4,7 @@ import { Control, FieldPath, useController, useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { FormItem } from "../../../components/react-hook-form-antd";
-import { AvatarColorPicker } from "./AvatarColorPicker";
+import { ColorPickerControl } from "./AvatarColorPicker";
 
 interface NewPersonModalProps {
     isOpen: boolean;
@@ -104,13 +104,3 @@ export const NewPersonModal = ({ isOpen, dyadId, onClose }: NewPersonModalProps)
         </Modal>
     );
 }; 
-
-const ColorPickerControl = ({control, name}: {
-    control: Control<PersonFormData>;
-    name: FieldPath<PersonFormData>;
-}) => {
-
-    const { field } = useController({name, control});
-
-    return <AvatarColorPicker onClick={field.onChange} selectedColor={field.value} />
-}
