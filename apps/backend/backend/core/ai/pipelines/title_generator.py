@@ -1,45 +1,69 @@
 from typing import Dict, Any, Optional
+from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
+from langchain.output_parsers import PydanticOutputParser
 from langchain.schema import HumanMessage, SystemMessage
 from backend.database.models import MessageIntent
 from backend.utils.environment import get_env_variable, EnvironmentVariables
 import json
 import openai
-from backend.utils.korean import escape_jongseong
+import asyncio
+from backend.utils.korean import escape_jongseong, append_josa
+
+class TitleResult(BaseModel):
+    """Title generation result"""
+    title1: str = Field(description="First title option for the comic")
+    title2: str = Field(description="Second title option for the comic")
+    title3: str = Field(description="Third title option for the comic")
 
 class TitleGenerator:
     def __init__(self):
         self.client = openai.OpenAI()
+        self.llm = ChatOpenAI(
+            model="gpt-4.1-mini-2025-04-14",
+            temperature=0.3,
+            api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
+        )
+        self.title_parser = PydanticOutputParser(pydantic_object=TitleResult)
     
-    def generate_title(self, journal_data: Dict[str, Any], child_name: str) -> str:
-
+    async def generate_title(self, journal_data: Dict[str, Any], child_name: str) -> Dict[str, str]:
         child_name_escaped = escape_jongseong(child_name)
 
-        """만화 내용을 바탕으로 제목 생성"""
+        """만화 내용을 바탕으로 제목 3개 생성 - Structured Output 사용"""
         try:
-            # journal_data가 비어있으면 기본 제목 반환
+            # journal_data가 비어있으면 기본 제목 3개 반환
             if not journal_data:
-                return f"{child_name_escaped}의 그림 일기"
+                return {
+                    "title1": f"{child_name_escaped}의 그림 일기",
+                    "title2": f"{child_name_escaped}의 하루",
+                    "title3": f"{child_name_escaped}의 이야기"
+                }
             
             # 제목 생성 프롬프트
             system_prompt = """You are an expert at generating titles for children's picture diaries.
 
+IMPORTANT: You must return a JSON object with "title1", "title2", and "title3" fields containing three different title options.
+
 Title Generation Rules:
-1. Simple and fun titles that children can easily understand
-2. Concise within 10 characters
-3. Emojis can be used (1-2)
-4. Do not include the child's name as the diary is written by the child
-5. Reflect the core content of the comic
-6. Focus on emotions or actions
+1. Generate exactly 3 different title options
+2. Simple and fun titles that children can easily understand
+3. Concise within 10 characters each
+4. Emojis can be used (1-2 per title)
+5. Include figure's name in the title except for the child's name as the diary is written by the child
+6. Reflect the core content of the comic
+7. Focus on emotions or actions
+8. Make each title unique and appealing
+9. Do not contain punctuation marks
+
+OUTPUT FORMAT:
+Return a JSON object with "title1", "title2", and "title3" fields containing three different title options.
 
 Examples:
-- "민수랑 학교에서 게임한 날 🏫"
-- "우리 강아지와 산책한 날 🐕"
-- "친구와 숨바꼭질 재미있게 한 날 😊"
-- "엄마와 요리한 날 👩‍🍳"
+- {{"title1": "민수랑 학교에서 게임한 날 🏫", "title2": "민수랑 재미있게 논 날 😊", "title3": "학교에서 민수랑 즐거운 시간 🎮"}}
+- {{"title1": "우리 강아지와 산책한 날 🐕", "title2": "강아지랑 공원에서 논 날 🌳", "title3": "강아지랑 산책 🦮"}}
+- {{"title1": "진영이랑 숨바꼭질 재미있게 한 날 😊", "title2": "진영이랑 신나는 숨바꼭질 🎯", "title3": "진영이랑 숨바꼭질 대박 재밌었던 날 😄"}}
 
-Respond in JSON format:
-{"title": "generated title"}"""
+Generate three structured title options in JSON format."""
 
             user_prompt = f"""The following is the content of {child_name}'s picture diary:
 
@@ -47,34 +71,56 @@ Respond in JSON format:
 
 Based on the above content, please generate a korean title that {child_name} would like."""
 
-            response = self.client.chat.completions.create(
-                model="gpt-4.1-mini-2025-04-14",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.7,
-                max_tokens=100
-            )
-
-            result = response.choices[0].message.content
-            try:
-                parsed_result = json.loads(result)
-                return parsed_result.get("title", f"{child_name_escaped}의 그림 일기")
-            except json.JSONDecodeError:
-                # JSON 파싱 실패 시 직접 반환
-                return result.strip() if result else f"{child_name_escaped}의 그림 일기"
+            # Retry logic for structured output
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    messages = [
+                        SystemMessage(content=system_prompt),
+                        HumanMessage(content=user_prompt)
+                    ]
+                    
+                    response = await self.llm.ainvoke(messages)
+                    result = self.title_parser.parse(response.content)
+                    
+                    return {
+                        "title1": result.title1,
+                        "title2": result.title2,
+                        "title3": result.title3
+                    }
+                    
+                except Exception as e:
+                    print(f"Attempt {attempt + 1} failed: {e}")
+                    if attempt == max_retries - 1:
+                        print("All retries failed for title generation")
+                        return {
+                            "title1": f"{child_name_escaped}의 그림 일기",
+                            "title2": f"{child_name_escaped}의 하루",
+                            "title3": f"{child_name_escaped}의 이야기"
+                        }
+                    await asyncio.sleep(1)  # Brief delay before retry
                 
         except Exception as e:
             print(f"Error generating title: {e}")
-            return f"{child_name}의 그림 일기"
+            return {
+                "title1": f"{child_name_escaped}의 그림 일기",
+                "title2": f"{child_name_escaped}의 하루",
+                "title3": f"{child_name_escaped}의 이야기"
+            }
     
     def process_title_feedback(self, user_feedback: str, current_title: str, child_name: str) -> tuple[str, MessageIntent | None]:
-
         child_name_escaped = escape_jongseong(child_name)
         """사용자 피드백에 따른 응답 생성"""
-        if user_feedback in ["좋아", "좋아요", "좋다", "괜찮아"]:
-            return f"유후~ {child_name_escaped}의 마음에 드는 제목이라 너무 좋다! 완성된 일기 다 확인했으면 다음 버튼을 눌러줘!", MessageIntent.PromptNext
+        
+        # 1, 2, 3 선택 시 (제목 선택 완료)
+        if user_feedback in ["1", "2", "3"]:
+            current_title_with_josa = append_josa(current_title, "이", "가")
+            return f"'{current_title_with_josa}' {child_name_escaped} 마음에 들었구나! 다행이다:) 왼쪽에 완성된 일기 천천히 보고 다 확인했으면 다음 버튼을 눌러줘!", MessageIntent.PromptNext
+        
+        # "다 별로야" 선택 시 (다른 제목 요청)
+        elif user_feedback in ["다 별로야", "ChatInput.ButtonLabels.NotGoodAtAll"]:
+            return "그럼 어떤 제목으로 하고 싶어?", MessageIntent.PromptOpenEndedAnswer
+
         else:
             return "그럼 어떤 제목으로 하고 싶어?", MessageIntent.PromptOpenEndedAnswer
     

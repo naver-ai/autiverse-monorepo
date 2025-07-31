@@ -6,6 +6,8 @@ from typing import Dict, Any, Set, List, Tuple, Optional
 from datetime import datetime
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
+from langchain.output_parsers import PydanticOutputParser
+from pydantic import BaseModel, Field
 from backend.utils.environment import get_env_variable, EnvironmentVariables
 from backend.database.crud.chatbot import *
 from sqlmodel import Session
@@ -22,6 +24,18 @@ class ConversationState(Enum):
     ASK_EVENTS = auto()
     SUMMARIZE = auto()
     FAREWELL = auto()
+
+class EventAnalysisResult(BaseModel):
+    """Event analysis result"""
+    events_identified: List[str] = Field(description="List of identified events")
+    special_interests_mentioned: List[str] = Field(description="List of special interests mentioned")
+    conversation_summary: str = Field(description="Summary of the conversation")
+    should_proceed: bool = Field(description="Whether to proceed to next stage")
+    comic_panels: Optional[Dict[str, Optional[str]]] = Field(description="Comic panels content")
+
+class ConversationResponse(BaseModel):
+    """Conversation response data"""
+    response: str = Field(description="Generated conversation response")
 
 @dataclass
 class EventAnalysis:
@@ -66,6 +80,15 @@ class ComicIntroStage:
         self.child_gender = self._get_child_gender()
         self.agent_name = self._get_agent_name()
         self.agent_interests = self._get_agent_interests()
+        
+        # LangChain setup
+        self.llm = ChatOpenAI(
+            model="gpt-4.1-mini-2025-04-14",
+            temperature=0.2,
+            api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
+        )
+        self.analysis_parser = PydanticOutputParser(pydantic_object=EventAnalysisResult)
+        self.response_parser = PydanticOutputParser(pydantic_object=ConversationResponse)
     
     def _get_child_name(self) -> str:
         """dyad의 child_name을 가져오기"""
@@ -184,7 +207,7 @@ class ComicIntroStage:
         
         return message
     
-    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message:
+    async def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message:
         """사용자 메시지 처리"""
         # 현재 interaction turn 가져오기
         interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Intro)
@@ -198,7 +221,7 @@ class ComicIntroStage:
         )
         
         # 봇 응답 생성
-        bot_response, response_intent = self._generate_response(user_message, intent)
+        bot_response, response_intent = await self._generate_response(user_message, intent)
         
         # 봇 응답 저장
         message = create_message(
@@ -209,8 +232,8 @@ class ComicIntroStage:
         
         return message
     
-    def analyze_events(self) -> Dict[str, Any]:
-        """이벤트 분석"""
+    async def analyze_events(self) -> Dict[str, Any]:
+        """이벤트 분석 - Structured Output 사용"""
         messages = get_messages_by_journal_entry(self.db, self.journal_entry_id)
         
         # 대화 내용 추출
@@ -222,9 +245,6 @@ class ComicIntroStage:
                 conversation.append(f"친구: {msg.content}")
         
         conversation_text = "\n".join(conversation)
-        
-        # OpenAI로 이벤트 분석
-        client = openai.OpenAI()
         
         system_prompt = f"""You are an expert at analyzing conversations to identify concrete events and special interests.
 
@@ -289,19 +309,8 @@ IMPORTANT RULES FOR COMIC PANELS AND SUMMARIES:
 - Arrange events in a natural story flow across the panels
 - For each null panel, include the reason why it's null in parentheses as part of the value
 
-Return ONLY a JSON object with this structure:
-{{
-    "events_identified": ["이벤트 설명"], - List of events that happened
-    "special_interests_mentioned": ["관심 주제"],
-    "conversation_summary": "대화 내용 요약",
-    "should_proceed": false, - true if we have at least 2 events
-    "comic_panels": {{
-        "panel1": null (첫번째로 이야기하는 이벤트 넣기),
-        "panel2": null (왜 1,3번 사이를 비웠는지 flow를 기반으로 설명),
-        "panel3": null (왜 2,4번 사이를 비웠는지 flow를 기반으로 설명),
-        "panel4": null (기분이나 감정이 없는 경우 null로 유지)
-    }}
-}}
+Generate a structured analysis result.
+
 
 Example response for walking at school:
 {{
@@ -345,29 +354,50 @@ People: {', '.join(self._get_people())}
 CONVERSATION:
 {conversation_text}"""
 
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini-2025-04-14",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.1,
-            max_tokens=1000
-        )
-
-        result = response.choices[0].message.content
-        import json
-        analysis = json.loads(result)
-        
-        # Journal에 분석 결과 저장
-        update_journal_data(
-            self.db, self.journal_entry_id,
-            events=analysis.get("events_identified", []),
-            summary=analysis.get("conversation_summary", ""),
-            comic_intro=analysis.get("comic_panels", {})
-        )
-        
-        return analysis
+        # Retry logic for structured output
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                messages = [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=user_prompt)
+                ]
+                
+                response = await self.llm.ainvoke(messages)
+                result = self.analysis_parser.parse(response.content)
+                
+                # Convert to dict format for compatibility
+                analysis = {
+                    "events_identified": result.events_identified,
+                    "special_interests_mentioned": result.special_interests_mentioned,
+                    "conversation_summary": result.conversation_summary,
+                    "should_proceed": result.should_proceed,
+                    "comic_panels": result.comic_panels
+                }
+                
+                # Journal에 분석 결과 저장
+                update_journal_data(
+                    self.db, self.journal_entry_id,
+                    events=analysis.get("events_identified", []),
+                    summary=analysis.get("conversation_summary", ""),
+                    comic_intro=analysis.get("comic_panels", {})
+                )
+                
+                print(f"Event Analysis Result: {json.dumps(analysis, ensure_ascii=False, indent=2)}")
+                return analysis
+                
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed: {e}")
+                if attempt == max_retries - 1:
+                    print("All retries failed for event analysis")
+                    return {
+                        "events_identified": [],
+                        "special_interests_mentioned": [],
+                        "conversation_summary": "Analysis failed",
+                        "should_proceed": False,
+                        "comic_panels": {}
+                    }
+                await asyncio.sleep(1)  # Brief delay before retry
     
     def is_ready_for_next_stage(self) -> bool:
         """다음 단계로 진행할 준비가 되었는지 확인"""
@@ -413,9 +443,8 @@ CONVERSATION:
         else:
             return "오늘 뭐했어? 😊"
     
-    def _generate_response(self, user_message: str, intent: MessageIntent | None = None) -> str:
+    async def _generate_response(self, user_message: str, intent: MessageIntent | None = None) -> str:
         """사용자 메시지에 대한 응답 생성"""
-        client = openai.OpenAI()
         
         system_prompt = f"""[General Speaking Rules]
 1. Use informal Korean like talking to a peer friend. Do not use honorifics.
@@ -506,17 +535,23 @@ Recent conversation:
 
 {self.child_name}: {user_message}"""
 
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini-2025-04-14",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.2,
-            max_tokens=150
-        )
-
-        return response.choices[0].message.content, None
+        # Retry logic for robust parsing
+        for attempt in range(3):
+            try:
+                messages = [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=user_prompt)
+                ]
+                response = await self.llm.ainvoke(messages)
+                result = self.response_parser.parse(response.content)
+                return result.response, None
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed: {e}")
+                if attempt == 2:  # Last attempt
+                    print("All attempts failed, returning default response")
+                    return "오늘 뭐했어? 😊", None
+                else:
+                    await asyncio.sleep(1)  # Wait before retry
     
     def _get_or_create_interaction_turn(self, stage: JournalEntryStage) -> Any:
         """현재 단계의 interaction turn 가져오기 또는 생성"""

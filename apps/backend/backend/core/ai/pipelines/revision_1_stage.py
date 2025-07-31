@@ -1,5 +1,10 @@
 import openai
 from typing import Dict, Any, List, Optional
+from pydantic import BaseModel, Field
+from langchain_openai import ChatOpenAI
+from langchain.output_parsers import PydanticOutputParser
+from langchain.schema import HumanMessage, SystemMessage
+from backend.utils.environment import get_env_variable, EnvironmentVariables
 from backend.database.crud.chatbot import (
     get_journal_entry, update_journal_entry_stage, get_journal, 
     update_journal_data, create_interaction_turn, create_message,
@@ -9,7 +14,14 @@ from backend.core.ai.pipelines.comic_context_stage import ComicContextStage
 from backend.database.models import JournalEntryStage, MessageRole, MessageIntent, ComicStatus, Dyad, Message
 from sqlalchemy.orm import Session
 from backend.utils.i18n import t
+import asyncio
 
+class PanelRevision(BaseModel):
+    """Panel revision result"""
+    panel1: Optional[str] = Field(description="Panel 1 content")
+    panel2: Optional[str] = Field(description="Panel 2 content")
+    panel3: Optional[str] = Field(description="Panel 3 content")
+    panel4: Optional[str] = Field(description="Panel 4 content")
 
 class Revision1Stage:
     def __init__(self, db: Session, journal_entry_id: str):
@@ -19,6 +31,14 @@ class Revision1Stage:
         # Journal에서 revision_count 가져오기
         self.revision_count = self._get_revision_count()
         self.max_revisions = 2
+        
+        # LangChain setup
+        self.llm = ChatOpenAI(
+            model="gpt-4.1-mini-2025-04-14",
+            temperature=0.1,
+            api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
+        )
+        self.revision_parser = PydanticOutputParser(pydantic_object=PanelRevision)
 
     def _get_dyad(self) -> Dyad:
         """dyad 정보를 가져오기"""
@@ -77,8 +97,8 @@ class Revision1Stage:
         
         return message
     
-    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message:
-        """사용자 메시지 처리"""
+    async def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message:
+        """사용자 메시지 처리 - Structured Output 사용"""
         # 현재 interaction turn 가져오기
         interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Revision1)
         
@@ -91,7 +111,7 @@ class Revision1Stage:
         )
         
         # 봇 응답 생성
-        bot_response, intent = self._generate_response(user_message, intent)
+        bot_response, intent = await self._generate_response(user_message, intent)
         
         # 봇 응답 저장
         message = create_message(
@@ -102,8 +122,8 @@ class Revision1Stage:
         
         return message
     
-    def _generate_response(self, user_message: str, intent: MessageIntent | None = None) -> tuple[str, MessageIntent]:
-        """사용자 메시지에 대한 응답 생성"""
+    async def _generate_response(self, user_message: str, intent: MessageIntent | None = None) -> tuple[str, MessageIntent]:
+        """사용자 메시지에 대한 응답 생성 - Structured Output 사용"""
         
         # "네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까?" 질문에 대한 답변 처리
         if self._is_correction_confirmation_question():
@@ -137,7 +157,7 @@ class Revision1Stage:
         else:
             # 구체적인 수정 내용이 들어온 경우
             try:
-                self._apply_user_correction(user_message)
+                await self._apply_user_correction(user_message)
                 return "네가 말해준 내용대로 바꿔봤어. 이제 다 맞을까? 🤔", MessageIntent.PromptIssueExist
             except Exception as e:
                 print(f"[DEBUG] revision_1: Error applying user correction: {e}")
@@ -174,8 +194,8 @@ class Revision1Stage:
             result = any(keyword in message.lower() for keyword in positive_keywords)
             return result
     
-    def _apply_user_correction(self, correction: str) -> None:
-        """사용자 수정 내용 적용"""
+    async def _apply_user_correction(self, correction: str) -> None:
+        """사용자 수정 내용 적용 - Structured Output 사용"""
         journal = get_journal(self.db, self.journal_entry_id)
         if not journal:
             return
@@ -187,9 +207,6 @@ class Revision1Stage:
             current_panels = journal.comic_intro
         else:
             return  # 수정할 패널이 없으면 종료
-        
-        # OpenAI로 수정 적용
-        client = openai.OpenAI()
         
         system_prompt = """You are a revision assistant that helps fix 4-panel comic stories based on user feedback.
 
@@ -214,19 +231,14 @@ REVISION RULES:
 8. Keep each panel to one Korean past-tense sentence, first-person diary style
 9. **CRITICAL**: Only change what the user specifically requested
 10. Preserve the overall story flow and coherence
-11. Output exactly this JSON format with ONLY the panels that need to change:
-
-{
-  "panel1": "new content only if panel1 needs to change",
-  "panel2": "new content only if panel2 needs to change", 
-  "panel3": "new content only if panel3 needs to change",
-  "panel4": "new content only if panel4 needs to change"
-}
-
-12. **DO NOT include panels that should remain unchanged**
-13. **DO NOT include panels that should be null**
+11. **IMPORTANT**: You must return ALL 4 panels (panel1, panel2, panel3, panel4) in the JSON output
+12. **For panels that should remain unchanged, use the current content**
+13. **For panels that should be null, use null value**
 14. Write in natural Korean
-15. **IMPORTANT**: Make sure the story remains coherent and logical after revision"""
+15. **IMPORTANT**: Make sure the story remains coherent and logical after revision
+
+OUTPUT FORMAT:
+Return a JSON object with all 4 panels: {"panel1": "...", "panel2": "...", "panel3": "...", "panel4": "..."}"""
 
         user_prompt = f"""Current comic panels:
 "panel1": "{current_panels.get('panel1', 'null')}",
@@ -237,38 +249,44 @@ REVISION RULES:
 User's correction request: {correction}
 """
 
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini-2025-04-14",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.1,
-            max_tokens=500
-        )
-
-        revised_panels = response.choices[0].message.content
-        
-        import json
-        try:
-            revised_data = json.loads(revised_panels)
-            
-            # 수정된 패널들만 업데이트
-            updated_panels = current_panels.copy()
-            for panel_key, new_content in revised_data.items():
-                if panel_key in updated_panels:
-                    updated_panels[panel_key] = new_content if new_content != "null" else None
-            
-            # Journal에 수정된 데이터 저장 (revision_1 필드에만 저장)
-            update_journal_data(
-                self.db, self.journal_entry_id,
-                revision_1=updated_panels
-            )
-            
-        except json.JSONDecodeError as e:
-            print(f"[DEBUG] revision_1: Failed to parse revision response: {e}")
-        except Exception as e:
-            print(f"[DEBUG] revision_1: Unexpected error in _apply_user_correction: {e}")
+        # Retry logic for structured output
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                messages = [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=user_prompt)
+                ]
+                
+                response = await self.llm.ainvoke(messages)
+                result = self.revision_parser.parse(response.content)
+                
+                # 수정된 패널들만 업데이트
+                updated_panels = current_panels.copy()
+                if result.panel1 is not None:
+                    updated_panels["panel1"] = result.panel1 if result.panel1 != "null" else None
+                if result.panel2 is not None:
+                    updated_panels["panel2"] = result.panel2 if result.panel2 != "null" else None
+                if result.panel3 is not None:
+                    updated_panels["panel3"] = result.panel3 if result.panel3 != "null" else None
+                if result.panel4 is not None:
+                    updated_panels["panel4"] = result.panel4 if result.panel4 != "null" else None
+                
+                # Journal에 수정된 데이터 저장 (revision_1 필드에만 저장)
+                update_journal_data(
+                    self.db, self.journal_entry_id,
+                    revision_1=updated_panels
+                )
+                
+                print(f"Panel Revision Result: {updated_panels}")
+                return
+                
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed: {e}")
+                if attempt == max_retries - 1:
+                    print("All retries failed for panel revision")
+                    return
+                await asyncio.sleep(1)  # Brief delay before retry
     
     # def _apply_final_corrections(self) -> None:
     #     """최종 수정사항 적용 (revision_1을 comic_intro에 반영) - 사용하지 않음"""
@@ -339,7 +357,7 @@ User's correction request: {correction}
                 # Auto comic generation에서 하던대로 새 메시지 업데이트
                 # comic_context로 전환
                 context_stage = ComicContextStage(self.db, self.journal_entry_id)
-                response_message = context_stage.start_context_analysis()
+                response_message = await context_stage.start_context_analysis()
                 
                 # Message 객체를 JSON 직렬화 가능한 딕셔너리로 변환
                 response_message_dict = {

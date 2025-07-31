@@ -2,6 +2,8 @@ from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
+from langchain.output_parsers import PydanticOutputParser
+from pydantic import BaseModel, Field
 from backend.utils.environment import get_env_variable, EnvironmentVariables
 from backend.database.crud.chatbot import *
 from backend.database.crud.chatbot import update_journal_entry_stage, update_comic_panels, update_comic_data, update_comic_status
@@ -14,8 +16,37 @@ from sqlmodel import Session
 import json
 import openai
 import os
+import asyncio
 
+class PanelAnalysis(BaseModel):
+    """Panel analysis result"""
+    A: List[str] = Field(description="Panel 1 (Antecedent) issues")
+    B: List[str] = Field(description="Panel 2 (Behavior) issues")
+    C: List[str] = Field(description="Panel 3 (Consequence) issues")
+    D: List[str] = Field(description="Panel 4 (Emotion) issues")
 
+class StoryFlowAnalysis(BaseModel):
+    """Complete story flow analysis"""
+    content: PanelAnalysis = Field(description="Content analysis for each panel")
+    order: List[str] = Field(description="Order issues that need to be resolved")
+
+class PanelReconstruction(BaseModel):
+    """Panel reconstruction result"""
+    panel1: Optional[str] = Field(description="Panel 1 content")
+    panel2: Optional[str] = Field(description="Panel 2 content")
+    panel3: Optional[str] = Field(description="Panel 3 content")
+    panel4: Optional[str] = Field(description="Panel 4 content")
+
+class QuestionData(BaseModel):
+    """Question generation data"""
+    question: str = Field(description="Generated question")
+    intent: str = Field(description="Question intent")
+    focus_panel: Optional[str] = Field(description="Panel to focus on")
+
+class NextQuestionData(BaseModel):
+    """Next question generation data"""
+    question: str = Field(description="Generated follow-up question")
+    focused_panel: Optional[str] = Field(description="Panel to focus on")
 
 @dataclass
 class ComicPanel:
@@ -36,12 +67,21 @@ class ComicContextStage:
         self.final_comic_generation_started = False
         self.current_panels = None  # 메모리상의 최신 패널 상태
         
+        # LangChain setup
+        self.llm = ChatOpenAI(
+            model="gpt-4.1-mini-2025-04-14",
+            temperature=0.1,
+            api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
+        )
+        self.flow_parser = PydanticOutputParser(pydantic_object=StoryFlowAnalysis)
+        self.reconstruction_parser = PydanticOutputParser(pydantic_object=PanelReconstruction)
+        self.question_parser = PydanticOutputParser(pydantic_object=QuestionData)
+        self.next_question_parser = PydanticOutputParser(pydantic_object=NextQuestionData)
+        
         # 기존 comic_context가 있으면 메모리에 로드
         journal = get_journal(self.db, self.journal_entry_id)
         if journal and journal.comic_context:
             self.current_panels = journal.comic_context
-        
-        print(f"[DEBUG] comic_context: initialized with child_name={self.child_name}, agent_name={self.agent_name}")
     
     def _get_dyad(self) -> Dyad:
         """dyad 정보를 가져오기"""
@@ -113,7 +153,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
 8. If the user asks a question that should be asked to adults or unrelated to the conversation topic, then you can say, "I don't know," and go back to the conversation topic.
 """
         
-    def start_context_analysis(self) -> Message:
+    async def start_context_analysis(self) -> Message:
         """만화 컨텍스트 분석 시작"""
         try:
             # Journal entry stage 업데이트
@@ -125,7 +165,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             )
             
             # 첫 번째 분석 질문 생성
-            initial_question, intent, focused_panel = self._generate_first_question()
+            initial_question, intent, focused_panel = await self._generate_first_question()
             
             # focus panel 정보를 metadata에 포함
             metadata_json = {}
@@ -145,8 +185,8 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             print(f"[DEBUG] comic_context: Error in start_context_analysis: {e}")
             raise
     
-    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message:
-        """사용자 메시지 처리"""
+    async def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message:
+        """사용자 메시지 처리 - Structured Output 사용"""
         print(f"[DEBUG] comic_context: process_message called with user_message='{user_message}'")
         try:
             # 현재 interaction turn 가져오기
@@ -169,13 +209,13 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             
             if not self.story_analysis and not has_existing_context:
                 # 첫 번째 메시지: 분석 후 재구성
-                self.story_analysis = self._analyze_story_flow()
+                self.story_analysis = await self._analyze_story_flow()
                 print(f"[DEBUG] comic_context: story_analysis created: {self.story_analysis}")
-                self._reconstruct_panel(user_message, "", True)
+                await self._reconstruct_panel(user_message, "", True)
             else:
                 # 이후 메시지: 먼저 재구성 후 분석 업데이트
-                self._reconstruct_panel(user_message, "사용자 입력", False)
-                self.story_analysis = self._analyze_story_flow()
+                await self._reconstruct_panel(user_message, "사용자 입력", False)
+                self.story_analysis = await self._analyze_story_flow()
                 print(f"[DEBUG] comic_context: story_analysis updated: {self.story_analysis}")
 
 
@@ -198,7 +238,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                 return message
             else:
               # 다음 질문 생성
-              next_question, next_intent, focused_panel = self._get_next_question()
+              next_question, next_intent, focused_panel = await self._get_next_question()
               
               # focus panel 정보를 metadata에 포함
               metadata_json = {}
@@ -221,11 +261,11 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             traceback.print_exc()
             raise
     
-    def _analyze_story_flow(self) -> Dict[str, Any]:
-        """스토리 플로우 분석"""
+    async def _analyze_story_flow(self) -> Dict[str, Any]:
+        """스토리 플로우 분석 - Structured Output 사용"""
         journal = get_journal(self.db, self.journal_entry_id)
         if not journal:
-            return {"A": [], "B": [], "C": [], "D": []}
+            return {"content": {"A": [], "B": [], "C": [], "D": []}, "order": []}
         
         # 메모리상의 최신 패널 상태를 우선적으로 사용
         if self.current_panels:
@@ -235,9 +275,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             panels_content = journal.comic_context if journal.comic_context else journal.revision_1
             
         if not panels_content:
-            return {"A": [], "B": [], "C": [], "D": []}
-        
-        client = openai.OpenAI()
+            return {"content": {"A": [], "B": [], "C": [], "D": []}, "order": []}
         
         system_prompt = """You are "ABCD-Diary Reviewer."
 
@@ -300,20 +338,9 @@ YOUR TASK
    - NORMAL situations: Focus on "HOW" questions (methods, details)
 
 ────────────────────
-OUTPUT (exactly ONE UTF-8 JSON object)
+OUTPUT (structured output)
 ────────────────────
-{
-  "situation_type": "problematic" or "normal",
-  "content": {
-    "A": [""],   // content issues only ("" if none)
-    "B": [""],
-    "C": [""],
-    "D": [""]
-  },
-  "order": [
-    ""
-  ]
-}
+Analyze the panels and provide structured output with content issues and order issues.
 
 ────────────────────
 MANDATORY RULES
@@ -445,32 +472,47 @@ Output
 "panel4": "{panels_content.get('panel4', 'null')}"
 """
 
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini-2025-04-14",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0,
-            max_tokens=500
-        )
-
-        result = response.choices[0].message.content
-        try:
-            return json.loads(result)
-        except json.JSONDecodeError:
-            return {"A": [], "B": [], "C": [], "D": []}
+        # Retry logic for structured output
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                messages = [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=user_prompt)
+                ]
+                
+                response = await self.llm.ainvoke(messages)
+                result = self.flow_parser.parse(response.content)
+                
+                # Convert to dict format for compatibility
+                analysis_result = {
+                    "content": {
+                        "A": result.content.A,
+                        "B": result.content.B,
+                        "C": result.content.C,
+                        "D": result.content.D
+                    },
+                    "order": result.order
+                }
+                
+                print(f"Story Flow Analysis Result: {json.dumps(analysis_result, ensure_ascii=False, indent=2)}")
+                return analysis_result
+                
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed: {e}")
+                if attempt == max_retries - 1:
+                    print("All retries failed, returning empty result")
+                    return {"content": {"A": [], "B": [], "C": [], "D": []}, "order": []}
+                await asyncio.sleep(1)  # Brief delay before retry
     
-    def _reconstruct_panel(self, answer: str, question: str, add_to_history: bool = True) -> None:
-        """패널 재구성"""
+    async def _reconstruct_panel(self, answer: str, question: str, add_to_history: bool = True) -> None:
+        """패널 재구성 - Structured Output 사용"""
         if not self.story_analysis:
-            self.story_analysis = self._analyze_story_flow()
+            self.story_analysis = await self._analyze_story_flow()
         
         journal = get_journal(self.db, self.journal_entry_id)
         if not journal:
             return
-        
-        client = openai.OpenAI()
         
         system_prompt = """You are a rewriting engine that fixes 4-panel diary drafts written in first-person Korean past tense based on the user's answer and order instructions.
 
@@ -713,39 +755,52 @@ answer: "{answer}"
 
 """
 
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini-2025-04-14",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0,
-            max_tokens=500
-        )
-
-        result = response.choices[0].message.content
-        try:
-            reconstructed_panels = json.loads(result)
-            
-            # 메모리에 최신 패널 상태 저장
-            self.current_panels = reconstructed_panels
-            
-            # Journal에 재구성된 데이터 저장
-            update_journal_data(
-                self.db, self.journal_entry_id,
-                comic_context=reconstructed_panels
-            )
-            
-            # Order 처리 후 order 배열 완전히 비우기 (이미 처리된 order는 다시 나오지 않도록)
-            if order_instructions:
-                self.story_analysis["order"] = []
-                # story_analysis를 다시 분석하여 order가 제거된 상태로 업데이트
-                self.story_analysis = self._analyze_story_flow()
+        # Retry logic for structured output
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                messages = [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=user_prompt)
+                ]
                 
-        except json.JSONDecodeError:
-            print("Failed to parse reconstruction response")
+                response = await self.llm.ainvoke(messages)
+                result = self.reconstruction_parser.parse(response.content)
+                
+                # Convert to dict format for compatibility
+                reconstructed_panels = {
+                    "panel1": result.panel1,
+                    "panel2": result.panel2,
+                    "panel3": result.panel3,
+                    "panel4": result.panel4
+                }
+                
+                # 메모리에 최신 패널 상태 저장
+                self.current_panels = reconstructed_panels
+                
+                # Journal에 재구성된 데이터 저장
+                update_journal_data(
+                    self.db, self.journal_entry_id,
+                    comic_context=reconstructed_panels
+                )
+                
+                # Order 처리 후 order 배열 완전히 비우기 (이미 처리된 order는 다시 나오지 않도록)
+                if order_instructions:
+                    self.story_analysis["order"] = []
+                    # story_analysis를 다시 분석하여 order가 제거된 상태로 업데이트
+                    self.story_analysis = await self._analyze_story_flow()
+                
+                print(f"Panel Reconstruction Result: {json.dumps(reconstructed_panels, ensure_ascii=False, indent=2)}")
+                return
+                
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed: {e}")
+                if attempt == max_retries - 1:
+                    print("All retries failed for panel reconstruction")
+                    return
+                await asyncio.sleep(1)  # Brief delay before retry
     
-    def _get_next_question(self) -> tuple[str, MessageIntent, str]:
+    async def _get_next_question(self) -> tuple[str, MessageIntent, str]:
         """다음 질문 생성 - focus panel 정보도 함께 반환"""
         try:
             if not self.story_analysis:
@@ -1038,20 +1093,26 @@ consecutive_dont_know_count: {consecutive_dont_know_count}
 Please generate a question that addresses the FIRST missing information gap."""
 
             try:
-                response = client.chat.completions.create(
-                    model="gpt-4.1-mini-2025-04-14",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    temperature=0.2,
-                    max_tokens=200
-                )
-
-                result = response.choices[0].message.content
-                question_data = json.loads(result)
-                question = question_data["question"]
-                focused_panel_from_ai = question_data.get("focused_panel", focused_panel)
+                # Retry logic for robust parsing
+                for attempt in range(3):
+                    try:
+                        messages = [
+                            SystemMessage(content=system_prompt),
+                            HumanMessage(content=user_prompt)
+                        ]
+                        response = await self.llm.ainvoke(messages)
+                        result = self.next_question_parser.parse(response.content)
+                        question = result.question
+                        focused_panel_from_ai = result.focused_panel or focused_panel
+                        break
+                    except Exception as e:
+                        print(f"Attempt {attempt + 1} failed: {e}")
+                        if attempt == 2:  # Last attempt
+                            print("All attempts failed, returning default question")
+                            question = "다음에 대해 말해줘!"
+                            focused_panel_from_ai = focused_panel
+                        else:
+                            await asyncio.sleep(1)  # Wait before retry
                 
                 # 기분을 물어보는 질문인지 확인
                 if "기분이 어땠어" in question or "기분이었어" in question:
@@ -1067,10 +1128,10 @@ Please generate a question that addresses the FIRST missing information gap."""
             print(f"[DEBUG] comic_context: Error in _get_next_question: {e}")
             return "다음에 대해 말해줘!", None, None
     
-    def _generate_first_question(self) -> tuple[str, MessageIntent, str]:
+    async def _generate_first_question(self) -> tuple[str, MessageIntent, str]:
         """첫 번째 질문 생성"""
         try:
-            return self._get_next_question()
+            return await self._get_next_question()
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in _generate_first_question: {e}")
             return "다음에 대해 말해줘!", None, None
@@ -1119,12 +1180,7 @@ Please generate a question that addresses the FIRST missing information gap."""
         
         # Content 이슈 또는 Order 이슈가 있으면 문제가 있는 것
         has_real_issues = has_content_issues or has_order_issues
-        
-        print(f"[DEBUG] comic_context: is_complete - has_real_issues: {has_real_issues}")
-        
         is_complete = not has_real_issues
-        
-        print(f"[DEBUG] comic_context: is_complete - is_complete: {is_complete}")
         
         return is_complete
     
@@ -1174,9 +1230,6 @@ Please generate a question that addresses the FIRST missing information gap."""
                 # 데이터베이스에 저장
                 update_comic_data(self.db, self.journal_entry_id, comic_data)
                 
-                print(f"[DEBUG] comic_context: Comic generation completed for {self.journal_entry_id}")
-                print(f"[DEBUG] comic_context: Comic data: {comic_data}")
-
                 #Auto comic generation에서 하던대로 새 메시지 업데이트
 
                 # revision_2로 전환

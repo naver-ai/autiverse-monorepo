@@ -83,6 +83,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
   const showYesNoButtons = buttonMode === UserButtonMode.YES_NO_BUTTON && buttonTexts !== undefined;
   const showEmotionButtons = buttonMode === UserButtonMode.EMOTION_BUTTON;
   const showNextButton = buttonMode === UserButtonMode.NEXT_BUTTON;
+  const showTitleSelectionButtons = buttonMode === UserButtonMode.TITLE_SELECTION_BUTTON;
 
   const handleEmotionClick = (emotion: string) => {
     if (isDisabled) return;
@@ -103,9 +104,9 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
 
   // 버튼 표시 여부가 변경될 때 콜백 호출
   React.useEffect(() => {
-    const hasButtons = showYesNoButtons || showEmotionButtons;
+    const hasButtons = showYesNoButtons || showEmotionButtons || showTitleSelectionButtons;
     onButtonsVisibilityChange?.(hasButtons);
-  }, [showYesNoButtons, showEmotionButtons, onButtonsVisibilityChange]);
+  }, [showYesNoButtons, showEmotionButtons, showTitleSelectionButtons, onButtonsVisibilityChange]);
 
   return (
     <>
@@ -147,6 +148,56 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
             }}
           >
             <Text className="text-white text-xl text-center" style={styleTemplates.withBoldFont}>{buttonTexts.right.label}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* 제목 선택 버튼 - 위에 1, 2, 3 버튼 (파란색), 아래에 "다 별로야" 버튼 (회색) */}
+      {showTitleSelectionButtons && (
+        <View className="mb-4">
+          {/* 위쪽: 1, 2, 3 버튼 (파란색) */}
+          <View className="flex-row gap-3 mb-3">
+            {[1, 2, 3].map((number) => (
+              <TouchableOpacity
+                key={number}
+                className="flex-1 px-6 py-4 rounded-xl justify-center"
+                onPress={() => sendMessage(number.toString())}
+                disabled={isDisabled}
+                style={{
+                  backgroundColor: isDisabled ? '#9CA3AF' : '#4A90E2',
+                  minHeight: 80,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 3,
+                }}
+              >
+                <Text className="text-white text-2xl text-center" style={styleTemplates.withBoldFont}>
+                  {number}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          
+          {/* 아래쪽: "다 별로야" 버튼 (회색) */}
+          <TouchableOpacity
+            className="px-6 py-4 rounded-xl justify-center"
+            onPress={() => sendMessage(t('ChatInput.ButtonLabels.NotGoodAtAll'))}
+            disabled={isDisabled}
+            style={{
+              backgroundColor: isDisabled ? '#9CA3AF' : '#6c757d',
+              minHeight: 60,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 3,
+            }}
+          >
+            <Text className="text-white text-xl text-center" style={styleTemplates.withBoldFont}>
+              {t('ChatInput.ButtonLabels.NotGoodAtAll')}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
