@@ -1,5 +1,5 @@
 from typing import Annotated, Optional
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File, Form
 from sqlmodel import select
 from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -8,8 +8,22 @@ from backend.database.models import Dyad, Person, Place, PlacePersonLink, UserLo
 from backend.database.models import Agent, JournalEntry, Journal, Message, Comic
 from pydantic import BaseModel, Field
 from datetime import datetime
+from backend.utils.image_upload import save_uploaded_image
 
 router = APIRouter()
+
+@router.post("/upload-agent-image")
+async def upload_agent_image(file: UploadFile = File(...)):
+    """Agent 이미지 업로드 API"""
+    try:
+        filename = save_uploaded_image(file)
+        return {
+            "filename": filename,
+            "original_filename": file.filename,
+            "message": "이미지가 성공적으로 업로드되었습니다."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"이미지 업로드 실패: {str(e)}")
 
 @router.get("/all", response_model=list[SharableDyad])
 async def get_dyads(db: Annotated[AsyncSession, Depends(with_db_session)]):

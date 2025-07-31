@@ -38,7 +38,7 @@ app.mount('/socket.io', socket_app)
 
 ##############
 
-asset_path_regex = compile("\.[a-z][a-z0-9]+$")
+asset_path_regex = compile(r"\.[a-z][a-z0-9]+$")
 
 static_admin_frontend_path = path.join(getcwd(), "../../dist/apps/admin-web")
 static_user_frontend_path = path.join(getcwd(), "../../dist/apps/user-web")
@@ -72,6 +72,12 @@ if path.exists(static_user_frontend_path):
 
     app.mount("/", StaticFiles(directory=static_user_frontend_path, html=True), name="user_static")
     print("User web static files mounted at /")
+
+# Uploaded images static files
+uploads_path = path.join(getcwd(), "uploads")
+if path.exists(uploads_path):
+    app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads_static")
+    print("Uploads static files mounted at /uploads")
 
 ##############
 
