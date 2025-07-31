@@ -58,6 +58,7 @@ export function Pawn({
               style={{
                 fontSize: 10,
                 backgroundColor: bandColor,
+                color: 'white',
                 ...styleTemplates.withBoldFont
               }}
             >

@@ -13,7 +13,9 @@ export const getAllDyadsApi = async (): Promise<Array<Dyad>> => {
     return response.data;
 };
 
-export const createDyadApi = async (data: DyadInfo) => {
+export type DyadCreate = Omit<DyadInfo, "avatar_config"> & { color?: string }
+
+export const createDyadApi = async (data: DyadCreate) => {
     const token = localStorage.getItem('auth_token') || undefined;
     const response = await NetworkHelper.axiosClient.post(
         NetworkHelper.ENDPOINTS.ADMIN.DYADS.CREATE,
@@ -25,6 +27,16 @@ export const createDyadApi = async (data: DyadInfo) => {
     
     return response.data;
 }; 
+
+export const updateDyadColorApi = async (args: {dyadId: string, color: string}): Promise<DyadInfo> => { 
+    const token = localStorage.getItem('auth_token') || undefined;
+    const response = await NetworkHelper.axiosClient.put(
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.getUpdateDyadColorEndpoint(args.dyadId),
+        { color: args.color },
+        { headers: NetworkHelper.getHeaders(token) }
+    );
+    return response.data;
+}
 
 export const createAgentApi = async (args: {dyadId: string, data: { interest: string, agent_name: string, agent_config?: Record<string, any> }}) => {
     const token = localStorage.getItem('auth_token') || undefined;
@@ -46,6 +58,24 @@ export const deleteAgentApi = async (args: {dyadId: string, agentId: string}) =>
         { headers: NetworkHelper.getHeaders(token) }
     );
     return response.data;
+}
+
+export const useUpdateDyadColorMutation = () => {
+    const queryClient = useQueryClient();
+    const mutation = useMutation({
+        mutationFn: updateDyadColorApi,
+        onSuccess: (data, args) => {
+            queryClient.setQueryData(['dyads'], (old?: Dyad[]) => {
+                return old?.map(dyad => {
+                    if (dyad.id === args.dyadId) {
+                        return data
+                    }
+                    return dyad
+                })
+            })
+        }
+    })
+    return mutation
 }
 
 export const useCreateAgentMutation = () => {

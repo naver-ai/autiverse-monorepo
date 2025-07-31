@@ -29,10 +29,11 @@ class DyadCreate(BaseModel):
     child_name: str
     child_age: int
     alias: str
+    color: Optional[str] = None
 
 @router.post("/new", response_model=SharableDyad)
-async def create_dyad(dyad: DyadCreate, db: Annotated[AsyncSession, Depends(with_db_session)]):
-    dyad_orm = Dyad(**dyad.model_dump())
+async def create_dyad(dyad_create: DyadCreate, db: Annotated[AsyncSession, Depends(with_db_session)]):
+    dyad_orm = Dyad(**dyad_create.model_dump(exclude=("color")), avatar_config={"color": dyad_create.color} if dyad_create.color else None)
     db.add(dyad_orm)
     await db.commit()
     await db.refresh(dyad_orm)
@@ -59,6 +60,21 @@ class AgentCreate(BaseModel):
     interest: str
     agent_name: str
     agent_config: Optional[dict] = None
+
+
+
+class PersonColorUpdate(BaseModel):
+    color: str
+
+@router.put("/{dyad_id}/color", response_model=SharableDyad)
+async def update_dyad_color(dyad_id: str, args: PersonColorUpdate, db: Annotated[AsyncSession, Depends(with_db_session)]):
+    entity_orm = await db.get(Dyad, dyad_id)
+    if not entity_orm:
+        raise HTTPException(status_code=404, detail="Dyad not found")
+    entity_orm.color = args.color
+    await db.commit()
+    await db.refresh(entity_orm)
+    return entity_orm.to_sharable()
  
 @router.post("/{dyad_id}/people/add", response_model=Person)
 async def add_person(dyad_id: str, args: PersonCreate, db: Annotated[AsyncSession, Depends(with_db_session)]):
@@ -81,9 +97,6 @@ async def delete_person(dyad_id: str, person_id: str, db: Annotated[AsyncSession
     await db.commit()
     return entity_orm
 
-
-class PersonColorUpdate(BaseModel):
-    color: str
 
 @router.put('/{dyad_id}/people/{person_id}/color', response_model=Person)
 async def update_person_color(dyad_id: str, person_id: str, args: PersonColorUpdate, db: Annotated[AsyncSession, Depends(with_db_session)]):

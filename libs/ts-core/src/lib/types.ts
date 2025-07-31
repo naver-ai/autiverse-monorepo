@@ -45,6 +45,7 @@ export interface Dyad extends DBModel {
     child_gender: ChildGender;
     child_name: string;
     child_age: number;
+    avatar_config: AvatarConfig | undefined;
 
     agents: Agent[];
     people: Person[];
@@ -53,7 +54,7 @@ export interface Dyad extends DBModel {
     journal_entries: Array<JournalEntry>;
 }
 
-export type DyadInfo = Omit<Dyad, keyof DBModel | "agents" | "people" | "places" | "passcode">;
+export type DyadInfo = Omit<Dyad, keyof DBModel | "agents" | "people" | "places" | "passcode" | "journal_entries">;
 
 export enum JournalEntryStatus {
   Initial="initial",

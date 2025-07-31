@@ -91,7 +91,7 @@ export const ComicPanelView = ({
                     if (tile.type === 'figure' || tile.content === '나') {
 
                       const person = dyad?.people.find((person: Person) => person.name === tile.content);
-                      const color = person?.avatar_config?.color || 'transparent'
+                      const color = tile.content === '나' ? dyad?.avatar_config?.color : person?.avatar_config?.color || 'transparent'
                       return (
                         <View
                           key={`${x}-${y}`}
