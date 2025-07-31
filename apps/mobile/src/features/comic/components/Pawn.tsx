@@ -33,17 +33,21 @@ export function Pawn({
     const scaledHeight = 67.3 * scale
     
     return (<View style={
-          bodyPosition ? {
+          {
+            opacity: 0.75,
+          ...bodyPosition ? {
               position: 'absolute',
               left: bodyPosition.x - PAWN_SVG_PIVOT_X * scale,
               top: bodyPosition.y - PAWN_SVG_PIVOT_Y * scale
           } : undefined
+        }
       }>  
         <PawnSVG 
             width={scaledWidth} 
             height={scaledHeight}
             bandColor={bandColor}
         />
+        {/* Label 표시 */}
         {
           label && (
             <View style={{
@@ -51,7 +55,7 @@ export function Pawn({
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               left: (bodyPosition?.x || 0) - bodyWidth / 2,
               right: (bodyPosition?.x || 0) - bodyWidth / 2,
-              bottom: scaledHeight + 10, // 피규어 머리 위에 위치 (bottom 기준)
+              bottom: scaledHeight + 2, // 피규어 머리 위에 위치 (bottom 기준)
             }}>
               <Text
               className="p-1 rounded-md text-center"

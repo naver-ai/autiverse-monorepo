@@ -64,11 +64,13 @@
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.1.1",
     "@nxlv/python": "^21.0.0",
+    "@shopify/flash-list": "1.7.6",
     "@tanstack/react-query": "^5.80.6",
     "@tanstack/react-router": "^1.120.20",
     "@uidotdev/usehooks": "^2.4.1",
     "antd": "^5.26.0",
     "bcrypt": "^6.0.0",
+    "color": "^5.0.0",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "expo": "^53.0.12",
@@ -80,6 +82,8 @@
     "expo-device": "~7.1.4",
     "expo-file-system": "~18.1.11",
     "expo-font": "~13.3.1",
+    "expo-haptics": "~14.1.4",
+    "expo-linear-gradient": "~14.1.5",
     "expo-linking": "~7.1.5",
     "expo-localization": "~16.1.5",
     "expo-router": "~5.1.0",
@@ -114,9 +118,6 @@
     "string-format": "^2.0.0",
     "tailwind-merge": "^3.3.0",
     "yup": "^1.6.1",
-    "zustand": "^5.0.5",
-    "expo-linear-gradient": "~14.1.5",
-    "expo-haptics": "~14.1.4",
-    "@shopify/flash-list": "1.7.6"
+    "zustand": "^5.0.5"
   }
 }

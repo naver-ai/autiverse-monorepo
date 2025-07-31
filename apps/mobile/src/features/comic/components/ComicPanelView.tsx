@@ -1,10 +1,11 @@
-import { ComicPanelInfo, Person } from "@autiverse-monorepo/ts-core";
+import { ComicGridItemType, ComicPanelInfo, Person } from "@autiverse-monorepo/ts-core";
 import { View, Text, LayoutChangeEvent } from "react-native";
 import { useCallback, useState } from "react";
 import { styleTemplates } from "../../../styles";
 import { convertPanelGridToMatrix, getTileColor } from "../utils";
 import { Pawn } from "./Pawn";
 import { useDyad } from "../../../api/dyad";
+import { SceneObject } from "./SceneObject";
 
 
 export const ComicPanelView = ({
@@ -51,7 +52,7 @@ export const ComicPanelView = ({
     >
       {/* 스토리 텍스트 */}
       {showStory && (
-        <View className="mb-2 p-2 bg-gray-50 rounded-lg border-l-3 border-blue-500">
+        <View className="mb-2 p-2 rounded-lg border-l-3 border-blue-500">
           <Text className="text-base text-gray-800 leading-6" style={styleTemplates.withSemiboldFont}>
             <Text className="text-blue-500" style={styleTemplates.withBoldFont}>{panelIndex + 1}. </Text>
             {!panel.content?.startsWith('null') && panel.content}
@@ -60,7 +61,7 @@ export const ComicPanelView = ({
       )}
 
       {/* 5x5 그리드 */}
-      <View className="flex-1 justify-center items-center" 
+      <View className="flex-1 justify-center items-center bg-gray-50 rounded-lg" 
       onLayout={onLayoutPanelArea}>
         <View style={{ width: effectivePanelSize, height: effectivePanelSize, position: 'relative' }}>
           {/* backend에서 받은 layout 데이터를 5x5 grid로 변환 */}
@@ -114,31 +115,36 @@ export const ComicPanelView = ({
                     }
 
                     // 다른 타입들은 기존대로 텍스트 표시
-                    return (
-                      <View
+                    let tolerableLeft = 0;
+                    let tolerableRight = 0;
+                    if(x > 0 && row[x-1].type === ComicGridItemType.Empty){
+                      console.log('tolerableLeft 0.5', x, y, row[x-1], row[x], tile)
+                      tolerableLeft = 0.5;
+                    }
+                    if(x < 4 && row[x+1].type === ComicGridItemType.Empty){
+                      tolerableRight = 0.5;
+                    }
+
+                    return (<View
+                      key={`${x}-${y}`}
+                      style={{
+                        position: 'relative',
+                        width: gridSize,
+                        height: gridSize,
+                      }}  
+                    >
+                      <SceneObject
                         key={`${x}-${y}`}
-                        style={{
-                          width: gridSize,
-                          height: gridSize,
-                          borderWidth: 1,
-                          borderColor: '#ddd',
-                          borderRadius: 4,
-                          backgroundColor: getTileColor(tile),
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          padding: 4
-                        }}  
+                        item={tile}
+                        gridSize={gridSize}
+                        pivotPosition={{x: gridSize / 2, y: gridSize / 2}}
+                        tolerableLeft={tolerableLeft}
+                        tolerableRight={tolerableRight}
                       >
-                        <Text style={{
-                          fontSize: 12,
-                          textAlign: 'center',
-                          lineHeight: 14,
-                          color: '#333',
-                          ...styleTemplates.withSemiboldFont
-                        }} numberOfLines={2}>
+                        <Text className="text-black text-center text-sm" style={styleTemplates.withSemiboldFont}>
                           {tile.content}
                         </Text>
-                      </View>
+                      </SceneObject></View>
                     );
                   })}
                 </View>
@@ -162,28 +168,17 @@ export const ComicPanelView = ({
               </View>
             ))
           )}
+        </View>
+
           
           {/* 장소 정보를 오른쪽 하단에 표시 */}
           {panel.place && panel.place.trim() && (
-            <View 
-              style={{
-                position: 'absolute',
-                bottom: 3,
-                right: -40,
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: '#E5E7EB',
-              }}
-            >
-              <Text className="text-xs text-gray-600" style={styleTemplates.withRegularFont}>
-                📍 {panel.place}
+            <View className="absolute bottom-2 right-2 px-2 py-1">
+              <Text className="text-sm text-gray-600" style={styleTemplates.withRegularFont}>
+                [📍 {panel.place}]
               </Text>
             </View>
           )}
-        </View>
       </View>
     </View>
   );
