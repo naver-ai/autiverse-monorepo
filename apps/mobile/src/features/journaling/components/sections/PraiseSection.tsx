@@ -16,6 +16,8 @@ import { AnimatedText } from '../../../../components/AnimatedText';
 import { twMerge } from 'tailwind-merge';
 import { Image } from 'expo-image';
 import { Pressable } from 'react-native-gesture-handler';
+import { ComicView } from '../ComicView';
+import { useSession } from '../../hooks/useSession';
 
 interface StampViewProps {
   children?: React.ReactNode;
@@ -75,10 +77,11 @@ const StampView: React.FC<StampViewProps> = ({
 
 interface PraiseSectionProps {
   childName?: string; // 아이 이름
+  sessionId?: string; // 세션 ID
   onComplete?: () => void;
 }
 
-export default function PraiseSection({ childName, onComplete }: PraiseSectionProps) {
+export default function PraiseSection({ childName, sessionId, onComplete }: PraiseSectionProps) {
   const { t } = useTranslation();
   const [showStamp, setShowStamp] = useState(false);
   const [stampScale] = useState(new Animated.Value(0));
@@ -120,6 +123,12 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
     }
     return dyad?.child_name || t('Journaling.Common.DefaultChildName')
   }, [dyad?.child_name, locale, t]);
+
+  // 디버깅용 로그
+  useEffect(() => {
+    console.log('PraiseSection - sessionId:', sessionId);
+    console.log('PraiseSection - showStamp:', showStamp);
+  }, [sessionId, showStamp]);
 
   // bounce 애니메이션 ref들
   const bounceAnimations = useRef<Animated.CompositeAnimation[]>([]);
@@ -220,20 +229,6 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
           setTimeout(() => {
             setShowFirstMessage(false);
             setShowSecondMessage(true);
-            setShowStamp(true); // 스탬프도 함께 등장 (비활성화 상태)
-            
-            // 스탬프 애니메이션 시작
-            Animated.spring(stampScale, {
-              toValue: 1,
-              useNativeDriver: true,
-              tension: 100,
-              friction: 8,
-            }).start(() => {
-              // 스탬프가 나타난 후 bounce 애니메이션 시작 (비활성화 상태)
-              startBounceAnimation(0);
-              startBounceAnimation(1);
-              startBounceAnimation(2);
-            });
             
             // 두 번째 메시지 TTS 시작
             startSpeech(secondMessage, {
@@ -244,20 +239,34 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
                   setShowSecondMessage(false);
                   setShowStampMessage(true);
                   
-                  // 스탬프 메시지 TTS 시작
+                  // 스탬프 메시지 TTS 시작과 동시에 스탬프 등장
+                  setShowStamp(true);
+                  
+                  // 스탬프 애니메이션 시작
+                  Animated.spring(stampScale, {
+                    toValue: 1,
+                    useNativeDriver: true,
+                    tension: 100,
+                    friction: 8,
+                  }).start(() => {
+                    // 스탬프가 나타난 후 bounce 애니메이션 시작 (비활성화 상태)
+                    startBounceAnimation(0);
+                    startBounceAnimation(1);
+                    startBounceAnimation(2);
+                  });
+                  
                   startSpeech(stampMessage, {
                     ...getTTSOptionsFromAgentConfig(agentConfig),
                     onDone: () => {
-                      // 스탬프 메시지 TTS 완료 후 스탬프 활성화
-                      setTimeout(() => {
-                        setStampsActive(true);
-                      }, 500);
+                      // 스탬프 메시지 TTS 완료 후 활성화
+                      setStampsActive(true);
 
                       setIsSpeaking(false);
                     },
                     onError: (error) => {
-                      // 에러 시에도 스탬프 활성화
+                      // 에러 시에도 스탬프 등장
                       setTimeout(() => {
+                        setShowStamp(true);
                         setStampsActive(true);
                       }, 500);
                       setIsSpeaking(false);
@@ -270,6 +279,7 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
                 setTimeout(() => {
                   setShowSecondMessage(false);
                   setShowStampMessage(true);
+                  setShowStamp(true);
                   setStampsActive(true);
                 }, 500);
                 setIsSpeaking(false);
@@ -385,9 +395,22 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
           </Reanimated.View>
         </View>
 
-        {/* 중앙 스탬프 3개 영역 */}
+        {/* 중앙 영역 - 스탬프가 나오기 전에는 일기 내용, 나온 후에는 스탬프 */}
         <View className="flex-1 items-center justify-center bg-transparent">
-          {showStamp && (
+          {!showStamp && sessionId ? (
+            // 스탬프가 나오기 전: 완성된 일기 내용 표시
+            <ComicView 
+              className="w-full h-full" 
+              sessionId={sessionId}
+              comicGenerationStatus={{ 
+                status: 'completed',
+                progress: 100,
+                message: ''
+              }}
+              progressAnimation={new Animated.Value(1)}
+            />
+          ) : showStamp ? (
+            // 스탬프가 나온 후: 스탬프 3개 표시
             <View className="flex-row justify-center space-x-24 bg-transparent">
               {stampEmojis.map((emoji, index) => (
                 <StampView
@@ -405,7 +428,7 @@ export default function PraiseSection({ childName, onComplete }: PraiseSectionPr
                 </StampView>
               ))}
             </View>
-          )}
+          ) : null}
         </View>
       </View>
     </SafeAreaView>

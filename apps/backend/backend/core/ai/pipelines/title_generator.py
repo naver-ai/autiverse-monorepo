@@ -21,7 +21,7 @@ class TitleGenerator:
         self.client = openai.OpenAI()
         self.llm = ChatOpenAI(
             model="gpt-4.1-mini-2025-04-14",
-            temperature=0.3,
+            temperature=0.2,
             api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
         )
         self.title_parser = PydanticOutputParser(pydantic_object=TitleResult)
@@ -115,7 +115,7 @@ Based on the above content, please generate a korean title that {child_name} wou
         # 1, 2, 3 선택 시 (제목 선택 완료)
         if user_feedback in ["1", "2", "3"]:
             current_title_with_josa = append_josa(current_title, "이", "가")
-            return f"'{current_title_with_josa}' {child_name_escaped} 마음에 들었구나! 다행이다:) 왼쪽에 완성된 일기 천천히 보고 다 확인했으면 다음 버튼을 눌러줘!", MessageIntent.PromptNext
+            return f"{current_title_with_josa} {child_name_escaped} 마음에 들었구나! 다행이다:) 왼쪽에 완성된 일기 천천히 보고 다 확인했으면 다음 버튼을 눌러줘!", MessageIntent.PromptNext
         
         # "다 별로야" 선택 시 (다른 제목 요청)
         elif user_feedback in ["다 별로야", "ChatInput.ButtonLabels.NotGoodAtAll"]:

@@ -39,26 +39,28 @@ def escape_last_jongsung_from_korean_name(name: str) -> str:
 
 def ends_with_jongseong(text: str) -> bool:
     """
-    Check if the last character of the text ends with a Korean final consonant (jongseong)
+    Check if the last Korean character of the text ends with a Korean final consonant (jongseong)
     
     Args:
         text (str): The text to check
         
     Returns:
-        bool: True if the last character has a final consonant, False otherwise
+        bool: True if the last Korean character has a final consonant, False otherwise
     """
     if not text or len(text) == 0:
         return False
     
-    last_char = text[-1]
-    last_char_code = ord(last_char)
+    # Find the last Korean character (ignore emojis and other non-Korean characters)
+    for i in range(len(text) - 1, -1, -1):
+        char = text[i]
+        char_code = ord(char)
+        
+        # Check if it's within Korean syllable range (가-힣: 44032-55203)
+        if 44032 <= char_code <= 55203:
+            jongseong = (char_code - 44032) % 28
+            return jongseong != 0  # If jongseong is 0, there's no final consonant
     
-    # Check if it's within Korean syllable range (가-힣: 44032-55203)
-    if 44032 <= last_char_code <= 55203:
-        jongseong = (last_char_code - 44032) % 28
-        return jongseong != 0  # If jongseong is 0, there's no final consonant
-    
-    return False  # Return False if not a Korean character
+    return False  # Return False if no Korean characters found
 
 
 def append_josa(text: str, josa_with_jongseong: str, josa_without_jongseong: str) -> str:

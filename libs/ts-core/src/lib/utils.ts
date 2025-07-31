@@ -19,23 +19,26 @@ export function escapeLastJongsungFromKoreanName(name: string): string  {
 }
 
 /**
- * Check if the last character of the text ends with a Korean final consonant (jongseong)
+ * Check if the last Korean character of the text ends with a Korean final consonant (jongseong)
  * @param text - The text to check
- * @returns true if the last character has a final consonant, false otherwise
+ * @returns true if the last Korean character has a final consonant, false otherwise
  */
 export function endsWithJongseong(text: string): boolean {
   if (!text || text.length === 0) return false;
   
-  const lastChar = text.charAt(text.length - 1);
-  const lastCharCode = lastChar.charCodeAt(0);
-  
-  // Check if it's within Korean syllable range (가-힣: 44032-55203)
-  if (lastCharCode >= 44032 && lastCharCode <= 55203) {
-    const jongseong = (lastCharCode - 44032) % 28;
-    return jongseong !== 0; // If jongseong is 0, there's no final consonant
+  // Find the last Korean character (ignore emojis and other non-Korean characters)
+  for (let i = text.length - 1; i >= 0; i--) {
+    const char = text.charAt(i);
+    const charCode = char.charCodeAt(0);
+    
+    // Check if it's within Korean syllable range (가-힣: 44032-55203)
+    if (charCode >= 44032 && charCode <= 55203) {
+      const jongseong = (charCode - 44032) % 28;
+      return jongseong !== 0; // If jongseong is 0, there's no final consonant
+    }
   }
   
-  return false; // Return false if not a Korean character
+  return false; // Return false if no Korean characters found
 }
 
 /**
