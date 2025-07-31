@@ -151,7 +151,7 @@ export const JournalingScreen = () => {
       }
       
       // 칭찬 섹션으로 넘어가기
-      router.replace({pathname: '/(app)/ending', params: {journalEntryId}});
+      router.replace({pathname: '/(app)/ending', params: {sessionId: journalEntryId}});
       setIsSendingMessage(false);
       return;
     }

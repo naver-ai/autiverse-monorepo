@@ -2,11 +2,55 @@ import json
 import openai
 import asyncio
 from backend.utils.environment import get_env_variable, EnvironmentVariables
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+from pydantic import BaseModel, Field
+from langchain_openai import ChatOpenAI
+from langchain.output_parsers import PydanticOutputParser
+from langchain.schema import HumanMessage, SystemMessage
+
+class StoryElement(BaseModel):
+    """Individual story element for comic analysis"""
+    panel: str = Field(description="Panel number (1-4)")
+    act: str = Field(description="Action or activity (Korean verb phrase)")
+    figure: str = Field(description="Characters involved in the action")
+    object: str = Field(description="Physical objects involved (empty string if none)")
+    location: str = Field(description="Location where action occurs (empty string if none)")
+    think: Optional[str] = Field(default=None, description="Thought content (only for act='생각')")
+    tell: Optional[str] = Field(default=None, description="Spoken dialogue (only for act='대화')")
+    emotion: Optional[str] = Field(default=None, description="Emotion word (only for act='감정')")
+
+class StoryAnalysis(BaseModel):
+    """Complete story analysis result"""
+    elements: List[StoryElement] = Field(description="List of story elements extracted from panels")
+
+class TopologyRelationship(BaseModel):
+    """Individual topology relationship"""
+    target_1: str = Field(description="First target element")
+    target_2: str = Field(description="Second target element")
+    topology: str = Field(description="Spatial relationship (beside, below, above, etc.)")
+
+class TopologyAnalysis(BaseModel):
+    """Complete topology analysis result"""
+    relationships: List[TopologyRelationship] = Field(description="List of topology relationships")
+
+class GridElement(BaseModel):
+    """Individual grid element with position"""
+    type: str = Field(description="Element type (figure or object)")
+    content: str = Field(description="Element content")
+    position: List[int] = Field(description="Grid position [x, y]")
+
+class GridLayout(BaseModel):
+    """Complete grid layout result"""
+    elements: List[GridElement] = Field(description="List of positioned grid elements")
 
 class ComicGridGenerator:
     def __init__(self):
         self.openai = openai.OpenAI(
+            api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
+        )
+        self.llm = ChatOpenAI(
+            model="gpt-4.1-mini-2025-04-14",
+            temperature=0.2,
             api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
         )
 
@@ -33,15 +77,27 @@ class FourSceneComic:
         self.openai = openai.OpenAI(
             api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
         )
+        self.llm = ChatOpenAI(
+            model="gpt-4.1-mini-2025-04-14",
+            temperature=0.2,
+            api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
+        )
         self.panels = panel_contents
+        self.parser = PydanticOutputParser(pydantic_object=StoryAnalysis)
+        self.topology_parser = PydanticOutputParser(pydantic_object=TopologyAnalysis)
+        self.grid_parser = PydanticOutputParser(pydantic_object=GridLayout)
 
     @staticmethod
     def _create_empty_grid():
         return [[{"type": "empty", "content": "", "position": [x, y]} for x in range(5)] for y in range(5)]
 
     async def _analyze_story(self) -> List[Dict]:
-        """1단계: 전체 스토리 분석"""
-        system_prompt = """You are an expert in information-extraction and comic scene designer. Return only a JSON array that follows these rules.
+        """1단계: 전체 스토리 분석 - Structured Output 사용"""
+        system_prompt = """You are an expert in information-extraction and comic scene designer. Analyze the comic panels and extract story elements.
+
+IMPORTANT: You must return a JSON object with an "elements" field containing the array of story elements.
+
+Rules for extraction:
 
 1. Allowed keys (exact spelling, lower-case):
 panel, act, figure, object, location, think, tell, emotion
@@ -54,10 +110,12 @@ panel, act, figure, object, location, think, tell, emotion
   - Extract the spoken content and set act:"대화" with tell
   - If there's another action in the same sentence, create a separate entry with that action
   Example: "경비아저씨가 우리에게 비가 많이 오니 피하라고 큰소리 치셨다"
-    → [
-      {"panel":"2","act":"대화","figure":"경비아저씨","object":"","location":"공원", "tell":"비가 많이 오니 피해!"},
-      {"panel":"2","act":"큰소리치셨다","figure":"경비아저씨","object":"","location":"공원"}
-    ]
+    → {
+      "elements": [
+        {"panel":"2","act":"대화","figure":"경비아저씨","object":"","location":"공원", "tell":"비가 많이 오니 피해!"},
+        {"panel":"2","act":"큰소리치셨다","figure":"경비아저씨","object":"","location":"공원"}
+      ]
+    }
 • Otherwise, set act to the exact Korean verb phrase appearing in the sentence (예: 찼다, 날아갔다, 나갔다, 산책했다, 숨었다)
   - Also extract any objects that are part of the action
   - Example: "컴퓨터 게임 중이었다" → act:"게임 중이었다", object:"컴퓨터"
@@ -99,7 +157,7 @@ panel, act, figure, object, location, think, tell, emotion
 
 7. For any empty value, write an empty string "".
 
-8. Respond with valid JSON only—no explanations, comments, or extra keys.
+8. Respond with valid structured output only—no explanations, comments, or extra keys.
 
 Below is a worked example; follow the same schema
 
@@ -109,7 +167,7 @@ panel2: "산책하다보니 놀이공원에 가고 싶어졌다."
 panel3: "그래서 엄마에게 놀이공원 가고 싶다고 이야기를 했고 엄마도 가자고 했다"
 panel4: "나는 기뻤다"
 
-Expected JSON
+Expected elements:
 [
 {"panel":"1","act":"산책했다","figure":"나, 엄마","object":"","location":"집 근처"},
 {"panel":"2","act":"생각","figure":"나","object":"","location":"집 근처","think":"놀이공원에 가고 싶어"},
@@ -124,7 +182,7 @@ panel2: "민수가 어하는 순간 공이 담장을 넘었다"
 panel3: "우리는 공을 찾으러 담장 밖으로 나가서 공을 찾았다"
 panel4: "나는 기뻤다"
 
-Expected JSON
+Expected elements:
 [
 {"panel":"1","act":"찼다","figure":"나, 민수","object":"축구공","location":"학교 운동장"},
 {"panel":"2","act":"대화","figure":"민수","object":"","location":""},
@@ -140,7 +198,7 @@ panel2: "그런데 갑자기 경비아저씨가 우리에게 비가 많이 오�
 panel3: "우리는 급히 뛰어가서 버스정류장 밑에서 비를 피했다"
 panel4: "나는 비에 젖어서 화가 났다"
 
-Expected JSON
+Expected elements:
 [
 {"panel":"1","act":"선물을 주고 있었다","figure":"나, 친구","object":"","location":"공원"},
 {"panel":"2","act":"대화","figure":"경비아저씨","object":"","location":"공원", "tell":"비가 많이 오니 피해!"},
@@ -157,16 +215,29 @@ Panel 3: "{self.panels.get('panel3', '')}"
 Panel 4: "{self.panels.get('panel4', '')}"
 '''
 
-        response = self.openai.chat.completions.create(
-            model='gpt-4.1-mini-2025-04-14',
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.2
-        )
-
-        return json.loads(response.choices[0].message.content or '[]')
+        # Retry logic for structured output
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                messages = [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=user_prompt)
+                ]
+                
+                response = await self.llm.ainvoke(messages)
+                result = self.parser.parse(response.content)
+                
+                # Convert to list of dicts for compatibility
+                story_elements = [element.model_dump() for element in result.elements]
+                print(f"Story Analysis Result: {json.dumps(story_elements, ensure_ascii=False, indent=2)}")
+                return story_elements
+                
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed: {e}")
+                if attempt == max_retries - 1:
+                    print("All retries failed, returning empty result")
+                    return []
+                await asyncio.sleep(1)  # Brief delay before retry
 
     async def generate(self, progress_callback=None) -> Dict[str, Any]:
         """Generate comic panels with grid layouts"""
@@ -175,7 +246,6 @@ Panel 4: "{self.panels.get('panel4', '')}"
             if progress_callback:
                 await progress_callback(20, "어떻게 그릴지 고민중이다~")
             story_analysis = await self._analyze_story()
-            print(f"Story Analysis Result: {json.dumps(story_analysis, ensure_ascii=False, indent=2)}")
             
             # 2단계: 각 패널의 위치 관계 결정
             if progress_callback:
@@ -263,12 +333,12 @@ Panel 4: "{self.panels.get('panel4', '')}"
         system_prompt = """You are a comic panel topology designer that determines core relationships between figures and objects.
 
 Input  : One panel's semantic JSON objects  
-Output : A JSON array of items where every relevant pair of elements is represented by an object describing their spatial relationship (topology).
-Respond with the array only—no extra text.
+Output : A JSON object with a "relationships" field containing an array of items where every relevant pair of elements is represented by an object describing their spatial relationship (topology).
+Respond with the object only—no extra text.
 
 OUTPUT FORMAT
 - A JSON array of objects.
-- Keys: "target 1", "target 2", "topology".
+- Keys: "target_1", "target_2", "topology".
 - topology is one or more keywords separated by ", ".
 - Do not wrap the array in code fences or prose.
 
@@ -288,9 +358,9 @@ JUDGMENT RULES
    - "A 밑 B" means A is above B, B is below A
    - "A 밑에 숨었다" → figure → A: above (figure is under A)
    - "A 위에 올라갔다" → figure → A: below (figure is on top of A)
-3. 대화 / tell / 생각 / think
-   - Create "말풍선" for tell, "생각" for think
-   - Speaker ↔ balloon/cloud: beside, below, above (all apply)
+3. 대화 / tell / 생각 / think / 감정 / emotion
+   - Create "말풍선" for tell, "생각" for think, "감정" for emotion
+   - Speaker ↔ balloon/cloud/emotion: beside, below, above (all apply)
 4. Multiple figures default to beside unless text says otherwise
 5. If multiple objects exist, output every unordered pair exactly once
 6. IMPORTANT: When location contains spatial relationships (밑, 위, 옆, 앞, 뒤), treat the reference object as a separate element
@@ -304,59 +374,89 @@ EXAMPLE 1
 INPUT  
 {"panel":"1","act":"찼다","figure":"나, 민수","object":"축구공","location":"학교 운동장"}  
 OUTPUT  
-[
-{"target 1":"나","target 2":"민수","topology":"beside"},
-{"target 1":"나","target 2":"축구공","topology":"beside, below"},
-{"target 1":"민수","target 2":"축구공","topology":"beside, below"}
-]
+{
+  "relationships": [
+    {"target_1":"나","target_2":"민수","topology":"beside"},
+    {"target_1":"나","target_2":"축구공","topology":"beside, below"},
+    {"target_1":"민수","target_2":"축구공","topology":"beside, below"}
+  ]
+}
 
 EXAMPLE 2  
 INPUT  
 {"panel":"2","act":"대화","figure":"민수","object":"","location":"","tell":"어!?"},
 {"panel":"2","act":"날아갔다","figure":"축구공","object":"","location":"담장 너머"}  
 OUTPUT  
-[
-{"target 1":"민수","target 2":"어!?","topology":"beside, below, above"},
-{"target 1":"담장","target 2":"축구공","topology":"above"},
-{"target 1":"민수","target 2":"담장","topology":"apart"}
-]
+{
+  "relationships": [
+    {"target_1":"민수","target_2":"어!?","topology":"beside, below, above"},
+    {"target_1":"담장","target_2":"축구공","topology":"above"},
+    {"target_1":"민수","target_2":"담장","topology":"apart"}
+  ]
+}
+
+EXAMPLE 2-2
+INPUT  
+{"panel":"4","act":"감정","figure":"나","object":"","location":"","emotion":"신남"}
+OUTPUT  
+{
+  "relationships": [
+    {"target_1":"나","target_2":"신남","topology":"beside, below, above"}
+  ]
+}
 
 EXAMPLE 3
 INPUT  
 {"panel":"3","act":"피했다","figure":"나, 친구","object":"비","location":"버스정류장 밑"}
 OUTPUT  
-[
-{"target 1":"나, 친구","target 2":"버스정류장","topology":"above"},
-{"target 1":"버스정류장","target 2":"비","topology":"above"}
-]
+{
+  "relationships": [
+    {"target_1":"나, 친구","target_2":"버스정류장","topology":"above"},
+    {"target_1":"버스정류장","target_2":"비","topology":"above"}
+  ]
+}
 
 EXAMPLE 4
 INPUT  
 {"panel":"2","act":"숨었다","figure":"나","object":"","location":"의자 밑"}
 OUTPUT  
-[
-{"target 1":"나","target 2":"의자","topology":"above"},
-{"target 1":"의자","target 2":"나","topology":"below"}
-]"""
+{
+  "relationships": [
+    {"target_1":"나","target_2":"의자","topology":"above"},
+    {"target_1":"의자","target_2":"나","topology":"below"}
+  ]
+}"""
 
         user_prompt = f"""Convert below elements to the topology:
 Input elements for panel {panel_id}:
 {json.dumps(filtered_elements, ensure_ascii=False, indent=2)}"""
 
-        response = self.openai.chat.completions.create(
-            model='gpt-4.1-mini-2025-04-14',
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.2
-        )
-
-        try:
-            topology = json.loads(response.choices[0].message.content or '[]')
-        except json.JSONDecodeError as e:
-            print(f"Error parsing topology JSON: {e}")
-            topology = []
+        # Retry logic for robust parsing
+        for attempt in range(3):
+            try:
+                messages = [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=user_prompt)
+                ]
+                response = await self.llm.ainvoke(messages)
+                result = self.topology_parser.parse(response.content)
+                
+                # Convert Pydantic result to list of dictionaries for compatibility
+                topology = []
+                for rel in result.relationships:
+                    topology.append({
+                        "target 1": rel.target_1,
+                        "target 2": rel.target_2,
+                        "topology": rel.topology
+                    })
+                break
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed: {e}")
+                if attempt == 2:  # Last attempt
+                    print("All attempts failed, returning empty topology")
+                    topology = []
+                else:
+                    await asyncio.sleep(1)  # Wait before retry
         
         # topology에서 figure를 찾아서 action 추가하고, tell/think/emotion을 null로 처리
         processed_tell_contents = set()
@@ -468,6 +568,8 @@ Input elements for panel {panel_id}:
 
         system_prompt = """You are a comic panel layout designer. You MUST follow these rules strictly:
 
+IMPORTANT: You must return a JSON object with an "elements" field containing the array of grid elements.
+
 1. Grid is 5x5 (0-4 for both x and y)
    - Row 0 is at the top, Row 4 is at the bottom
    - Column 0 is at the left, Column 4 is at the right
@@ -532,12 +634,14 @@ Input topology:
 ]
 
 Expected output:
-[
-  {"type": "figure", "content": "나", "position": [2, 2]},
-  {"type": "figure", "content": "민수", "position": [3, 2]},
-  {"type": "object", "content": "버스정류장", "position": [2, 1]},
-  {"type": "object", "content": "버스정류장", "position": [3, 1]}
-]
+{
+  "elements": [
+    {"type": "figure", "content": "나", "position": [2, 2]},
+    {"type": "figure", "content": "민수", "position": [3, 2]},
+    {"type": "object", "content": "버스정류장", "position": [2, 1]},
+    {"type": "object", "content": "버스정류장", "position": [3, 1]}
+  ]
+}
 
 Example 2:
 Input elements:
@@ -555,13 +659,15 @@ Input topology:
 ]
 
 Expected output:
-[
-  {"type": "figure", "content": "나", "position": [1, 2]},
-  {"type": "figure", "content": "엄마", "position": [3, 2]},
-  {"type": "object", "content": "수건", "position": [2, 2]}
-]
+{
+  "elements": [
+    {"type": "figure", "content": "나", "position": [1, 2]},
+    {"type": "figure", "content": "엄마", "position": [3, 2]},
+    {"type": "object", "content": "수건", "position": [2, 2]}
+  ]
+}
 
-Return only a JSON array of grid positions. Use ONLY the elements provided in the input."""
+Return only a JSON object with an "elements" field containing the array of grid positions. Use ONLY the elements provided in the input."""
 
         user_prompt = f"""Elements to place:
 {json.dumps(all_elements, ensure_ascii=False, indent=2)}
@@ -569,29 +675,34 @@ Return only a JSON array of grid positions. Use ONLY the elements provided in th
 Topology relationships:
 {json.dumps(topology, ensure_ascii=False, indent=2)}
 
-Output format:
-[
-  {{"type": "figure|object", "content": "text", "position": [x, y]}}
-]
-
 IMPORTANT: The output MUST include ALL elements from both "Elements to place" and "Topology relationships". No elements should be missing."""
 
-        response = self.openai.chat.completions.create(
-            model='gpt-4.1-mini-2025-04-14',
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.1
-        )
-
-        response_content = response.choices[0].message.content or '[]'
-        
-        # 코드 블록 마커 제거
-        clean_content = response_content.replace('```json\n', '').replace('```\n', '').replace('```', '').strip()
-        print(f"Cleaned GPT Response: {clean_content}")
-        
-        layout = json.loads(clean_content)
+        # Retry logic for robust parsing
+        for attempt in range(3):
+            try:
+                messages = [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=user_prompt)
+                ]
+                response = await self.llm.ainvoke(messages)
+                result = self.grid_parser.parse(response.content)
+                
+                # Convert Pydantic result to list of dictionaries for compatibility
+                layout = []
+                for element in result.elements:
+                    layout.append({
+                        "type": element.type,
+                        "content": element.content,
+                        "position": element.position
+                    })
+                break
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed: {e}")
+                if attempt == 2:  # Last attempt
+                    print("All attempts failed, returning empty layout")
+                    layout = []
+                else:
+                    await asyncio.sleep(1)  # Wait before retry
         
         # action 정보를 figure에 추가
         action_data = None

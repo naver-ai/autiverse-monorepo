@@ -1,7 +1,8 @@
 export enum UserButtonMode {
     YES_NO_BUTTON = "yes_no_button",
     EMOTION_BUTTON = "emotion_button",
-    NEXT_BUTTON = "next_button"
+    NEXT_BUTTON = "next_button",
+    TITLE_SELECTION_BUTTON = "title_selection_button"
 }
 
 export enum WebsocketEvent{

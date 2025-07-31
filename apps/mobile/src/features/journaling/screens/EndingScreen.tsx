@@ -13,6 +13,7 @@ export const EndingScreen = () => {
   const previousMode = usePrevious(mode)
 
   const {dyad, isDyadLoading} = useDyad()
+  const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
 
   const router = useRouter()
 
@@ -47,7 +48,11 @@ export const EndingScreen = () => {
     <View className="flex-1 bg-slate-50">
         {
             dyad ? (mode == 'praise' ? (
-                <PraiseSection childName={dyad?.child_name} onComplete={() => setMode('farewell')} />
+                <PraiseSection 
+                  childName={dyad?.child_name} 
+                  sessionId={sessionId}
+                  onComplete={() => setMode('farewell')} 
+                />
             ) : (
                 dyad && <FarewellSection ref={farewellSectionRef} childName={dyad?.child_name} agentConfig={dyad?.agents[0]?.agent_config} locale={dyad?.locale} onCompleteHandler={handleFarewellComplete} />
             )) : null

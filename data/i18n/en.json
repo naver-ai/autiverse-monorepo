@@ -100,7 +100,8 @@
             "NotGood": "Not good",
             "Good3": "Good",
             "NoOther": "No, something else",
-            "YesGood": "Yes, good!"
+            "YesGood": "Yes, good!",
+            "NotGoodAtAll": "All are bad"
         },
         "VoiceRecording": {
             "StartError": "Unable to start voice recording.",

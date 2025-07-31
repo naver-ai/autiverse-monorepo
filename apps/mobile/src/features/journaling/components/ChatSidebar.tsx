@@ -48,7 +48,7 @@ export const ChatSidebar = ({
       case MessageIntent.PromptNext:
         return UserButtonMode.NEXT_BUTTON;
       case MessageIntent.InitialTitleConfirm:
-        return UserButtonMode.YES_NO_BUTTON;
+        return UserButtonMode.TITLE_SELECTION_BUTTON;
       case MessageIntent.CustomTitleConfirm:
         return UserButtonMode.YES_NO_BUTTON;
       case MessageIntent.TransitionToTitle:

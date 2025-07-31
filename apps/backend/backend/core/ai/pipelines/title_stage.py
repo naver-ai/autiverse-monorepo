@@ -23,8 +23,8 @@ class TitleStage:
             return journal_entry.dyad.child_name or "친구"
         return "친구"
     
-    def start_title_selection(self) -> Message:
-        """제목 선택 시작"""
+    async def start_title_selection(self) -> Message:
+        """제목 선택 시작 - Structured Output 사용"""
         try:
             # Journal entry stage 업데이트
             from backend.database.crud.chatbot import update_journal_entry_stage
@@ -45,20 +45,17 @@ class TitleStage:
             if not comic_data:
                 return "만화 데이터를 찾을 수 없어요."
             
-            # AI 제목 생성
+            # AI 제목 3개 생성
             child_name = self._get_child_name()
-            generated_title = self.title_generator.generate_title(comic_data, child_name)
-            
-            # 제목을 바로 데이터베이스에 저장
-            self._save_title(generated_title)
-            
-            # 첫 번째 질문 생성
-            initial_question = f"우리 오늘 일기의 제목은 뭐로 할까? {generated_title} 어때?"
+            generated_titles = await self.title_generator.generate_title(comic_data, child_name)
+
+            # 첫 번째 질문 생성 (제목 3개 제시)
+            initial_question = f"우리 오늘 일기의 제목은 뭐로 할까? 1) {generated_titles['title1']} 2) {generated_titles['title2']} 3) {generated_titles['title3']} 어떤 제목이 마음에 들어?"
             
             new_message = create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
                 initial_question, MessageRole.Assistant, JournalEntryStage.Title, 
-                metadata_json={"title": generated_title},
+                metadata_json={"titles": generated_titles},
                 intent=MessageIntent.InitialTitleConfirm
             )
             
@@ -68,7 +65,7 @@ class TitleStage:
             print(f"[DEBUG] title_stage: Error in start_title_selection: {e}")
             raise
     
-    def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message | None:
+    async def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message | None:
         """사용자 메시지 처리"""
         
         try:
@@ -102,8 +99,8 @@ class TitleStage:
 
             # 마지막 메시지에 따라 처리
             if last_assistant_message.intent == MessageIntent.InitialTitleConfirm:
-                # 첫 번째 제목 제안에 대한 피드백
-                response, response_intent = self.title_generator.process_title_feedback(user_message, "", child_name)
+                # 제목 3개 중에서 선택
+                response, response_intent = self._process_title_selection(user_message, last_assistant_message, child_name)
                 
             elif last_assistant_message.intent == MessageIntent.CustomTitleConfirm:
                 # 커스텀 제목 확인에 대한 피드백
@@ -144,11 +141,33 @@ class TitleStage:
             return None
     
     def _save_title(self, title: str) -> None:
-        """제목을 데이터베이스에 저장"""
+        """단일 제목을 데이터베이스에 저장"""
         try:
             result = update_journal_data(self.db, self.journal_entry_id, title=title)
         except Exception as e:
             print(f"[DEBUG] title_stage: Error saving title: {e}")
+    
+    def _process_title_selection(self, user_message: str, last_assistant_message: Message, child_name: str) -> tuple[str, MessageIntent]:
+        """제목 3개 중에서 사용자 선택 처리"""
+        # 메타데이터에서 제목들 가져오기
+        titles = last_assistant_message.metadata_json.get("titles", {})
+        
+        # 1, 2, 3 선택 시 해당 제목을 DB에 저장
+        selected_title = ""
+        if user_message in ["1"]:
+            selected_title = titles.get("title1", "")
+            self._save_title(selected_title)
+        elif user_message in ["2"]:
+            selected_title = titles.get("title2", "")
+            self._save_title(selected_title)
+        elif user_message in ["3"]:
+            selected_title = titles.get("title3", "")
+            self._save_title(selected_title)
+        
+        # title_generator의 process_title_feedback 사용
+        response, response_intent = self.title_generator.process_title_feedback(user_message, selected_title, child_name)
+        
+        return response, response_intent
     
     def _get_or_create_interaction_turn(self, stage: JournalEntryStage):
         """현재 interaction turn 가져오기 또는 생성"""
