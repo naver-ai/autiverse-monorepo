@@ -59,7 +59,7 @@ export const ComicPanelView = ({
       {/* 5x5 그리드 */}
       <View className="flex-1 justify-center items-center" 
       onLayout={onLayoutPanelArea}>
-        <View style={{ width: effectivePanelSize, height: effectivePanelSize }}>
+        <View style={{ width: effectivePanelSize, height: effectivePanelSize, position: 'relative' }}>
           {/* backend에서 받은 layout 데이터를 5x5 grid로 변환 */}
           {panel?.grid && panel.grid.length > 0 ? (
             // 5x5 빈 그리드 생성 후 layout 데이터로 채우기
@@ -155,6 +155,27 @@ export const ComicPanelView = ({
                 ))}
               </View>
             ))
+          )}
+          
+          {/* 장소 정보를 오른쪽 하단에 표시 */}
+          {panel.place && panel.place.trim() && (
+            <View 
+              style={{
+                position: 'absolute',
+                bottom: 3,
+                right: -40,
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+              }}
+            >
+              <Text className="text-xs text-gray-600" style={styleTemplates.withRegularFont}>
+                📍 {panel.place}
+              </Text>
+            </View>
           )}
         </View>
       </View>

@@ -341,10 +341,23 @@ User's correction request: {correction}
                 context_stage = ComicContextStage(self.db, self.journal_entry_id)
                 response_message = context_stage.start_context_analysis()
                 
+                # Message 객체를 JSON 직렬화 가능한 딕셔너리로 변환
+                response_message_dict = {
+                    "id": response_message.id,
+                    "content": response_message.content,
+                    "role": response_message.role,
+                    "stage": response_message.stage,
+                    "intent": response_message.intent,
+                    "audio_filename": response_message.audio_filename,
+                    "metadata_json": response_message.metadata_json,
+                    "created_at": response_message.created_at.isoformat() if response_message.created_at else None,
+                    "updated_at": response_message.updated_at.isoformat() if response_message.updated_at else None
+                }
+                
                 response = {
                     "journal_entry_id": self.journal_entry_id,
                     "message_id": response_message.id,
-                    "response": response_message,
+                    "response": response_message_dict,
                     "intent": response_message.intent,
                     "stage": "comic_context"
                 }

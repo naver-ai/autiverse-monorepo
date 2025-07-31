@@ -326,6 +326,7 @@ class Comic(SQLModel, IdTimestampMixin, DyadIdMixin, table=True):
 # Comic panel type
 class ComicPanel(BaseModel):
     content: str
+    place: Optional[str] = None
     grid: list = []
 
 # Comic data type

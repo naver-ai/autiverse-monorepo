@@ -313,13 +313,15 @@ class ChatbotController:
                         comic_panel = getattr(comic, f"first_panel{i}", None)
                     
                     if comic_panel:
-                        # 기존 텍스트 데이터에 grid 데이터 추가
+                        # 기존 텍스트 데이터에 grid 데이터와 place 데이터 추가
                         if isinstance(current_panels[panel_key], dict):
                             current_panels[panel_key]["grid"] = comic_panel.get("grid", [])
+                            current_panels[panel_key]["place"] = comic_panel.get("place", "")
                         else:
                             # 문자열인 경우 dict로 변환
                             current_panels[panel_key] = {
                                 "content": current_panels[panel_key],
+                                "place": comic_panel.get("place", ""),
                                 "grid": comic_panel.get("grid", [])
                             }
         

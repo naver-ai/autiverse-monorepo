@@ -96,18 +96,21 @@ export const convertComicDataToPanels = (comicData: IncompleteComicData): Comple
       // 1. 이미 올바른 구조인 경우 (admin-web과 동일)
       panels[panelKey] = {
         content: (panelData as ComicPanelInfo).content || '',
+        place: (panelData as ComicPanelInfo).place || '',
         grid: (panelData as ComicPanelInfo).grid || []
       };
     } else if (panelData) {
       // 2. 단순 문자열인 경우
       panels[panelKey] = {
         content: panelData as string,
+        place: '',
         grid: []
       };
     } else {
       // 3. 데이터가 없는 경우 빈 패널 생성
       panels[panelKey] = {
         content: '',
+        place: '',
         grid: []
       };
     }
