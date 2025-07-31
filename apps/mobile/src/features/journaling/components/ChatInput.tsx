@@ -77,6 +77,9 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     const {
       isRecording: isVoiceRecording,
       canRecord,
+      retryCount,
+      maxRetries,
+      setRetryCount,
       startRecording,
       stopRecording,
       clearRecording,
@@ -91,12 +94,13 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     const currentStage = sessionInfo?.stage;
 
     // TTS 또는 로딩 중일 때 비활성화, 또는 ChatInput이 비활성화 상태일 때
+    // 리트라이 횟수가 최대치에 도달하면 텍스트 입력 버튼 활성화
     const isDisabled =
       isSendingMessage ||
       isSpeaking ||
       comicGenerationStatus.status === 'generating' ||
       !isInputActive ||
-      isVoiceRecording;
+      (isVoiceRecording && retryCount < maxRetries);
 
     // 음성 녹음 시작
     const startVoiceRecording = async () => {
@@ -107,19 +111,62 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
         await startRecording();
         console.log('Voice recording started');
       } catch (error) {
-        console.error('음성 녹음 시작 실패:', error);
-        Alert.alert('오류', t('ChatInput.VoiceRecording.StartError'));
-        setIsVoiceMode(false);
+        // 개발자용 로그만 남기고 사용자에게는 조용히 처리
+        console.log('음성 녹음 시작 실패 (조용히 처리):', error);
+        
+        // 리트라이 횟수가 최대치에 도달하지 않았으면 자동으로 다시 시도
+        if (retryCount < maxRetries) {
+          console.log(`음성 녹음 재시도 중... (${retryCount + 1}/${maxRetries})`);
+          Alert.alert(
+            '음성 녹음 오류',
+            '내가 잘 못 들었어.. 미안해.. 다시 한 번만 말해줘!!',
+            [
+              {
+                text: '다시 시도',
+                onPress: () => {
+                  setTimeout(() => {
+                    startVoiceRecording();
+                  }, 1000); // 1초 후 재시도
+                },
+              },
+            ],
+          );
+        } else {
+          // 최대 리트라이 횟수에 도달하면 다른 메시지 표시
+          console.log('최대 리트라이 횟수에 도달했습니다. 텍스트 입력 모드로 전환합니다.');
+          Alert.alert(
+            '음성 녹음 오류',
+            '내 귀가 어떻게 됐나봐.. 타이핑해서 말해줄 수 있어??',
+            [
+              {
+                text: '텍스트로 입력하기',
+                onPress: () => {
+                  setIsVoiceMode(false);
+                  setIsTextInputModalVisible(true);
+                },
+              },
+            ],
+          );
+        }
       }
     };
 
     // 음성 녹음 완료 및 텍스트 변환
-    const completeVoiceRecording = async () => {
+    const completeVoiceRecording = async (audioUri?: string, retryAttempt = 0) => {
       console.log('Try voice recording complete...');
+      let currentAudioUri: string | null = null;
+      
       try {
-        const audioUri = await stopRecording();
-        console.log('Voice recording complete');
-        if (audioUri) {
+        // audioUri가 없으면 녹음 중지, 있으면 기존 파일 사용
+        let recordingUri = null;
+        if (!audioUri) {
+          recordingUri = await stopRecording();
+        } else {
+          recordingUri = audioUri;
+        }
+        currentAudioUri = recordingUri;
+        console.log('Voice recording complete, currentAudioUri:', currentAudioUri);
+        if (currentAudioUri) {
           setIsVoiceMode(false);
           setIsVoiceCompleted(true); // 음성 녹음 완료 상태 업데이트
 
@@ -150,7 +197,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
           // Whisper API로 텍스트 변환 (현재 session context 정보 포함)
           const transcribedText = await transcribeAudio(
             jwt!,
-            audioUri,
+            currentAudioUri,
             peopleNames,
             placeNames,
           );
@@ -166,7 +213,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
             try {
               const uploadResult = await uploadAudioFile(
                 jwt!!,
-                audioUri,
+                currentAudioUri,
                 journalEntryId,
                 currentStage,
               );
@@ -195,13 +242,42 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
               ],
             );
           }
+        } else {
+          // currentAudioUri가 null인 경우
+          console.log('오디오 파일을 가져올 수 없습니다.');
         }
       } catch (error) {
-        console.error('음성 녹음 완료 실패:', error);
+        // 개발자용 로그만 남기고 사용자에게는 조용히 처리
+        console.log('음성 녹음 완료 실패 (조용히 처리):', error);
 
-        // 일반적인 오류 처리
-        Alert.alert('오류', t('ChatInput.VoiceRecording.CompleteError'));
-        setIsVoiceMode(false);
+        // 리트라이 횟수가 최대치에 도달하지 않았으면 자동으로 다시 시도
+        if (retryAttempt < maxRetries) {
+          console.log(`음성 변환 재시도 중... (${retryAttempt + 1}/${maxRetries})`);
+          setTimeout(() => {
+            // currentAudioUri가 null이면 새로운 음성 녹음 시작, 아니면 같은 파일로 재시도
+            if (currentAudioUri) {
+              completeVoiceRecording(currentAudioUri, retryAttempt + 1);
+            } else {
+              startVoiceRecording();
+            }
+          }, 1000); // 1초 후 재시도
+        } else {
+          // 최대 리트라이 횟수에 도달하면 다른 메시지 표시
+          console.log('최대 리트라이 횟수에 도달했습니다. 텍스트 입력 모드로 전환합니다.');
+          Alert.alert(
+            '음성 녹음 오류',
+            '내 귀가 어떻게 됐나봐.. 타이핑해서 말해줄 수 있어??',
+            [
+              {
+                text: '텍스트로 입력하기',
+                onPress: () => {
+                  setIsVoiceMode(false);
+                  setIsTextInputModalVisible(true);
+                },
+              },
+            ],
+          );
+        }
       }
     };
 

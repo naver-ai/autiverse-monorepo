@@ -115,7 +115,7 @@ export const VoiceRecordingStatus = memo(({
       
       <Reanimated.View style={bounceAnimatedStyle}>
         <TouchableOpacity
-          onPress={onComplete}
+          onPress={() => onComplete()}
             className="bg-green-500 rounded-lg items-center justify-center p-10"
           style={{
             shadowColor: '#000',

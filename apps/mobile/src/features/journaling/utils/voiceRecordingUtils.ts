@@ -25,7 +25,8 @@ export const AudioMeteringProvider = ({ children }: { children: React.ReactNode 
 export const useAudioMetering = (): SharedValue<number | undefined> => {
   const context = useContext(AudioMeteringContext);
   if (!context) {
-    throw new Error('useAudioMetering must be used within AudioMeteringProvider');
+    console.log('useAudioMetering must be used within AudioMeteringProvider');
+    return useSharedValue<number | undefined>(undefined);
   }
   return context.audioMetering;
 };
@@ -37,21 +38,27 @@ let globalRecordingInstance: Audio.Recording | null = null;
 interface VoiceRecorderStore {
   isRecording: boolean;
   canRecord: boolean;
+  retryCount: number;
+  maxRetries: number;
   setIsRecording: (recording: boolean) => void;
   setCanRecord: (canRecord: boolean) => void;
+  setRetryCount: (count: number) => void;
   reset: () => void;
 }
 
 export const useVoiceRecorderState = create<VoiceRecorderStore>((set) => ({
   isRecording: false,
   canRecord: false,
+  retryCount: 0,
+  maxRetries: 3,
   setIsRecording: (recording) => set({ isRecording: recording }),
   setCanRecord: (canRecord) => set({ canRecord: canRecord }),
-  reset: () => set({ isRecording: false, canRecord: false }),
+  setRetryCount: (count) => set({ retryCount: count }),
+  reset: () => set({ isRecording: false, canRecord: false, retryCount: 0 }),
 }));
 
 export function useVoiceRecorder() {
-  const { isRecording, canRecord, setIsRecording, setCanRecord, reset } = useVoiceRecorderState();
+  const { isRecording, canRecord, retryCount, maxRetries, setIsRecording, setCanRecord, setRetryCount, reset } = useVoiceRecorderState();
   const { t } = useTranslation();
 
   const audioMetering = useAudioMetering();
@@ -96,10 +103,14 @@ export function useVoiceRecorder() {
       );
       globalRecordingInstance = recording;
       setIsRecording(true);
+      // 녹음 시작 시 리트라이 카운트 초기화
+      setRetryCount(0);
     } catch (err) {
-      console.error('Failed to start recording', err);
+      console.log('Failed to start recording:', err);
+      // 녹음 시작 실패 시 리트라이 카운트 증가
+      setRetryCount(retryCount + 1);
     }
-  }, [isRecording, setIsRecording]);
+  }, [isRecording, setIsRecording, retryCount, setRetryCount]);
 
   const stopRecording = useCallback(async () => {
     if (!isRecording || !globalRecordingInstance) {
@@ -113,14 +124,16 @@ export function useVoiceRecorder() {
       setIsRecording(false);
       return uri;
     } catch (err) {
-      console.error('Failed to stop recording', err);
+      console.log('Failed to stop recording:', err);
       globalRecordingInstance = null;
+      // 녹음 중지 실패 시 리트라이 카운트 증가
+      setRetryCount(retryCount + 1);
       return null;
     }finally{
       setIsRecording(false);
       audioMetering.value = undefined;
     }
-  }, [isRecording, setIsRecording]);
+  }, [isRecording, setIsRecording, retryCount, setRetryCount]);
 
   const cleanupRecording = useCallback(async () => {
     if (globalRecordingInstance) {
@@ -133,6 +146,9 @@ export function useVoiceRecorder() {
   return {
     isRecording,
     canRecord,
+    retryCount,
+    maxRetries,
+    setRetryCount,
     audioMetering,
     startRecording,
     stopRecording,
@@ -147,13 +163,24 @@ export async function transcribeAudio(
   placeNames: string[] = []
 ): Promise<string> {
   try {
-    // Validate audio file exists
-    const fileInfo = await FileSystem.getInfoAsync(audioUri);
-    if (!fileInfo.exists) {
-      throw new Error('오디오 파일을 찾을 수 없습니다.');
+    // audioUri가 문자열인지 확인
+    console.log('transcribeAudio 호출됨, audioUri:', audioUri, '타입:', typeof audioUri);
+    if (typeof audioUri !== 'string') {
+      console.log('audioUri가 문자열이 아님:', audioUri);
+      throw new Error('오디오 파일 경로가 올바르지 않습니다.');
     }
 
-    console.log("Transcribing audio:", audioUri);
+    // Validate audio file exists
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(audioUri);
+      if (!fileInfo.exists) {
+        console.log('오디오 파일을 찾을 수 없습니다.');
+        throw new Error('오디오 파일을 찾을 수 없습니다.');
+      }
+    } catch (fileError) {
+      console.log('파일 존재 여부 확인 실패:', fileError);
+      // 파일 확인 실패해도 계속 진행 (파일이 실제로 존재할 수 있음)
+    }
 
     // Create form data for backend API
     const formData = new FormData();
@@ -181,7 +208,8 @@ export async function transcribeAudio(
     return transcribedText;
   } catch (error) {
     const axiosError = error as AxiosError;
-    console.error('음성 변환 실패:', error, axiosError.cause, axiosError.toJSON());
+    // 개발자용 로그만 남기고 사용자에게는 조용히 처리
+    console.log('음성 변환 실패 (조용히 처리):', error, axiosError.cause);
     throw error;
   }
 }
