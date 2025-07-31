@@ -403,3 +403,28 @@ export const getJournalEntryDetailApi = async (dyadId: string, journalEntryId: s
     
     return response.data;
 };
+
+export const uploadAgentImageApi = async (file: File) => {
+    const token = localStorage.getItem('auth_token') || undefined;
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await NetworkHelper.axiosClient.post(
+        NetworkHelper.ENDPOINTS.ADMIN.DYADS.UPLOAD_AGENT_IMAGE,
+        formData,
+        {
+            headers: {
+                ...NetworkHelper.getHeaders(token),
+                'Content-Type': 'multipart/form-data',
+            }
+        }
+    );
+    return response.data;
+};
+
+export const useUploadAgentImageMutation = () => {
+    const mutation = useMutation({
+        mutationFn: uploadAgentImageApi,
+    });
+    return mutation;
+};

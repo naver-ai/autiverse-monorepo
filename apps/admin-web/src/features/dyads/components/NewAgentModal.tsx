@@ -1,5 +1,7 @@
-import { Modal, Form, Input, Button, message } from 'antd';
-import { useCreateAgentMutation } from '../api';
+import { Modal, Form, Input, Button, message, Upload } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
+import { useCreateAgentMutation, useUploadAgentImageMutation } from '../api';
+import { useState } from 'react';
 
 interface NewAgentModalProps {
   isOpen: boolean;
@@ -10,12 +12,33 @@ interface NewAgentModalProps {
 export const NewAgentModal = ({ isOpen, dyadId, onClose }: NewAgentModalProps) => {
   const [form] = Form.useForm();
   const createAgentMutation = useCreateAgentMutation();
+  const uploadImageMutation = useUploadAgentImageMutation();
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+
+  const handleImageUpload = async (file: File) => {
+    try {
+      const result = await uploadImageMutation.mutateAsync(file);
+      setUploadedImage(result.filename);
+      message.success('이미지가 업로드되었습니다.');
+      return false;
+    } catch (error) {
+      message.error('이미지 업로드에 실패했습니다.');
+      return false;
+    }
+  };
 
   const handleSubmit = async (values: { interest: string; agent_name: string; agent_config?: string }) => {
     if (!dyadId) return;
 
     try {
-      const agentConfig = values.agent_config ? JSON.parse(values.agent_config) : undefined;
+      let agentConfig = values.agent_config ? JSON.parse(values.agent_config) : {};
+      
+      if (uploadedImage) {
+        agentConfig = {
+          ...agentConfig,
+          avatar_image: uploadedImage
+        };
+      }
       
       await createAgentMutation.mutateAsync({
         dyadId,
@@ -28,6 +51,7 @@ export const NewAgentModal = ({ isOpen, dyadId, onClose }: NewAgentModalProps) =
 
       message.success('Agent created successfully');
       form.resetFields();
+      setUploadedImage(null);
       onClose();
     } catch (error) {
       console.error('Error creating agent:', error);
@@ -64,6 +88,21 @@ export const NewAgentModal = ({ isOpen, dyadId, onClose }: NewAgentModalProps) =
         </Form.Item>
 
         <Form.Item
+          label="Agent Image"
+          name="agent_image"
+        >
+          <Upload
+            beforeUpload={handleImageUpload}
+            showUploadList={false}
+            accept="image/*"
+          >
+            <Button icon={<UploadOutlined />}>
+              {uploadedImage ? 'Image Uploaded' : 'Upload Agent Image'}
+            </Button>
+          </Upload>
+        </Form.Item>
+
+        <Form.Item
           label="Agent Config (JSON)"
           name="agent_config"
           rules={[
@@ -90,7 +129,7 @@ export const NewAgentModal = ({ isOpen, dyadId, onClose }: NewAgentModalProps) =
           <Button
             type="primary"
             htmlType="submit"
-            loading={createAgentMutation.isPending}
+            loading={createAgentMutation.isPending || uploadImageMutation.isPending}
             block
           >
             Create Agent

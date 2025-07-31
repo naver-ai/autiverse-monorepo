@@ -22,6 +22,7 @@ export class NetworkHelper {
       DYADS: {
         LIST: `${this.ENDPOINT_PREFIX}/dyads/all`,
         CREATE: `${this.ENDPOINT_PREFIX}/dyads/new`,
+        UPLOAD_AGENT_IMAGE: `${this.ENDPOINT_PREFIX}/dyads/upload-agent-image`,
         getAddAgentEndpoint: (dyadId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/agents/add`,
         getDeleteAgentEndpoint: (dyadId: string, agentId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/agents/${agentId}`,
         getSetScheduleEndpoint: (dyadId: string, placeId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/places/${placeId}/schedule`,
