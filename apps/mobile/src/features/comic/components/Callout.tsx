@@ -31,7 +31,7 @@ export const Callout = ({item, action, bounds}: {
         borderWidth: comicStyle.calloutBorderWidth,
         borderStyle: action.type === 'think' ? 'dashed' : 'solid',
         borderColor: Color(color).darken(0.2).desaturate(0.2).alpha(0.5).rgb().string(),
-        borderRadius: 12,
+        borderRadius: comicStyle.calloutBorderRadius,
         ...styleTemplates.withSemiboldFont,
         fontSize: comicStyle.calloutFontSize
         }}>{action.type === 'think' ? '💭' : '💬'} {action.content}</Text>
