@@ -205,4 +205,3 @@ export function convertComicDataToPanels(comicData: IncompleteComicData): Comple
 
   return panels as CompleteComicData;
 };
- 

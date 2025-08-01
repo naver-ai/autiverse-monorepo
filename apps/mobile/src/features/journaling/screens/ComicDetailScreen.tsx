@@ -5,6 +5,7 @@ import { ComicPanelView } from '../../comic/components/ComicPanelView';
 import { GridView } from '../../../components/GridView';
 import { styleTemplates } from '../../../styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ComicElementSize } from '../../comic/styles';
 
 const { width } = Dimensions.get('window');
 
@@ -103,6 +104,7 @@ export default function ComicDetailScreen() {
                   panel={panelData}
                   panelSize={undefined}
                   showStory={true}
+                  elementSize={ComicElementSize.medium}
                 />
               </View>
             );

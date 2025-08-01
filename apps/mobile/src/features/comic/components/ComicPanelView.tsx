@@ -7,23 +7,24 @@ import { Pawn } from "./Pawn";
 import { useDyad } from "../../../api/dyad";
 import { SceneObject } from "./SceneObject";
 import Color from "color";
+import { ComicElementSize, ComicProvider, useGetFigureColor } from "../styles";
+import { Callout } from "./Callout";
 
 
 export const ComicPanelView = ({
-  panelIndex, panel, isHighlighted = false, panelSize, showStory = true
+  panelIndex, panel, isHighlighted = false, panelSize, showStory = true, elementSize = ComicElementSize.medium
 }: {
   panelIndex: number;
   panel: ComicPanelInfo;
   isHighlighted?: boolean;
   panelSize?: number;
   showStory?: boolean;
+  elementSize?: ComicElementSize;
 }) => {
   // 패널이 없으면 아예 렌더링하지 않음
   if (!panel) {
     return null;
   }
-
-  const {dyad} = useDyad()
 
   // 동적 패널 사이즈를 위한 상태
   const [dynamicPanelSize, setDynamicPanelSize] = useState<number | null>(null);
@@ -40,15 +41,6 @@ export const ComicPanelView = ({
       setDynamicPanelSize(containerSize);
     }
   }, [panelSize])
-
-  const getFigureColor = (tile: ComicGridItem) => {
-    if(tile.content === '나') {
-      return dyad?.avatar_config?.color || 'transparent'
-    }else{
-      const person = dyad?.people.find((person: Person) => person.name === tile.content);
-      return person?.avatar_config?.color || 'transparent'
-    }
-  }
 
   const matrix = useMemo(() => {
     return convertPanelGridToMatrix(panel.grid);
@@ -77,7 +69,7 @@ export const ComicPanelView = ({
 
   }, [panel.grid, matrix])
 
-  return (
+  return (<ComicProvider elementSize={elementSize} gridSize={gridSize}>
     <View
       className={`flex-1 mx-1 p-2 bg-white rounded-lg ${isHighlighted ? 'border-orange-300 border-4' : 'border-gray-200'}`}
       style={isHighlighted && {
@@ -128,15 +120,11 @@ export const ComicPanelView = ({
                             position: 'relative',
                             width: gridSize,
                             height: gridSize,
-                            padding: 4
                           }}  
                         >
                           <Pawn 
                             bodyWidth={gridSize-8} 
-                            bandColor={getFigureColor(tile)} 
-                            bodyPosition={{x: gridSize / 2, y: gridSize / 2}} 
-                            label={tile.content}
-                            actions={tile.action}
+                            item={tile}
                           />
                         </View>
                       );
@@ -163,15 +151,10 @@ export const ComicPanelView = ({
                       <SceneObject
                         key={`${x}-${y}`}
                         item={tile}
-                        gridSize={gridSize}
                         pivotPosition={{x: gridSize / 2, y: gridSize / 2}}
                         tolerableLeft={tolerableLeft}
                         tolerableRight={tolerableRight}
-                      >
-                        <Text className="text-black text-center text-sm" style={styleTemplates.withSemiboldFont}>
-                          {tile.content}
-                        </Text>
-                      </SceneObject></View>
+                      /></View>
                     );
                   })}
                 </View>
@@ -196,27 +179,7 @@ export const ComicPanelView = ({
           {/* Render emotions and callouts */}
           { 
             callouts.length > 0 && callouts.map((callout, index) => {
-              const color = getFigureColor(callout.item)
-              return (
-              <View key={index} style={{
-                position: 'absolute',
-                left: callout.bounds.x * gridSize,
-                right: gridSize * 5 - (callout.bounds.x2+1) * gridSize,
-                top: callout.bounds.y * gridSize,
-                bottom: gridSize * 5 - (callout.bounds.y2+1) * gridSize,
-                backgroundColor: Color(color).alpha(0.3).rgb().string(),
-                padding: 4,
-                borderRadius: 12,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 2,
-                borderStyle: callout.action.type === 'think' ? 'dashed' : 'solid',
-                borderColor: Color(color).darken(0.2).desaturate(0.2).alpha(0.5).rgb().string()
-              }}>
-                <Text className="text-black text-center" style={styleTemplates.withSemiboldFont}><Text className="text-lg">{callout.action.type === 'think' ? '💭' : '💬'}</Text> <Text className="text-sm">{callout.action.content}</Text></Text>
-              </View>
-            )
+              return <Callout key={`${index}`} {...callout}/>
           })
           }
         </View>
@@ -231,6 +194,6 @@ export const ComicPanelView = ({
             </View>
           )}
       </View>
-    </View>
+    </View></ComicProvider>
   );
 };

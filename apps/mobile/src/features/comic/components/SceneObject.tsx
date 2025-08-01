@@ -1,14 +1,15 @@
-import { useMemo, useState } from "react"
-import { LayoutChangeEvent, View } from "react-native"
+import { useMemo } from "react"
+import { View, Text } from "react-native"
 import { getTileColor } from "../utils"
 import { ComicGridItem } from "@autiverse-monorepo/ts-core"
 import Color from "color"
+import { useComicStyle } from "../styles"
+import { styleTemplates } from "../../../styles"
 
-export const SceneObject = ({children, item, gridSize, tolerableLeft=0, tolerableRight=0, pivotPosition}: {children?: React.ReactNode, item: ComicGridItem, gridSize: number, tolerableLeft?: number, tolerableRight?: number, pivotPosition?: {x: number, y: number}}) => {
+export const SceneObject = ({children, item, tolerableLeft=0, tolerableRight=0, pivotPosition}: {children?: React.ReactNode, item: ComicGridItem, tolerableLeft?: number, tolerableRight?: number, pivotPosition?: {x: number, y: number}}) => {
     
+    const {comicStyle, comicGridSize: gridSize} = useComicStyle();
     
-
-    // Calculate adjusted position based on tolerable values
     const {left, right} = useMemo(() => {
         // Calculate how much the object can extend beyond the grid boundaries
         const maxLeftExtension = tolerableLeft * gridSize
@@ -21,6 +22,7 @@ export const SceneObject = ({children, item, gridSize, tolerableLeft=0, tolerabl
 
         return { left: adjustedLeft, right: adjustedRight }
         }, [tolerableLeft, tolerableRight, gridSize])
+
 
     const backgroundColor = useMemo(() => {
         return Color(getTileColor(item)).alpha(0.8).rgb().string()
@@ -48,7 +50,13 @@ export const SceneObject = ({children, item, gridSize, tolerableLeft=0, tolerabl
             shadowOpacity: 0.1,
             shadowRadius: 3.84,
         }}>
-            {children}
+
+            <Text className="text-black text-center" style={{
+                ...styleTemplates.withSemiboldFont,
+                fontSize: comicStyle.objectNameFontSize
+            }}>
+                {item.content}
+            </Text>
         </View>
     )
 }

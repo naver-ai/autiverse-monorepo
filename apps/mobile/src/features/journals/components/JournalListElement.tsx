@@ -15,6 +15,7 @@ import format from 'string-format';
 import { useTranslation } from 'react-i18next';
 import { escapeJongseong, GalleryComicItem } from '@autiverse-monorepo/ts-core';
 import { twMerge } from 'tailwind-merge';
+import { ComicElementSize } from '../../comic/styles';
 
 export const JournalListElement = ({
   comic,
@@ -64,6 +65,7 @@ export const JournalListElement = ({
                   panelIndex={panelIndex}
                   panel={comic.panels[panelIndex]}
                   showStory={false}
+                  elementSize={ComicElementSize.small}
                 />
               </View>
             ))}

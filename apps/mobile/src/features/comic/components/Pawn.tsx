@@ -13,6 +13,9 @@ import Svg, {
 import { Text, View } from 'react-native';
 import { styleTemplates } from '../../../styles';
 import Color from 'color';
+import { COMIC_STYLE_MAP, ComicContext, useComicStyle, useGetFigureColor } from '../styles';
+import { useContext } from 'react';
+import { ComicGridItem } from '@autiverse-monorepo/ts-core';
 
 const PAWN_SVG_PIVOT_X = 55.13 / 2;
 const PAWN_SVG_PIVOT_Y = 53;
@@ -21,24 +24,27 @@ const PAWN_SVG_FIGURE_HEIGHT = 53;
 
 export function Pawn({
   bodyWidth = PAWN_SVG_PIVOT_WIDTH,
-  bandColor,
-  bodyPosition = undefined,
-  label = undefined,
-  actions = undefined,
+  item
 }: {
   bodyWidth?: number;
-  bandColor?: string;
-  bodyPosition?: {
-    x: number;
-    y: number;
-  };
-  label?: string;
-  actions?: Array<{ type: 'tell' | 'emotion' | 'think'; content: string }>;
+  item: ComicGridItem;
 }) {
+
+  const {comicStyle, comicGridSize} = useComicStyle();
+
+  const getFigureColor = useGetFigureColor();
+
   // Calculate scale factor based on bodyWidth relative to pivot width
   const scale = bodyWidth / PAWN_SVG_PIVOT_WIDTH;
 
-  const emotions = actions?.filter((action) => action.type === 'emotion');
+  const emotions = item.action?.filter((action) => action.type === 'emotion');
+
+  const bandColor = getFigureColor(item);
+
+  const label = item.content;
+
+  const bodyPositionX = comicGridSize /2;
+  const bodyPositionY = comicGridSize /2;
 
   // Calculate new SVG dimensions
   const scaledWidth = 55.13 * scale;
@@ -48,13 +54,9 @@ export function Pawn({
     <View
       style={{
         opacity: 0.75,
-        ...(bodyPosition
-          ? {
-              position: 'absolute',
-              left: bodyPosition.x - PAWN_SVG_PIVOT_X * scale,
-              top: bodyPosition.y - PAWN_SVG_PIVOT_Y * scale,
-            }
-          : undefined),
+        position: 'absolute',
+        left: bodyPositionX - PAWN_SVG_PIVOT_X * scale,
+        top: bodyPositionY - PAWN_SVG_PIVOT_Y * scale,
       }}
     >
       <PawnSVG
@@ -70,8 +72,8 @@ export function Pawn({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            left: (bodyPosition?.x || 0) - bodyWidth / 2,
-            right: (bodyPosition?.x || 0) - bodyWidth / 2,
+            left: bodyPositionX - bodyWidth / 2,
+            right: bodyPositionX - bodyWidth / 2,
             bottom: scaledHeight + 2, // 피규어 머리 위에 위치 (bottom 기준)
           }}
         >
@@ -85,7 +87,7 @@ export function Pawn({
                   padding: 4,
                   borderRadius: 8,
                   marginBottom: 2,
-                  fontSize: 11,
+                  fontSize: comicStyle.emotionFontSize,
                   textAlign: 'center',
                   color: 'black',
                   ...styleTemplates.withSemiboldFont,
@@ -97,7 +99,7 @@ export function Pawn({
           <Text
             className="p-1 rounded-md text-center"
             style={{
-              fontSize: 10,
+              fontSize: comicStyle.pawnNameFontSize,
               backgroundColor: bandColor,
               color: bandColor !== 'transparent' ? 'white' : 'black',
               ...styleTemplates.withBoldFont,
