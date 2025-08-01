@@ -19,7 +19,7 @@ python --version  # Verify 3.12.x
 curl -sSL https://install.python-poetry.org | python3 -
 ```
 
-### 1. Node.js and Nx Setup
+### 2. Node.js and Nx Setup
 
 1. Install NVM (<https://github.com/nvm-sh/nvm>)
 2. Install latest LTS version of Node.js
@@ -37,13 +37,28 @@ nx --version  # Verify Nx version
 npm install # This will also run nx run backend:install under the hood to install python dependencies.
 ```
 
-
 ### 3. Run Setup Script
 
 Run initial setup script:
 ```bash
 npm run setup # Prepare OpenAI API Key.
 ```
+
+## Install and run `Redis`
+As a client manager for websocket, Autiverse leverages [`Redis`](https://redis.io/).
+
+- MacOS (Development) (https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/install-redis-on-mac-os/):
+    ```bash
+    brew install redis
+    brew services start redis
+    brew services info redis # Check if the redis server is running.
+    ```
+- Ubuntu (Production):
+    Follow instructions at https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/install-redis-on-linux/
+
+    ```bash
+    redis-cli # Check if you can connect to Redis console.
+    ```    
 
 
 ## Database Settings (If selected `Postgresql`)
