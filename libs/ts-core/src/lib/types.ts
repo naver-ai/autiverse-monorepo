@@ -142,11 +142,16 @@ export enum ComicGridItemType {
   Empty = "empty",
 }
 
+export interface ComicGridItemAction {
+  type: 'tell'|'emotion'|'think';
+  content: string;
+}
+
 export interface ComicGridItem {
   type: ComicGridItemType;
   content: string;
   position: [number, number];
-  action?: Array<{type: 'tell'|'emotion'|'think', content: string}>;
+  action?: Array<ComicGridItemAction>;
 }
 
 export interface ComicPanelInfo {

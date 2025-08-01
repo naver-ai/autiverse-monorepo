@@ -1,11 +1,12 @@
-import { ComicGridItemType, ComicPanelInfo, Person } from "@autiverse-monorepo/ts-core";
+import { ComicGridItem, ComicGridItemAction, ComicGridItemType, ComicPanelInfo, Person } from "@autiverse-monorepo/ts-core";
 import { View, Text, LayoutChangeEvent } from "react-native";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { styleTemplates } from "../../../styles";
-import { convertPanelGridToMatrix, getTileColor } from "../utils";
+import { calculateCalloutBounds, convertPanelGridToMatrix, getTileColor } from "../utils";
 import { Pawn } from "./Pawn";
 import { useDyad } from "../../../api/dyad";
 import { SceneObject } from "./SceneObject";
+import Color from "color";
 
 
 export const ComicPanelView = ({
@@ -40,6 +41,42 @@ export const ComicPanelView = ({
     }
   }, [panelSize])
 
+  const getFigureColor = (tile: ComicGridItem) => {
+    if(tile.content === '나') {
+      return dyad?.avatar_config?.color || 'transparent'
+    }else{
+      const person = dyad?.people.find((person: Person) => person.name === tile.content);
+      return person?.avatar_config?.color || 'transparent'
+    }
+  }
+
+  const matrix = useMemo(() => {
+    return convertPanelGridToMatrix(panel.grid);
+  }, [panel.grid])
+
+  const callouts = useMemo(() => {
+    const figures = panel.grid.filter((item: ComicGridItem) => item.type === ComicGridItemType.Figure);
+    const figuresWithCallouts = figures.filter((item: ComicGridItem) => item.action?.some((action) => action.type === 'tell' || action.type === 'think'));
+    const actionsWithItem: Array<{item: ComicGridItem, action: ComicGridItemAction}> = []
+    figuresWithCallouts.forEach((item: ComicGridItem) => {
+      item.action?.forEach((action) => {
+        if(action.type === 'tell' || action.type === 'think') {
+          actionsWithItem.push({item, action})
+        }
+      })
+    })
+
+    const bounds = calculateCalloutBounds(actionsWithItem, matrix)
+    
+    return actionsWithItem.map((action, index) => {
+      return {
+        ...action,
+        bounds: bounds[index]
+      }
+    })
+
+  }, [panel.grid, matrix])
+
   return (
     <View
       className={`flex-1 mx-1 p-2 bg-white rounded-lg ${isHighlighted ? 'border-orange-300 border-4' : 'border-gray-200'}`}
@@ -65,13 +102,7 @@ export const ComicPanelView = ({
       onLayout={onLayoutPanelArea}>
         <View style={{ width: effectivePanelSize, height: effectivePanelSize, position: 'relative' }}>
           {/* backend에서 받은 layout 데이터를 5x5 grid로 변환 */}
-          {panel?.grid && panel.grid.length > 0 ? (
-            // 5x5 빈 그리드 생성 후 layout 데이터로 채우기
-            (() => {
-              const grid = convertPanelGridToMatrix(panel.grid);
-
-              // 5x5 grid 렌더링
-              return grid.map((row, y) => (
+          {matrix.length > 0 ? matrix.map((row, y) => (
                 <View key={y} style={{ flexDirection: 'row', height: gridSize }}>
                   {row.map((tile: any, x: number) => {
                     // 빈 셀이거나 내용이 없으면 렌더링하지 않음
@@ -90,9 +121,6 @@ export const ComicPanelView = ({
 
                     // figure 타입이면 Pawn 컴포넌트 표시
                     if (tile.type === 'figure' || tile.content === '나') {
-
-                      const person = dyad?.people.find((person: Person) => person.name === tile.content);
-                      const color = tile.content === '나' ? dyad?.avatar_config?.color : person?.avatar_config?.color || 'transparent'
                       return (
                         <View
                           key={`${x}-${y}`}
@@ -105,7 +133,7 @@ export const ComicPanelView = ({
                         >
                           <Pawn 
                             bodyWidth={gridSize-8} 
-                            bandColor={color} 
+                            bandColor={getFigureColor(tile)} 
                             bodyPosition={{x: gridSize / 2, y: gridSize / 2}} 
                             label={tile.content}
                             actions={tile.action}
@@ -118,7 +146,6 @@ export const ComicPanelView = ({
                     let tolerableLeft = 0;
                     let tolerableRight = 0;
                     if(x > 0 && row[x-1].type === ComicGridItemType.Empty){
-                      console.log('tolerableLeft 0.5', x, y, row[x-1], row[x], tile)
                       tolerableLeft = 0.5;
                     }
                     if(x < 4 && row[x+1].type === ComicGridItemType.Empty){
@@ -148,9 +175,7 @@ export const ComicPanelView = ({
                     );
                   })}
                 </View>
-              ));
-            })()
-          ) : (
+              )) : (
             // 빈 그리드 표시 (5x5)
             Array.from({ length: 5 }, (_, y) => (
               <View key={y} style={{ flexDirection: 'row', height: gridSize }}>
@@ -168,6 +193,32 @@ export const ComicPanelView = ({
               </View>
             ))
           )}
+          {/* Render emotions and callouts */}
+          { 
+            callouts.length > 0 && callouts.map((callout, index) => {
+              const color = getFigureColor(callout.item)
+              return (
+              <View key={index} style={{
+                position: 'absolute',
+                left: callout.bounds.x * gridSize,
+                right: gridSize * 5 - (callout.bounds.x2+1) * gridSize,
+                top: callout.bounds.y * gridSize,
+                bottom: gridSize * 5 - (callout.bounds.y2+1) * gridSize,
+                backgroundColor: Color(color).alpha(0.3).rgb().string(),
+                padding: 4,
+                borderRadius: 12,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 2,
+                borderStyle: callout.action.type === 'think' ? 'dashed' : 'solid',
+                borderColor: Color(color).darken(0.2).desaturate(0.2).alpha(0.5).rgb().string()
+              }}>
+                <Text className="text-black text-center" style={styleTemplates.withSemiboldFont}><Text className="text-lg">{callout.action.type === 'think' ? '💭' : '💬'}</Text> <Text className="text-sm">{callout.action.content}</Text></Text>
+              </View>
+            )
+          })
+          }
         </View>
 
           

@@ -9,46 +9,18 @@ export const SceneObject = ({children, item, gridSize, tolerableLeft=0, tolerabl
     
 
     // Calculate adjusted position based on tolerable values
-    const calculateAdjustedPosition = () => {
-        const baseLeft = (pivotPosition?.x || 0) - gridSize / 2
-        
+    const {left, right} = useMemo(() => {
         // Calculate how much the object can extend beyond the grid boundaries
         const maxLeftExtension = tolerableLeft * gridSize
         const maxRightExtension = tolerableRight * gridSize
         
         // Adjust left position to respect tolerable boundaries
-        let adjustedLeft = baseLeft
         
-        // If object extends too far to the left, adjust it
-        if (baseLeft < -maxLeftExtension) {
-            adjustedLeft = -maxLeftExtension
-        }
-        
-        // If object extends too far to the right, adjust it
-        const rightBoundary = gridSize - maxRightExtension
-        if (baseLeft + gridSize > rightBoundary) {
-            adjustedLeft = rightBoundary - gridSize
-        }
-        
-        // Calculate right position based on tolerableRight
-        const baseRight = gridSize - (pivotPosition?.x || 0) - gridSize / 2
-        let adjustedRight = baseRight
-        
-        // If object extends too far to the right, adjust it
-        if (baseRight < -maxRightExtension) {
-            adjustedRight = -maxRightExtension
-        }
-        
-        // If object extends too far to the left, adjust it
-        const leftBoundary = gridSize - maxLeftExtension
-        if (baseRight + gridSize > leftBoundary) {
-            adjustedRight = leftBoundary - gridSize
-        }
-        
-        return { left: adjustedLeft, right: adjustedRight }
-    }
+        let adjustedLeft = -maxLeftExtension
+        let adjustedRight = -maxRightExtension
 
-    const position = calculateAdjustedPosition()
+        return { left: adjustedLeft, right: adjustedRight }
+        }, [tolerableLeft, tolerableRight, gridSize])
 
     const backgroundColor = useMemo(() => {
         return Color(getTileColor(item)).alpha(0.8).rgb().string()
@@ -57,8 +29,8 @@ export const SceneObject = ({children, item, gridSize, tolerableLeft=0, tolerabl
     return (
         <View style={{
             position: 'absolute',
-            left: position.left,
-            right: position.right,
+            left,
+            right,
             top: (pivotPosition?.y || 0) - gridSize / 2,
             minWidth: gridSize,
             height: gridSize,

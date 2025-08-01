@@ -1,20 +1,13 @@
-import { ComicGridItem, ComicGridItemType, ComicPanelInfo, CompleteComicData, IncompleteComicData } from '@autiverse-monorepo/ts-core';
+import { ComicGridItem, ComicGridItemAction, ComicGridItemType, ComicPanelInfo, CompleteComicData, IncompleteComicData } from '@autiverse-monorepo/ts-core';
 import colors from 'tailwindcss/colors';
-
-export interface ComicGridTile {
-  type: string;
-  content: string;
-  position: [number, number];
-  action?: Array<{type: 'tell'|'emotion'|'think', content: string}>;
-}
 
 /**
  * 5x5 빈 그리드 생성
  */
-export const createEmptyGrid = (): ComicGridTile[][] => {
+export function createEmptyGrid(): ComicGridItem[][] {
   return Array.from({ length: 5 }, () =>
     Array.from({ length: 5 }, () => ({
-      type: 'empty',
+      type: ComicGridItemType.Empty,
       content: '',
       position: [0, 0],
     }))
@@ -26,7 +19,7 @@ export const createEmptyGrid = (): ComicGridTile[][] => {
  * @param panelGrid - 백엔드에서 받은 grid 데이터
  * @returns 5x5 그리드 배열
  */
-export const convertPanelGridToMatrix = (panelGrid: ComicGridItem[]): ComicGridTile[][] => {
+export function convertPanelGridToMatrix(panelGrid: ComicGridItem[]): ComicGridItem[][] {
   // 5x5 빈 그리드 생성
   const grid = createEmptyGrid();
   
@@ -52,7 +45,7 @@ export const convertPanelGridToMatrix = (panelGrid: ComicGridItem[]): ComicGridT
     const safeY = isNaN(y) ? 0 : Math.max(0, Math.min(4, Math.floor(y)));
     
     grid[safeY][safeX] = {
-      type: item.type || 'empty',
+      type: item.type || ComicGridItemType.Empty,
       content: item.content || '',
       position: [safeX, safeY],
       action: item.action, // action 정보도 포함
@@ -62,12 +55,106 @@ export const convertPanelGridToMatrix = (panelGrid: ComicGridItem[]): ComicGridT
   return grid;
 };
 
+export function calculateCalloutBounds(callouts: Array<{item: ComicGridItem, action: ComicGridItemAction}>, 
+    tiles: ComicGridItem[][]): Array<{x: number, y: number, x2: number, y2: number}> {
+  const result: Array<{x: number, y: number, x2: number, y2: number}> = [];
+  const occupiedPositions = new Set<string>(); // 이미 사용된 위치 추적
+  
+  callouts.forEach((callout) => {
+    const [itemX, itemY] = callout.item.position || [0, 0];
+    
+    // item 위치 주변의 가능한 위치들을 우선순위 순으로 정렬
+    const possiblePositions = [];
+    
+    // 1. item 바로 옆 위치들 (상하좌우)
+    const adjacentPositions = [
+      [itemX + 1, itemY], // 오른쪽
+      [itemX - 1, itemY], // 왼쪽
+      [itemX, itemY + 1], // 아래
+      [itemX, itemY - 1], // 위
+    ];
+    
+    // 2. item 대각선 위치들
+    const diagonalPositions = [
+      [itemX + 1, itemY + 1], // 오른쪽 아래
+      [itemX + 1, itemY - 1], // 오른쪽 위
+      [itemX - 1, itemY + 1], // 왼쪽 아래
+      [itemX - 1, itemY - 1], // 왼쪽 위
+    ];
+    
+    // 3. 더 멀리 있는 위치들 (2칸 거리)
+    const distantPositions = [
+      [itemX + 2, itemY], [itemX - 2, itemY], [itemX, itemY + 2], [itemX, itemY - 2],
+      [itemX + 2, itemY + 1], [itemX + 2, itemY - 1], [itemX - 2, itemY + 1], [itemX - 2, itemY - 1],
+      [itemX + 1, itemY + 2], [itemX - 1, itemY + 2], [itemX + 1, itemY - 2], [itemX - 1, itemY - 2],
+    ];
+    
+    // 우선순위 순으로 가능한 위치들을 추가
+    possiblePositions.push(...adjacentPositions, ...diagonalPositions, ...distantPositions);
+    
+    // 유효한 위치 찾기
+    let selectedPosition: [number, number] | null = null;
+    
+    for (const [x, y] of possiblePositions) {
+      // 그리드 범위 내에 있는지 확인
+      if (x < 0 || x >= 5 || y < 0 || y >= 5) continue;
+      
+      // 빈 타일인지 확인
+      if (tiles[y][x].type !== ComicGridItemType.Empty) continue;
+      
+      // 이미 사용된 위치인지 확인
+      const positionKey = `${x},${y}`;
+      if (occupiedPositions.has(positionKey)) continue;
+      
+      selectedPosition = [x, y];
+      break;
+    }
+    
+    // 만약 위의 위치들이 모두 사용 중이라면, 남은 빈 타일 중에서 가장 가까운 위치 찾기
+    if (!selectedPosition) {
+      let minDistance = Infinity;
+      
+      for (let y = 0; y < 5; y++) {
+        for (let x = 0; x < 5; x++) {
+          if (tiles[y][x].type !== ComicGridItemType.Empty) continue;
+          
+          const positionKey = `${x},${y}`;
+          if (occupiedPositions.has(positionKey)) continue;
+          
+          // Manhattan distance 계산
+          const distance = Math.abs(x - itemX) + Math.abs(y - itemY);
+          if (distance < minDistance) {
+            minDistance = distance;
+            selectedPosition = [x, y];
+          }
+        }
+      }
+    }
+    
+    // 위치를 찾았다면 결과에 추가하고 사용된 위치로 표시
+    if (selectedPosition) {
+      const [x, y] = selectedPosition;
+      const positionKey = `${x},${y}`;
+      occupiedPositions.add(positionKey);
+      
+      result.push({
+        x: x,
+        y: y,
+        x2: x + 1,
+        y2: y + 1
+      });
+    }
+  });
+  
+  return result;
+}
+
 /**
  * 타일 타입별 색상 반환
  * @param type - 타일 타입
  * @returns 색상 코드
  */
-export const getTileColor = (item: ComicGridItem): string => {
+export function getTileColor(item: ComicGridItem): string {
   if(item.content === '나') {
     return colors.orange[400];  // 연한 주황색 (인물)
   }
@@ -84,7 +171,7 @@ export const getTileColor = (item: ComicGridItem): string => {
   }
 };
 
-export const convertComicDataToPanels = (comicData: IncompleteComicData): CompleteComicData => {
+export function convertComicDataToPanels(comicData: IncompleteComicData): CompleteComicData {
   const panels: Record<string, any> = {};
 
   // 1-4 패널을 루프로 처리
