@@ -17,6 +17,7 @@ reload = False
 worker_class = "uvicorn.workers.UvicornWorker"
 accesslog=path.join(getcwd(), '../../logs/access.log')
 errorlog=path.join(getcwd(), '../../logs/error.log')
+capture_output = True
 
 keyfile = os.getenv('PRODUCTION_CERTIFICATE_KEY_PATH', None)
 certfile = os.getenv('PRODUCTION_CERTIFICATE_PATH', None)
