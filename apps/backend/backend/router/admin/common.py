@@ -27,8 +27,6 @@ async def check_admin_credential(token: Annotated[str, Depends(oauth2_scheme)])-
         payload = jwt.decode(token, get_env_variable(EnvironmentVariables.APP_AUTH_SECRET), algorithms=['HS256'])
         admin_id = payload.get("sub")
 
-        print(payload, get_env_variable(EnvironmentVariables.ADMIN_ID))
-
         if admin_id == get_env_variable(EnvironmentVariables.ADMIN_ID):
             return True
         else:

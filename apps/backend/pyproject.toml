@@ -46,6 +46,7 @@ readme = 'README.md'
   psycopg2-binary = "^2.9.10"
   gunicorn = "^23.0.0"
   i18next = "^0.0.3"
+  redis = {extras=["async"], version = "^6.2.0"}
 
   [tool.poetry.group.dev.dependencies]
   autopep8 = "2.3.1"

@@ -2,40 +2,38 @@
   "name": "mobile",
   "version": "0.0.1",
   "private": true,
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "android": "expo run:android",
     "ios": "expo run:ios"
   },
   "dependencies": {
+    "@expo/config-plugins": "*",
     "@react-native-async-storage/async-storage": "^2.2.0",
+    "@shopify/flash-list": "*",
     "axios": "^1.10.0",
     "expo": "*",
+    "expo-application": "*",
     "expo-audio": "*",
     "expo-av": "~15.1.7",
+    "expo-device": "*",
     "expo-file-system": "^18.1.11",
     "expo-font": "*",
+    "expo-haptics": "*",
     "expo-image": "*",
+    "expo-linear-gradient": "*",
     "expo-linking": "*",
     "expo-localization": "*",
-    "expo-linear-gradient": "*",
     "expo-router": "*",
     "expo-secure-store": "*",
     "expo-speech": "~13.1.7",
     "react": "*",
     "react-native": "*",
     "react-native-gesture-handler": "*",
+    "react-native-permissions": "*",
     "react-native-reanimated": "*",
     "react-native-safe-area-context": "*",
     "react-native-screens": "*",
-    "react-native-svg": "*",
-    "expo-device": "*",
-    "expo-application": "*",
-    "expo-haptics": "*",
-    "react-native-permissions": "*",
-    "@shopify/flash-list": "*"
-  },
-  "devDependencies": {
-    "@react-native-community/cli": "^19.1.0"
+    "react-native-svg": "*"
   }
 }

@@ -13,7 +13,6 @@ def get_dyad_by_passcode(db: Session, passcode: str) -> Optional[Dyad]:
 def get_dyad_by_id(db: Session, dyad_id: str) -> Optional[Dyad]:
     """dyad_id로 dyad 조회"""
     dyads = db.query(Dyad).all()
-    print(dyads)
     return db.get(Dyad, dyad_id)
 
 def get_dyad_places(db: Session, dyad_id: str) -> List[Place]:

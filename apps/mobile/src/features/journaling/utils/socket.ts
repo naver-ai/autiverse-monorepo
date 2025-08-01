@@ -25,6 +25,10 @@ export class SocketManager {
 
   private static socketUrl: string = ""
 
+  public get url(): string {
+    return SocketManager.socketUrl;
+  }
+
   private static verbose = true;
 
   private _eventSubject = new Subject<{ event: string; data: any }>();

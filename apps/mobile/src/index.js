@@ -3,9 +3,9 @@ import { initReactI18next } from 'react-i18next';
 import * as SplashScreen from 'expo-splash-screen';
 import { NetworkHelper } from '@autiverse-monorepo/ts-core';
 import * as Localization from 'expo-localization';
-import { isAndroidEmulator } from './src/core/device';
+import { isAndroidEmulator } from './core/device';
 import { UserLocale } from '@autiverse-monorepo/ts-core';
-import { SocketManager } from './src/features/journaling/utils/socket';
+import { SocketManager } from './features/journaling/utils/socket';
 
 console.log("Starting mobile app in debug mode:", __DEV__);
 
@@ -20,7 +20,7 @@ NetworkHelper.init(
 )
 
 SocketManager.init(
-    process.env.EXPO_PUBLIC_USE_HTTPS == "1" ? "wss" : "ws",
+    protocol == 'https' ? "wss" : "ws",
     __DEV__ ? (isAndroidEmulator() ? '10.0.2.2' : (process.env.EXPO_PUBLIC_BACKEND_HOSTNAME_DEV || 'localhost')) : process.env.EXPO_PUBLIC_BACKEND_HOSTNAME,
     __DEV__ ? 3000 : process.env.EXPO_PUBLIC_BACKEND_PORT,
   "dyad",

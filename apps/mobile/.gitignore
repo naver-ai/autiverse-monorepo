@@ -1,2 +1,6 @@
 ios/
 android/
+
+*.aab
+*.apk
+*.ipa

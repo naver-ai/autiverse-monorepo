@@ -31,7 +31,6 @@ async def get_dyads(db: Annotated[AsyncSession, Depends(with_db_session)]):
 
     dyads = [dyad.to_sharable() for dyad in dyads]
 
-    print(dyads)
     return dyads
 
 

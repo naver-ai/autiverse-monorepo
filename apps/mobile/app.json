@@ -18,7 +18,8 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.naver.ai.autiverse"
+      "bundleIdentifier": "com.naver.ai.autiverse",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
@@ -28,7 +29,8 @@
       "package": "com.naver.ai.autiverse",
       "permissions": [
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "versionCode": 4
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -56,9 +58,14 @@
           "microphonePermission": "음성인식을 위해 마이크 권한이 필요합니다."
         }
       ],
-      ["react-native-permissions", {
-        "iosPermissions": ["Microphone"]
-      }]
+      [
+        "react-native-permissions",
+        {
+          "iosPermissions": [
+            "Microphone"
+          ]
+        }
+      ]
     ],
     "userInterfaceStyle": "light",
     "scheme": "autiverse-mobile",

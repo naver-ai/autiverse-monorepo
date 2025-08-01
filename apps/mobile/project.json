@@ -1,0 +1,49 @@
+{
+    "name": "mobile",
+    "$schema": "../../node_modules/nx/schemas/project-schema.json",
+    "sourceRoot": "apps/mobile",
+    "projectType": "application",
+    "targets": {
+      "start": {
+        "executor": "@nx/expo:start",
+        "options": {
+          "clear": true
+        }
+      },
+      "android": {
+        "executor": "@nx/expo:start",
+        "options": {
+          "platform": "android"
+        }
+      },
+      "ios": {
+        "executor": "@nx/expo:start",
+        "options": {
+          "platform": "ios"
+        }
+      },
+  
+      "build": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "npx eas build",
+          "cwd": "{projectRoot}"
+        },
+        "configurations": {
+          "ios": {
+            "command": "npx eas build --platform ios"
+          },
+          "android": {
+            "command": "npx eas build --platform android"
+          },
+          "ios-locally": {
+            "command": "npx eas build --platform ios --local"
+          },
+          "android-locally": {
+            "command": "npx eas build --platform android --local"
+          }
+        }
+      }
+    },
+    "tags": []
+  } 
