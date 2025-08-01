@@ -1,7 +1,7 @@
 /// <reference types='vitest' />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
+import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import { loadEnv } from 'vite';
 import { join } from 'path';
 
@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => {
   return {
     root: __dirname,
     cacheDir: '../../node_modules/.vite/apps/admin-web',
+    base: process.env.NODE_ENV === 'production' ? '/admin/' : undefined,
     server: {
       port: 8888,
       host: 'localhost',
@@ -21,7 +22,7 @@ export default defineConfig(({ mode }) => {
       host: 'localhost',
     },
     plugins: [
-      TanStackRouterVite({
+      tanstackRouter({
         target: 'react',
         autoCodeSplitting: true,
         routesDirectory: "./src/routes",
