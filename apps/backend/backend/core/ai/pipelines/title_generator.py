@@ -21,7 +21,7 @@ class TitleGenerator:
         self.client = openai.OpenAI()
         self.llm = ChatOpenAI(
             model="gpt-4.1-mini-2025-04-14",
-            temperature=0.2,
+            temperature=0.1,
             api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
         )
         self.title_parser = PydanticOutputParser(pydantic_object=TitleResult)
@@ -59,9 +59,9 @@ OUTPUT FORMAT:
 Return a JSON object with "title1", "title2", and "title3" fields containing three different title options.
 
 Examples:
-- {{"title1": "민수랑 학교에서 게임한 날 🏫", "title2": "민수랑 재미있게 논 날 😊", "title3": "학교에서 민수랑 즐거운 시간 🎮"}}
-- {{"title1": "우리 강아지와 산책한 날 🐕", "title2": "강아지랑 공원에서 논 날 🌳", "title3": "강아지랑 산책 🦮"}}
-- {{"title1": "진영이랑 숨바꼭질 재미있게 한 날 😊", "title2": "진영이랑 신나는 숨바꼭질 🎯", "title3": "진영이랑 숨바꼭질 대박 재밌었던 날 😄"}}
+- {{"title1": "민수랑 학교에서 게임한 날🏫", "title2": "민수랑 재미있게 논 날😊", "title3": "학교에서 민수랑 즐거운 시간🎮"}}
+- {{"title1": "우리 강아지와 산책한 날🐕", "title2": "강아지랑 공원에서 논 날🌳", "title3": "강아지랑 산책🦮"}}
+- {{"title1": "진영이랑 숨바꼭질 재미있게 한 날😊", "title2": "진영이랑 신나는 숨바꼭질🎯", "title3": "진영이랑 숨바꼭질 대박 재밌었던 날😄"}}
 
 Generate three structured title options in JSON format."""
 

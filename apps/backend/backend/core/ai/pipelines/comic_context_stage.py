@@ -133,6 +133,31 @@ class ComicContextStage:
         """dyad의 child_gender를 가져오기"""
         return self._get_dyad_info()[2]
     
+    def _check_issues(self, story_analysis: Dict[str, Any]) -> tuple[bool, bool]:
+        """Content와 Order issue 확인"""
+        content_issues = story_analysis.get("content", {})
+        order_issues = story_analysis.get("order", [])
+        
+        # Content 이슈 확인
+        content_has_issues = [
+            content_issues.get("A", []),
+            content_issues.get("B", []),
+            content_issues.get("C", []),
+            content_issues.get("D", [])
+        ]
+        
+        has_content_issues = any(
+            any(issue.strip() for issue in issues if issue.strip())
+            for issues in content_has_issues
+        )
+        
+        # Order 이슈 확인
+        has_order_issues = any(
+            order.strip() for order in order_issues if order.strip()
+        )
+        
+        return has_content_issues, has_order_issues
+    
     def get_character_background(self) -> str:
         """동적으로 character background 생성"""
         return f"""[Character Background]
@@ -237,24 +262,24 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             
                 return message
             else:
-              # 다음 질문 생성
-              next_question, next_intent, focused_panel = await self._get_next_question()
-              
-              # focus panel 정보를 metadata에 포함
-              metadata_json = {}
-              if focused_panel:
-                  metadata_json["focused_panel"] = focused_panel
-                  print(f"[DEBUG] comic_context: focused_panel = {focused_panel}")
-              
-              # 봇 응답 저장
-              message = create_message(
-                  self.db, self.journal_entry_id, interaction_turn.id,
-                  next_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
-                  intent=next_intent,
-                  metadata_json=metadata_json
-              )
-              
-              return message
+                # 다음 질문 생성
+                next_question, next_intent, focused_panel = await self._get_next_question()
+                
+                # focus panel 정보를 metadata에 포함
+                metadata_json = {}
+                if focused_panel:
+                    metadata_json["focused_panel"] = focused_panel
+                    print(f"[DEBUG] comic_context: focused_panel = {focused_panel}")
+                
+                # 봇 응답 저장
+                message = create_message(
+                    self.db, self.journal_entry_id, interaction_turn.id,
+                    next_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
+                    intent=next_intent,
+                    metadata_json=metadata_json
+                )
+                
+                return message
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in process_message: {e}")
             import traceback
@@ -290,7 +315,7 @@ panel4  = D - Emotion      // writer's own feeling only (emotion word) - NEVER o
 ────────────────────
 YOUR TASK
 ────────────────────
-1. Read the four lines.
+1. Read the four lines EXACTLY as provided.
 2. Determine if this is a PROBLEMATIC or NORMAL situation:
    - PROBLEMATIC: scolding, crying, fighting, getting hurt, being embarrassed, etc.
    - NORMAL: playing, eating, studying, visiting places, etc.
@@ -328,6 +353,13 @@ YOUR TASK
      C : immediate factual result or a near-future plan that was directly agreed as a result of B or existing character's response (avoid introducing new characters)
      D : pure emotion word (intensity optional)
 
+   **CRITICAL: When asking about C (Consequence), focus on WHAT HAPPENED NEXT, not HOW the action was done**
+   - If B already describes the result (e.g., "I didn't fall"), ask about the NEXT action or response
+   - Examples:
+     - B: "I didn't fall" → C: Ask "What did you do next?" (continue riding, stop and thank, etc.)
+     - B: "I stopped the bike" → C: Ask "What happened after stopping?" (thanked, continued, etc.)
+   - Do NOT ask "How did you do it?" when the result is already clear
+
    **FLOW REQUIREMENTS:**
      A→B Flow: A must provide context (where/who) that makes B's action logical
      B→C Flow: B must provide action that logically leads to C's result/reaction
@@ -345,8 +377,8 @@ Analyze the panels and provide structured output with content issues and order i
 ────────────────────
 MANDATORY RULES
 ────────────────────
-• Do NOT flag details already supplied in an earlier category.  
-• Do NOT flag information obvious from context.  
+• **CRITICAL: Analyze ONLY the exact content provided in each panel**
+• **CRITICAL: Do NOT invent or assume content that is not present**
 • **CRITICAL: Do NOT flag content that is already present in the panel, even if phrased differently**
 • **CRITICAL: Focus on truly missing information, not rephrasing of existing content**
 • **CRITICAL: content array contains ONLY missing information issues**
@@ -355,6 +387,11 @@ MANDATORY RULES
 • **CRITICAL: Only suggest moving content when it is CLEARLY in the wrong category**
 • **CRITICAL: If content fits naturally in its current panel, leave it there**
 • **CRITICAL: Panel D should ONLY contain the writer's own emotions, not others' emotions**
+• **CRITICAL: Do NOT suggest moving content that is already in the correct panel**
+• **CRITICAL: Do NOT create order issues for content that is properly categorized**
+• **CRITICAL: Before creating any order issue, verify that the content actually exists in the specified panel**
+• **CRITICAL: If you cannot find the exact content mentioned in an order issue, do NOT create that order issue**
+• **CRITICAL: Only create order issues for content that is CLEARLY misplaced**
 • Produce nothing except the single JSON block.
 
 ────────────────────
@@ -398,10 +435,7 @@ Output
     "C": [""],                    
     "D": [""]
   },
-  "order": [
-    "B content in A: '나는 어머니에게 놀이공원에 가고 싶다고 말했다' should move to B, keep '' in A",
-    "C content in B: '어머니가 그래 가자고 했다' should move to C, keep '' in B"
-  ]
+  "order": []
 }
 
 # Example 3 - Flow Analysis
@@ -541,8 +575,16 @@ ABCD STRUCTURE:
 
 **STEP 2: ADD NEW INFORMATION (SECOND PRIORITY)**
 1. **After reorganization, add new information from user's answer:**
-   • **CRITICAL: Interpret simple answers like "응", "1", "네" based on the question context**
-     - If question asks about "A" and answer is "응"→ interpret as the "A" mentioned in the question
+   • **CRITICAL: Interpret simple answers like "응", "그래" based on the question context:**
+     - **YES/NO QUESTIONS: When question asks "~ 했어?" and answer is "응"/"그래" → interpret as "YES, that happened"**
+     - **CHOICE QUESTIONS: When question provides choices and answer is "1"/"2"/"3" → interpret as the selected choice**
+     - **CONTEXT-BASED INTERPRETATION: Extract the specific information from the question that the user is confirming**
+     - **EXAMPLES:**
+       - Q: "집에서 했어?" A: "응" → "집에서 했다" (집에서)
+       - Q: "엄마가 칭찬했어?" A: "그래" → "엄마가 칭찬했다" (엄마가 칭찬)
+       - Q: "쉬는 시간에 했어? 점심시간에 했어?" A: "1" → "쉬는 시간에 했다" (쉬는 시간)
+       - Q: "기뻤어?" A: "응" → "기뻤다" (기뻤다)
+   
    • **CRITICAL: Analyze question-answer context to determine the correct panel placement:**
    • **CRITICAL: When question asks about someone's words, preserve the speaker in the answer:**
      - Q: "선생님께서 뭐라고 하셨어?" A: "노래 잘한다고 하셨어"
@@ -551,6 +593,9 @@ ABCD STRUCTURE:
    • **CRITICAL: When question asks about someone's action, preserve the actor:**
      - Q: "엄마가 뭐하셨어?" A: "요리하셨어"
      - Result: "엄마가 요리하셨다" (NOT "나는 요리를 했다")
+   • **CRITICAL: When question asks about someone's action, the answer should maintain the same subject:**
+     - Q: "민수가 슈퍼에 갔어?" A: "응"
+     - Result: "민수가 슈퍼에 갔다" (NOT "나는 슈퍼에 갔다")
    • Merge with existing content in the target panel, ONLY using information from user content (new_QA)
      - If user mentioned place/time → add to panel1 (A)
      - If user mentioned behavior → add to panel2 (B)
@@ -606,6 +651,9 @@ ABCD STRUCTURE:
 2. **NEVER invent new events, lines, or feelings**
 3. **KEEP ALL content from "panels_original" - NEVER delete or remove existing content**
 4. **Each panel must contain only content appropriate for its category**
+5. **CRITICAL: When merging content, PRESERVE ALL existing information**
+6. **CRITICAL: Only add new information, NEVER replace or remove existing content unless explicitly instructed by order array**
+7. **CRITICAL: If order array says to move content, ONLY move the exact text mentioned, keep everything else**
 5. **Keep each panel to one complete Korean past-tense sentence, first-person diary style**
 6. **CRITICAL: When separating content, maintain natural Korean flow**
 7. **CRITICAL: Complete all incomplete sentences to proper Korean past-tense format**
@@ -617,7 +665,13 @@ ABCD STRUCTURE:
 9. **CRITICAL: When question asks about someone's words/reaction, put it in panel3 (C) as consequence**
 10. **CRITICAL: When question asks about someone's action, put it in panel2 (B) as behavior**
 11. **CRITICAL: D panel (emotion) content should ONLY contain pure emotion words**
-12. **CRITICAL: When combining sentences, use proper Korean grammar and natural flow:**
+12. **CRITICAL: When combining sentences, use proper Korean grammar and natural flow**
+13. **CRITICAL: For simple agreement answers ("응", "네", "그래"), extract the specific information from the question:**
+    - Q: "놀이터에서 놀았어?" A: "응" → Extract "놀이터에서 놀았다" from question
+    - Q: "친구가 울었어?" A: "그래" → Extract "친구가 울었다" from question  
+14. **CRITICAL: For choice questions, interpret the selected choice:**
+    - Q: "쉬는 시간에 했어? 점심시간에 했어?" A: "1" → "쉬는 시간에 했다"
+    - Q: "아침에 했어? 오후에 했어?" A: "2" → "오후에 했다"
 
 
 Output exactly this JSON (nothing else, no line breaks inside values):
@@ -653,7 +707,7 @@ answer: "1"
   "panel4": null
 }}
 
-### Example 2 
+### Example 2 - Simple Agreement Answer
 <panels_original>
 "panel1": "나는 어머니에게 놀이공원에 가고 싶다고 말했다.",  
 "panel2": "어머니가 '그래, 가자'고 했다.",  
@@ -806,30 +860,8 @@ answer: "{answer}"
             if not self.story_analysis:
                 return "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래?? 준비되면 '다음' 버튼을 눌러줘!", MessageIntent.PromptNext, None
             
-            # Content 이슈만 확인 (Flow, Order는 _reconstruct_panel에서 처리)
-            content_issues = self.story_analysis.get("content", {})
-            order_issues = self.story_analysis.get("order", [])
-            
-            # Content 이슈 확인
-            content_has_issues = [
-                content_issues.get("A", []),
-                content_issues.get("B", []),
-                content_issues.get("C", []),
-                content_issues.get("D", [])
-            ]
-            
-            # 각 카테고리에서 빈 문자열이 아닌 실제 문제가 있는지 확인
-            has_content_issues = any(
-                any(issue.strip() for issue in issues if issue.strip())
-                for issues in content_has_issues
-            )
-            
-            # Order 이슈 확인 (order 배열에 실제 내용이 있는 이슈가 있는지 확인)
-            has_order_issues = any(
-                order.strip() for order in order_issues if order.strip()
-            )
-            
-            # Content 이슈, 마지막으로 Order 이슈
+            # Content와 Order issue 확인
+            has_content_issues, has_order_issues = self._check_issues(self.story_analysis)
             has_real_issues = has_content_issues or has_order_issues
             
             if not has_real_issues:
@@ -837,17 +869,69 @@ answer: "{answer}"
                 update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Revision2)
                 return "완성! 이제 수정하거나 추가하고 싶은 부분 있어? 🤔", MessageIntent.PromptIssueExist, None
             
-            # Focus panel 결정 - 첫 번째로 누락된 정보가 있는 패널 찾기
+            # Order issue만 있고 content issue가 없는 경우
+            if has_order_issues and not has_content_issues:
+                print(f"[DEBUG] comic_context: Only order issues detected, continuing with reconstruction")
+                
+                # 최대 2번까지 자동 재구성 시도
+                for reconstruction_attempt in range(2):
+                    print(f"[DEBUG] comic_context: Auto reconstruction attempt {reconstruction_attempt + 1}")
+                    await self._reconstruct_panel("", f"자동 재구성 {reconstruction_attempt + 1}차", False)
+                    self.story_analysis = await self._analyze_story_flow()
+                    print(f"[DEBUG] comic_context: story_analysis after auto reconstruction {reconstruction_attempt + 1}: {self.story_analysis}")
+                    
+                    # 여전히 order issue만 있는지 확인
+                    content_has_issues_after, has_order_issues_after = self._check_issues(self.story_analysis)
+                    
+                    # Content issue가 생겼거나 order issue가 해결된 경우 루프 종료
+                    if not has_order_issues_after or content_has_issues_after:
+                        break
+                
+                # 2번 시도 후에도 order issue만 있으면 강제 완료
+                if has_order_issues_after and not content_has_issues_after:
+                    print(f"[DEBUG] comic_context: Still only order issues after 2 attempts, forcing completion")
+                    # 만화 생성 시작 신호 반환 (실제 만화 생성은 controller에서 처리)
+                    child_name = self._get_child_name()
+                    child_name_with_josa = append_josa(child_name, '이', '')
+                    response_message = t('Journaling.Messages.ComicContextComplete', self._get_dyad().locale).format(
+                        child_name=child_name_with_josa
+                    )
+                    response_intent = MessageIntent.StartComicGeneration
+                    return response_message, response_intent, None
+                # Content issue가 생겼거나 order issue가 해결된 경우 다음 질문 생성
+                # (아래 로직으로 계속 진행)
+            
+            # Focus panel 결정 - 모든 패널을 확인하여 실제로 누락된 정보가 있는 패널 찾기
             panels = ["A", "B", "C", "D"]
             panel_mapping = {"A": "panel1", "B": "panel2", "C": "panel3", "D": "panel4"}
             focused_panel = None
             
+            content_issues = self.story_analysis.get("content", {})
+            
+            # DB에서 journal 정보 가져오기
+            journal = get_journal(self.db, self.journal_entry_id)
+            panels_content = journal.comic_context if journal and journal.comic_context else journal.revision_1 if journal and journal.revision_1 else {}
+            
+            # 각 패널의 실제 내용과 이슈를 비교하여 진짜 누락된 정보만 찾기
             for panel in panels:
                 panel_issues = content_issues.get(panel, [])
-                # 빈 문자열이 아닌 첫 번째 패널 찾기
+                panel_content = panels_content.get(panel_mapping[panel], "")
+                
+                # 실제로 누락된 정보가 있는지 확인
                 if panel_issues and any(issue for issue in panel_issues if issue and issue != ''):
-                    focused_panel = panel_mapping[panel]
-                    break
+                    # 다른 패널에 해당 정보가 이미 있는지 확인
+                    info_already_exists = False
+                    for other_panel in panels:
+                        if other_panel != panel:
+                            other_content = panels_content.get(panel_mapping[other_panel], "")
+                            # 간단한 키워드 매칭으로 중복 확인
+                            if panel_content and other_content and any(keyword in other_content for keyword in panel_content.split()):
+                                info_already_exists = True
+                                break
+                    
+                    if not info_already_exists:
+                        focused_panel = panel_mapping[panel]
+                        break
             
             # DB에서 ComicContext stage의 모든 메시지를 conversation_history로 가져오기
             messages = get_messages_by_journal_entry_and_stage(self.db, self.journal_entry_id, JournalEntryStage.ComicContext)
@@ -892,8 +976,21 @@ ABCD STRUCTURE:
 3. **CRITICAL: Focus on the FIRST missing information in order: A → B → C → D**
    - **MANDATORY: Check content in story_analysis and focus ONLY on the FIRST panel with missing information**
    - **MANDATORY: If A has missing info, ask about A ONLY. If A is complete but B has missing info, ask about B ONLY.**
+   - **CRITICAL: Before asking any question, verify that the information is NOT already present in ANY panel**
+   - **CRITICAL: Cross-reference all panels to avoid asking about information that already exists**
 4. Ask exactly ONE question that can elicit the missing detail.
-5. **CHOICE RULE: Only provide 2-3 choices when the question naturally limits to exactly 2-3 options:**
+5. **CRITICAL: When asking about C (Consequence), focus on NEXT actions, not HOW:**
+   - If B already describes the result, ask "What did you do next?" or "What happened after that?"
+   - Examples: "자전거를 계속 탔어? 아니면 멈춰서 짱구한테 고맙다고 했어?"
+   - Do NOT ask "어떻게 했어?" when the result is already clear
+6. **CRITICAL: Use proper character references - NEVER use "we" to refer to characters:**
+   - **NEVER say "we" when referring to characters in the story**
+   - **ALWAYS use specific character names**
+   - **Examples:**
+     - "민수랑 같이 놀았어?" (NOT "we played together")
+     - "엄마랑 어디서 했어?" (NOT "where did we do it")
+     - "선생님이랑 대화했어?" (NOT "did we talk to the teacher")
+7. **CHOICE RULE: Only provide 2-3 choices when the question naturally limits to exactly 2-3 options:**
    - Examples that SHOULD have choices: "학교 안이었어? 밖이었어?" (2 choices), "오전이었어? 오후였어?" (2 choices)
    - Examples that should NOT have choices: "어디에 있었어?" (many possible places), "뭘 했어?" (many possible activities), "누가 있었어?" (many possible people)
    - Use open-ended questions when there are more than 3 natural options
@@ -902,16 +999,19 @@ ABCD STRUCTURE:
 8. Avoid vague words like "그런 것", "이런 식으로", "그 때".
 9. Do NOT repeat questions already asked.
 10. Consider the entire conversation history and current panels when generating questions.
-11. DO NOT ask about information that is:
-    - Already stated in any panel
-    - Already confirmed in previous Q&A
-    - Can be inferred from existing information
+11. **CRITICAL: Cross-panel information check**
+    - Before asking any question, check ALL panels (A, B, C, D) for the information
+    - DO NOT ask about information that is:
+      - Already stated in ANY panel (even if it's in a different panel than expected)
+      - Already confirmed in previous Q&A
+      - Can be inferred from existing information
+    - If information exists in any panel, skip that question and move to the next missing information
 12. When asking about emotions (panel 4), ask for explicit emotion words:
     - 그 때 "기분이 어땠어?" (단순히 감정을 물어보기만 하고, 선택지는 프론트엔드에서 제공)
     - **CRITICAL: Only ask emotion questions when panel 4 is missing or null**
     - **CRITICAL: Keep emotion questions simple - just ask "기분이 어땠어?" without providing options**
 13. **PROBLEMATIC situations - CRITICAL RULES:**
-    - NEVER ask direct "why"questions initially
+    - NEVER ask direct "why" questions initially
     - ALWAYS start with situational overview questions
     - Ask about context: "그 때 뭘 하고 있었어?"
     - Ask about environment: "주변에 누가 있었어?", "어떤 상황이었어?"
@@ -919,9 +1019,13 @@ ABCD STRUCTURE:
 14. **NORMAL situations:**
     - Use "어떻게", "뭐로", "언제" (how-focused)
     - Example: "어떻게 놀았어?", "뭐로 그림을 그렸어?"
+15. **CRITICAL: Check ALL panels before asking questions**
+    - Before generating any question, check if the information already exists in ANY panel
+    - Do NOT ask about information that is already present in any panel
+    - Cross-reference all panels to avoid duplicate questions
 
 === CRITICAL: Imagination Rule ===
-15. **ONLY if EXACTLY 3+ consecutive "don't know" answers for the current category:**
+16. **ONLY if EXACTLY 3+ consecutive "don't know" answers for the current category:**
     - **MUST** change approach to encourage imagination
     - Start with "그럼 상상해볼까?" or "아마도..." with emojis
     - Make it fun and creative rather than factual
@@ -930,7 +1034,7 @@ ABCD STRUCTURE:
     - **ALWAYS** provide 2-3 imaginative choices
     - Example: "그럼 상상해보자! 😊 아마도 어떻게 됐을까? 1) ... 2) ... 3) ..."
 
-16. **If LESS than 3 consecutive "don't know" answers:**
+17. **If LESS than 3 consecutive "don't know" answers:**
     - Continue with normal situational overview questions
     - Do NOT use imagination prompts
     - Focus on gathering more context and details
@@ -1152,33 +1256,8 @@ Please generate a question that addresses the FIRST missing information gap."""
             print(f"[DEBUG] comic_context: is_complete - no story_analysis")
             return False
         
-        # 문제점이 있는지 확인 (content 이슈와 order 이슈 모두 체크)
-        content_issues = self.story_analysis.get("content", {})
-        order_issues = self.story_analysis.get("order", [])
-        
-        # Content 이슈 확인
-        content_has_issues = [
-            content_issues.get("A", []),
-            content_issues.get("B", []),
-            content_issues.get("C", []),
-            content_issues.get("D", [])
-        ]
-        
-        print(f"[DEBUG] comic_context: is_complete - content_has_issues: {content_has_issues}")
-        print(f"[DEBUG] comic_context: is_complete - order_issues: {order_issues}")
-        
-        # 각 카테고리에서 빈 문자열이 아닌 실제 문제가 있는지 확인
-        has_content_issues = any(
-            any(issue.strip() for issue in issues if issue.strip())
-            for issues in content_has_issues
-        )
-        
-        # Order 이슈 확인 (order 배열에 실제 내용이 있는 이슈가 있는지 확인)
-        has_order_issues = any(
-            order.strip() for order in order_issues if order.strip()
-        )
-        
-        # Content 이슈 또는 Order 이슈가 있으면 문제가 있는 것
+        # Content와 Order issue 확인
+        has_content_issues, has_order_issues = self._check_issues(self.story_analysis)
         has_real_issues = has_content_issues or has_order_issues
         is_complete = not has_real_issues
         

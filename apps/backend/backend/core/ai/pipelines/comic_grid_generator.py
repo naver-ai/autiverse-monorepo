@@ -108,12 +108,21 @@ panel, act, figure, object, location, think, tell, emotion
   - Do not use "~거라" form
 • If the sentence contains speech or dialogue:
   - Extract the spoken content and set act:"대화" with tell
+  - **CRITICAL: Only assign the dialogue to the person who is actually speaking**
+  - **CRITICAL: When multiple people are mentioned, identify the actual speaker**
   - If there's another action in the same sentence, create a separate entry with that action
   Example: "경비아저씨가 우리에게 비가 많이 오니 피하라고 큰소리 치셨다"
     → {
       "elements": [
         {"panel":"2","act":"대화","figure":"경비아저씨","object":"","location":"공원", "tell":"비가 많이 오니 피해!"},
         {"panel":"2","act":"큰소리치셨다","figure":"경비아저씨","object":"","location":"공원"}
+      ]
+    }
+  Example: "민수가 나에게 어디 가냐고 물어서 나는 슈퍼에 간다고 했다"
+    → {
+      "elements": [
+        {"panel":"3","act":"대화","figure":"민수","object":"","location":"", "tell":"어디가?"},
+        {"panel":"3","act":"대화","figure":"나","object":"","location":"", "tell":"슈퍼에 가"}
       ]
     }
 • Otherwise, set act to the exact Korean verb phrase appearing in the sentence (예: 찼다, 날아갔다, 나갔다, 산책했다, 숨었다)
@@ -125,12 +134,16 @@ panel, act, figure, object, location, think, tell, emotion
 3. Figure and Location extraction
 • Always extract the subject of the action as figure
   - Extract ONLY the person/character name who is performing the action
+  - **CRITICAL: When "우리" (We) appears in the text, replace it with the actual character names mentioned in the context**
+  - **CRITICAL: "우리" should NEVER appear in the figure field - always use specific character names**
   - Example: "엄마가 나에게 말했다" → figure:"엄마, 나" (both participants in conversation)
   - Example: "나는 민수가 좋다고 생각했다" → figure:"나" (the one who is thinking)
   - Example: "엄마가 나를 사랑한다고 말했다" → figure:"엄마" (the one who is speaking)
-  - Example: "엄마와 내가 대화했다" → figure:"엄마, 나" (both participants)
+  - Example: "엄마와 내가 대화했다" → figure:"엄마, 나" (both participants in conversation)
   - Example: "나는 민수를 찾았다" → figure:"나, 민수" (both participants)
   - Example: "나는 텀블러를 찾았다" → figure:"나" (tumbler is not a human)
+  - Example: "우리는 공을 찾으러 담장 밖으로 나가서 공을 찾았다" → figure:"나, 민수" (replace "우리" with actual characters)
+  - Example: "우리는 급히 뛰어가서 버스정류장 밑에서 비를 피했다" → figure:"나, 친구" (replace "우리" with actual characters)
 • Extract location ONLY when the action actually happens at that place (using ~에서, ~에, etc.)
   - Correct: "공원에서 놀았다" → location:"공원"
   - Correct: "버스정류장 밑으로 뛰어갔다" → location:"버스정류장 밑"
@@ -185,7 +198,7 @@ panel4: "나는 기뻤다"
 Expected elements:
 [
 {"panel":"1","act":"찼다","figure":"나, 민수","object":"축구공","location":"학교 운동장"},
-{"panel":"2","act":"대화","figure":"민수","object":"","location":""},
+{"panel":"2","act":"대화","figure":"민수","object":"","location":"","tell":"어!"},
 {"panel":"2","act":"날아갔다","figure":"축구공","object":"","location":"담장 너머"},
 {"panel":"3","act":"나갔다","figure":"나, 민수","object":"","location":"담장 밖"},
 {"panel":"3","act":"찾았다","figure":"나, 민수","object":"축구공","location":"담장 밖"},
@@ -206,7 +219,9 @@ Expected elements:
 {"panel":"3","act":"뛰어갔다","figure":"나, 친구","object":"","location":""},
 {"panel":"3","act":"피했다","figure":"나, 친구","object":"비","location":"버스정류장 밑"},
 {"panel":"4","act":"감정","figure":"나","object":"","location":"","emotion":"화남"}
-]"""
+]
+**Note: In this example, "우리" in panel2 and panel3 refers to "나, 친구" based on the context from panel1.**
+"""
 
         user_prompt = f'''Convert the new panels that follow.
 Panel 1: "{self.panels.get('panel1', '')}"
