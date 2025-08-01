@@ -17,17 +17,19 @@ export interface ComicStyle {
     calloutPaddingHorizontal: number;
     calloutPaddingVertical: number;
     calloutBorderWidth: number;
+    calloutBorderRadius: number;
     objectNameFontSize: number;
 }
 
 export const MEDIUM_COMIC_STYLE: ComicStyle = {
-    emotionFontSize: 11,
+    emotionFontSize: 12,
     emotionPadding: 4,
     pawnNameFontSize: 12,
-    calloutFontSize: 11,
+    calloutFontSize: 12.5,
     calloutPaddingHorizontal: 6,
     calloutPaddingVertical: 4,
     calloutBorderWidth: 2,
+    calloutBorderRadius: 12,
     objectNameFontSize: 13,
 }
 
@@ -39,6 +41,7 @@ export const SMALL_COMIC_STYLE: ComicStyle = {
     calloutPaddingHorizontal: 4,
     calloutPaddingVertical: 3,
     calloutBorderWidth: 1,
+    calloutBorderRadius: 8,
     objectNameFontSize: 10,
 }
 
@@ -61,6 +64,10 @@ export const ComicProvider = ({children, elementSize, gridSize}: {children: Reac
     useEffect(() => {
         setGridSize(gridSize);
     }, [gridSize])
+
+    useEffect(() => {
+        setComicElementSize(elementSize);
+    }, [elementSize])
 
     return (
         <ComicContext.Provider value={{comicElementSize, comicGridSize}}>

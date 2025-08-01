@@ -15,7 +15,7 @@ import { styleTemplates } from '../../../styles';
 import Color from 'color';
 import { COMIC_STYLE_MAP, ComicContext, useComicStyle, useGetFigureColor } from '../styles';
 import { useContext } from 'react';
-import { ComicGridItem } from '@autiverse-monorepo/ts-core';
+import { ComicGridItem, getEmojiFromEmotion } from '@autiverse-monorepo/ts-core';
 
 const PAWN_SVG_PIVOT_X = 55.13 / 2;
 const PAWN_SVG_PIVOT_Y = 53;
@@ -93,7 +93,7 @@ export function Pawn({
                   ...styleTemplates.withSemiboldFont,
                 }}
               >
-                {action.content}
+                {getEmojiFromEmotion(action.content)} {action.content}
               </Text>
             ))}
           <Text

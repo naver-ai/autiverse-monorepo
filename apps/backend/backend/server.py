@@ -22,8 +22,6 @@ async def server_lifespan(app: FastAPI):
     if get_database_type() == EnvironmentVariables.DATABASE_TYPE_POSTGRES:
         initialize_postgres_db()
 
-    migrate()
-
     await create_db_and_tables(engine)
 
     # Start resume_generation_tasks in the background
