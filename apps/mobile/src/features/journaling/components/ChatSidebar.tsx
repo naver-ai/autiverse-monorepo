@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useRef, useEffect, useState } from 'react';
+import React, { useMemo, useCallback, useRef, useEffect, useState, memo } from 'react';
 import { View, Text } from 'react-native';
 import { ChatMessageComponent } from './ChatMessage';
 import { ChatInput, ChatInputRef, useChatInputModalStore } from './ChatInput';
@@ -11,7 +11,7 @@ import { ComicGenerationStatus } from '../api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView } from 'react-native-gesture-handler';
 
-export const ChatSidebar = ({
+export const ChatSidebar = memo(({
     className,
   sessionId,
   comicGenerationStatus,
@@ -71,15 +71,19 @@ export const ChatSidebar = ({
   }, []);
 
   const inputModeActiveForId = useRef<string | undefined>(undefined);
+  const lastComicStatus = useRef<string | undefined>(undefined);
 
   useEffect(()=>{
     inputModeActiveForId.current = undefined;
+    lastComicStatus.current = undefined;
   }, [])
 
+  // 일반적인 TTS 완료 처리
   useEffect(()=>{
     console.log("inputModeActiveForId", inputModeActiveForId.current, lastSpokenMessageId, lastBotMessage, comicGenerationStatus);
     if(inputModeActiveForId.current !== lastBotMessage?.id){
         if(lastBotMessage?.intent === MessageIntent.StartComicGeneration) {
+            // 만화 생성이 완료되었을 때만 처리
             if (lastSpokenMessageId === lastBotMessage.id && comicGenerationStatus.status === 'completed') {
                 console.log("Both TTS and comic generation are completed. Start input mode...");
                 setIsInputActive(true);
@@ -102,10 +106,23 @@ export const ChatSidebar = ({
                 
                 inputModeActiveForId.current = lastBotMessage?.id;
             }
-
         }
     }
-  }, [lastBotMessage?.id, lastBotMessage?.intent, comicGenerationStatus.status, lastSpokenMessageId, userButtonMode])
+  }, [lastBotMessage?.id, lastBotMessage?.intent, lastSpokenMessageId, userButtonMode])
+
+  // 만화 생성 상태 변경 처리 (별도 useEffect)
+  useEffect(() => {
+    if (lastBotMessage?.intent === MessageIntent.StartComicGeneration && 
+        lastSpokenMessageId === lastBotMessage.id && 
+        comicGenerationStatus.status === 'completed' &&
+        inputModeActiveForId.current !== lastBotMessage.id) {
+      if (__DEV__) {
+        console.log("Comic generation completed, starting input mode...");
+      }
+      setIsInputActive(true);
+      inputModeActiveForId.current = lastBotMessage.id;
+    }
+  }, [comicGenerationStatus.status, lastBotMessage?.id, lastBotMessage?.intent, lastSpokenMessageId])
 
   const { setIsTextInputModalVisible } = useChatInputModalStore();
 
@@ -137,4 +154,5 @@ export const ChatSidebar = ({
       )}
     </SafeAreaView>
   );
-};
+});
+

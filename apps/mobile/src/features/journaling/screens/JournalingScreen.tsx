@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Alert,
@@ -129,7 +129,7 @@ export const JournalingScreen = () => {
       : undefined;
   }, [sessionInfo]);
   
-  const sendMessage = async (messageText: string, intent?: MessageIntent, audioFilename?: string) => {
+  const sendMessage = useCallback(async (messageText: string, intent?: MessageIntent, audioFilename?: string) => {
 
     setIsSendingMessage(true);
 
@@ -200,7 +200,7 @@ export const JournalingScreen = () => {
     } finally {
       setIsSendingMessage(false);
     }
-  };
+  }, [journalEntryId, currentStage, isSpeaking, setIsSendingMessage, sendMessageFromHook, addMockMessages, startGeneration, router, t, lastBotMessage]);
 
   // 세션 종료 핸들러
   const handleEndSession = () => {

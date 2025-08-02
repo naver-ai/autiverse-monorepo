@@ -354,7 +354,6 @@ export default function PraiseSection({ childName, sessionId, onComplete }: Prai
                     width: 50,
                     height: 50,
                     borderRadius: 25,
-                    resizeMode: 'cover',
                     marginRight: 12
                   }}
                 />

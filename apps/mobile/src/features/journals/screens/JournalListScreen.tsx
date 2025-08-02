@@ -82,33 +82,34 @@ export default function JournalListScreen() {
         </Text>
         <View style={{ width: 60 }} />
       </View>
-      <FlashList
-        style={{flex: 1}}
-        contentContainerStyle={{
-          paddingVertical: 30,
-          paddingBottom: 100,
-          paddingHorizontal: 50,
-        }}
-        ItemSeparatorComponent={() => <View style={{ width: 30 }} />}
-        ListEmptyComponent={() => (
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, styleTemplates.withBoldFont]}>
-              아직 완성된 만화일기가 없어요
-            </Text>
-          </View>
-        )}
-        data={comics}
-        horizontal
-        renderItem={({ item }) => (
-          <JournalListElement
-            key={item.id}
-            comic={item}
-            onPress={() => handleComicPress(item)}
-          />
-        )}
-        keyExtractor={(item, index) => item.id || index.toString()}
-        estimatedItemSize={20}
-      />
+      <View style={{flex: 1}}>
+        <FlashList
+          contentContainerStyle={{
+            paddingVertical: 30,
+            paddingBottom: 100,
+            paddingHorizontal: 50,
+          }}
+          ItemSeparatorComponent={() => <View style={{ width: 30 }} />}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, styleTemplates.withBoldFont]}>
+                아직 완성된 만화일기가 없어요
+              </Text>
+            </View>
+          )}
+          data={comics}
+          horizontal
+          renderItem={({ item }) => (
+            <JournalListElement
+              key={item.id}
+              comic={item}
+              onPress={() => handleComicPress(item)}
+            />
+          )}
+          keyExtractor={(item, index) => item.id || index.toString()}
+          estimatedItemSize={20}
+        />
+      </View>
     </View>
   );
 }

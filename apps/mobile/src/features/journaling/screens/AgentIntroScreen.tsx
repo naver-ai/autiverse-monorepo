@@ -173,7 +173,6 @@ export function AgentIntroScreen() {
                 style={{
                   width: width * 0.4,
                   height: width * 0.4,
-                  resizeMode: 'contain',
                 }}
               />
             </Reanimated.View>

@@ -12,5 +12,6 @@ export const AgentImage = ({avatarImage, style}: {avatarImage: string, style: Im
         : require('../../../../assets/robot.png')
     }
     style={style}
+    contentFit="contain"
   />
 }

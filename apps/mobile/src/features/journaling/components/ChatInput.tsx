@@ -103,7 +103,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       (isVoiceRecording && retryCount < maxRetries);
 
     // 음성 녹음 시작
-    const startVoiceRecording = async () => {
+    const startVoiceRecording = useCallback(async () => {
       console.log('Try voice recording...');
       try {
         setIsVoiceMode(true);
@@ -149,10 +149,10 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
           );
         }
       }
-    };
+    }, [retryCount, maxRetries, setIsVoiceMode, setIsTextInputModalVisible]);
 
     // 음성 녹음 완료 및 텍스트 변환
-    const completeVoiceRecording = async (audioUri?: string, retryAttempt = 0) => {
+    const completeVoiceRecording = useCallback(async (audioUri?: string, retryAttempt = 0) => {
       console.log('Try voice recording complete...');
       let currentAudioUri: string | null = null;
       
@@ -279,7 +279,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
           );
         }
       }
-    };
+    }, [stopRecording, sessionInfo, dyad, jwt, journalEntryId, currentStage, sendMessage, setIsVoiceMode, setIsVoiceCompleted, t, startVoiceRecording]);
 
     // Expose imperative methods via ref
     useImperativeHandle(
