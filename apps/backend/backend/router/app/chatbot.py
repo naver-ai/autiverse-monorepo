@@ -14,6 +14,7 @@ import shutil
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from backend.database.engine import get_session
+from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.database.crud.chatbot import get_dyad_by_id, get_dyad_places, get_place_people, generate_audio_filename
 from backend.core.ai import ChatbotController
 from backend.database.models import Dyad, Comic, JournalEntry, Journal, Message, MessageRole, JournalEntryStage, InteractionTurn, JournalingSessionInfo, MessageIntent
@@ -50,10 +51,10 @@ class ContinueSessionRequest(BaseModel):
     stage: str
 
 @router.post("/start", response_model=ChatbotResponse)
-def start_chatbot(
+async def start_chatbot(
     request: StartChatbotRequest,
     dyad: Annotated[Dyad, Depends(get_signed_in_dyad)],
-    db: Session = Depends(get_session)
+    db: AsyncSession = Depends(get_session)
 ):
     
     print("dyad id: ", dyad.id)
@@ -63,7 +64,7 @@ def start_chatbot(
     """챗봇 시작"""
     try:
         controller = ChatbotController(db)
-        result = controller.start_chatbot(
+        result = await controller.start_chatbot(
             dyad_id=dyad.id,
             location=request.location,
             people=request.people
@@ -82,14 +83,14 @@ def start_chatbot(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.post("/start-with-suggestion", response_model=ChatbotResponse)
-def start_chatbot_with_suggestion(
+async def start_chatbot_with_suggestion(
     dyad: Annotated[Dyad, Depends(get_signed_in_dyad)],
-    db: Session = Depends(get_session)
+    db: AsyncSession = Depends(get_session)
 ):
     """챗봇 시작 (뭘 쓸지 모르겠네 버튼용)"""
     try:
         controller = ChatbotController(db)
-        result = controller.start_chatbot_with_suggestion(
+        result = await controller.start_chatbot_with_suggestion(
             dyad_id=dyad.id
         )
         
@@ -107,7 +108,7 @@ def start_chatbot_with_suggestion(
 @router.post("/send", response_model=ChatbotResponse)
 async def send_message(
     request: SendMessageRequest,
-    db: Session = Depends(get_session)
+    db: AsyncSession = Depends(get_session)
 ):
     """메시지 전송"""
     try:
@@ -136,23 +137,23 @@ async def send_message(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.get("/session/{journal_entry_id}", response_model=JournalingSessionInfo)
-def get_session_info(
+async def get_session_info(
     journal_entry_id: str,
-    db: Annotated[Session, Depends(get_session)]
+    db: Annotated[AsyncSession, Depends(get_session)]
 ):
     """세션 정보 조회"""
     try:
         controller = ChatbotController(db)
-        return controller.get_session_info(journal_entry_id)
+        return await controller.get_session_info(journal_entry_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.post("/reset/{journal_entry_id}")
-def reset_session(
+async def reset_session(
     journal_entry_id: str,
-    db: Annotated[Session, Depends(get_session)]
+    db: Annotated[AsyncSession, Depends(get_session)]
 ):
     """세션 초기화"""
     try:
@@ -170,11 +171,11 @@ def reset_session(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.get("/dyad/{dyad_id}/places")
-def get_places(
+async def get_places(
     dyad: Annotated[Dyad, Depends(get_signed_in_dyad)],
-    db: Annotated[Session, Depends(get_session)],
+    db: Annotated[AsyncSession, Depends(get_session)],
 ):
-    places = get_dyad_places(db, dyad.id)
+    places = await get_dyad_places(db, dyad.id)
     return {
             "dyad_id": dyad.id,
             "places": [
@@ -194,13 +195,13 @@ def get_places(
         }
 
 @router.get("/place/{place_id}/people")
-def get_people(
+async def get_people(
     place_id: str,
-    db: Session = Depends(get_session)
+    db: AsyncSession = Depends(get_session)
 ):
     """place에 연결된 people 조회"""
     try:
-        people = get_place_people(db, place_id)
+        people = await get_place_people(db, place_id)
         return {
             "place_id": place_id,
             "people": [
@@ -216,9 +217,9 @@ def get_people(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.delete("/session/{journal_entry_id}")
-def delete_session(
+async def delete_session(
     journal_entry_id: str,
-    db: Session = Depends(get_session)
+    db: AsyncSession = Depends(get_session)
 ):
     """세션 삭제"""
     try:
@@ -233,23 +234,26 @@ def delete_session(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.get("/gallery")
-def get_gallery(
+async def get_gallery(
     dyad: Annotated[Dyad, Depends(get_signed_in_dyad)],
-    db: Session = Depends(get_session)
+    db: AsyncSession = Depends(get_session)
 ):
     """갤러리에서 stage가 intro가 아닌 모든 만화들 조회"""
     try:
+        from sqlalchemy import select
         # stage가 intro와 revision_1이 아닌 모든 저널 엔트리들 조회 (최신순 정렬)
-        journal_entries = db.query(JournalEntry).filter(
+        result = await db.execute(select(JournalEntry).filter(
             JournalEntry.dyad_id == dyad.id,
             JournalEntry.stage != "intro",
             JournalEntry.stage != "revision_1"
-        ).order_by(JournalEntry.created_at.desc()).all()
+        ).order_by(JournalEntry.created_at.desc()))
+        journal_entries = result.scalars().all()
         
         gallery_items = []
         for entry in journal_entries:
             # 해당 저널 엔트리의 Comic 데이터 조회
-            comic = db.query(Comic).filter(Comic.journal_entry_id == entry.id).first()
+            comic_result = await db.execute(select(Comic).filter(Comic.journal_entry_id == entry.id))
+            comic = comic_result.scalar_one_or_none()
             
             # stage별로 적절한 panel 선택 (comic은 항상 second_panel 우선, 없으면 first_panel)
             panels = []
@@ -264,7 +268,8 @@ def get_gallery(
                 panels = [panel for panel in panels if panel is not None]
             
             # Journal 테이블의 stage별 데이터 조회
-            journal = db.query(Journal).filter(Journal.journal_entry_id == entry.id).first()
+            journal_result = await db.execute(select(Journal).filter(Journal.journal_entry_id == entry.id))
+            journal = journal_result.scalar_one_or_none()
             
             # stage별로 적절한 Journal 데이터 선택
             journal_data = None
@@ -309,7 +314,7 @@ async def upload_audio(
     journal_entry_id: str = Form(None),
     interaction_turn_id: str = Form(None),
     stage: str = Form(None),
-    db: Session = Depends(get_session)
+    db: AsyncSession = Depends(get_session)
 ):
     """오디오 파일 업로드 및 저장"""
     try:
@@ -319,7 +324,7 @@ async def upload_audio(
         
         # journal_entry_id와 stage가 제공된 경우 의미있는 파일명 생성
         if journal_entry_id and stage and stage.strip():
-            unique_filename = generate_audio_filename(journal_entry_id, stage, db)
+            unique_filename = await generate_audio_filename(journal_entry_id, stage, db)
             # journal entry별 폴더에 저장
             file_path = FilePaths.get_journal_audio_file_path(journal_entry_id, unique_filename)
         else:
@@ -343,17 +348,17 @@ async def upload_audio(
         raise HTTPException(status_code=500, detail=f"파일 업로드 실패: {str(e)}") 
 
 @router.post("/update-title", response_model=Dict[str, Any])
-def update_comic_title(
+async def update_comic_title(
     request: UpdateTitleRequest,
-    db: Session = Depends(get_session)
+    db: AsyncSession = Depends(get_session)
 ):
     """만화 제목 업데이트"""
     try:
         from backend.database.crud.chatbot import get_journal, update_journal_data
-        journal = get_journal(db, request.journal_entry_id)
+        journal = await get_journal(db, request.journal_entry_id)
         
         if journal:
-            update_journal_data(db, request.journal_entry_id, title=request.title)
+            await update_journal_data(db, request.journal_entry_id, title=request.title)
             return {"success": True, "title": request.title}
         else:
             raise HTTPException(status_code=404, detail="Journal not found")
@@ -361,21 +366,21 @@ def update_comic_title(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.post("/continue-session", response_model=Dict[str, Any])
-def continue_session(
+async def continue_session(
     request: ContinueSessionRequest,
-    db: Session = Depends(get_session)
+    db: AsyncSession = Depends(get_session)
 ):
     """이어쓰기 세션 시작 - 메시지 metadata에 이어쓰기 시작 시점 기록"""
     try:
         from backend.database.crud.chatbot import get_latest_interaction_turn, get_messages_by_interaction_turn
         
         # 가장 최근 interaction turn 가져오기
-        latest_turn = get_latest_interaction_turn(db, request.journal_entry_id)
+        latest_turn = await get_latest_interaction_turn(db, request.journal_entry_id)
         if not latest_turn:
             raise HTTPException(status_code=404, detail="No interaction turn found")
         
         # 해당 interaction turn의 가장 최근 메시지 가져오기
-        messages = get_messages_by_interaction_turn(db, latest_turn.id)
+        messages = await get_messages_by_interaction_turn(db, latest_turn.id)
         if not messages:
             raise HTTPException(status_code=404, detail="No messages found")
         
@@ -395,8 +400,8 @@ def continue_session(
         
         # 메시지의 metadata 업데이트
         latest_message.metadata_json = updated_metadata
-        db.commit()
-        db.refresh(latest_message)
+        await db.commit()
+        await db.refresh(latest_message)
         
         return {
             "success": True,

@@ -15,6 +15,7 @@ import json
 from dataclasses import dataclass
 import random
 import openai
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 class ConversationMilestone(Enum):
     EVENTS_COLLECTED = "✓ 1. Collected 2-3 simple things that happened there"
@@ -75,11 +76,11 @@ class ComicIntroStage:
     def __init__(self, db: Session, journal_entry_id: str):
         self.db = db
         self.journal_entry_id = journal_entry_id
-        self.child_name = self._get_child_name()
-        self.child_age = self._get_child_age()
-        self.child_gender = self._get_child_gender()
-        self.agent_name = self._get_agent_name()
-        self.agent_interests = self._get_agent_interests()
+        self.child_name = None
+        self.child_age = None
+        self.child_gender = None
+        self.agent_name = None
+        self.agent_interests = None
         
         # LangChain setup
         self.llm = ChatOpenAI(
@@ -90,39 +91,50 @@ class ComicIntroStage:
         self.analysis_parser = PydanticOutputParser(pydantic_object=EventAnalysisResult)
         self.response_parser = PydanticOutputParser(pydantic_object=ConversationResponse)
     
-    def _get_child_name(self) -> str:
+    @classmethod
+    async def create(cls, db: AsyncSession, journal_entry_id: str) -> 'ComicIntroStage':
+        """비동기 팩토리 메서드"""
+        instance = cls(db, journal_entry_id)
+        instance.child_name = await instance._get_child_name()
+        instance.child_age = await instance._get_child_age()
+        instance.child_gender = await instance._get_child_gender()
+        instance.agent_name = await instance._get_agent_name()
+        instance.agent_interests = await instance._get_agent_interests()
+        return instance
+    
+    async def _get_child_name(self) -> str:
         """dyad의 child_name을 가져오기"""
         from backend.database.crud.chatbot import get_journal_entry, get_dyad_by_id
         
-        journal_entry = get_journal_entry(self.db, self.journal_entry_id)
+        journal_entry = await get_journal_entry(self.db, self.journal_entry_id)
         if journal_entry and journal_entry.dyad:
             return journal_entry.dyad.child_name
         return "사용자"  # fallback
     
-    def _get_child_age(self) -> int:
+    async def _get_child_age(self) -> int:
         """dyad의 child_age를 가져오기"""
         from backend.database.crud.chatbot import get_journal_entry
         
-        journal_entry = get_journal_entry(self.db, self.journal_entry_id)
+        journal_entry = await get_journal_entry(self.db, self.journal_entry_id)
         if journal_entry and journal_entry.dyad:
             return journal_entry.dyad.child_age
         return 15  # fallback
     
-    def _get_agent_name(self) -> str:
+    async def _get_agent_name(self) -> str:
         """agent의 agent_name을 가져오기"""
         from backend.database.crud.chatbot import get_journal_entry
         
-        journal_entry = get_journal_entry(self.db, self.journal_entry_id)
+        journal_entry = await get_journal_entry(self.db, self.journal_entry_id)
         if journal_entry and journal_entry.dyad and journal_entry.dyad.agents:
             # 첫 번째 agent의 이름을 사용
             return journal_entry.dyad.agents[0].agent_name
         return "도도"  # fallback
     
-    def _get_agent_interests(self) -> list[str]:
+    async def _get_agent_interests(self) -> list[str]:
         """agent의 interest 목록을 가져오기"""
         from backend.database.crud.chatbot import get_journal_entry
         
-        journal_entry = get_journal_entry(self.db, self.journal_entry_id)
+        journal_entry = await get_journal_entry(self.db, self.journal_entry_id)
         if journal_entry and journal_entry.dyad and journal_entry.dyad.agents:
             # 모든 agent의 interest를 수집
             interests = []
@@ -132,62 +144,63 @@ class ComicIntroStage:
             return interests
         return ["Dinosaurs", "Counting things", "Talking to himself"]  # fallback
     
-    def _get_child_gender(self) -> str:
+    async def _get_child_gender(self) -> str:
         """dyad의 child_gender를 가져오기"""
         from backend.database.crud.chatbot import get_journal_entry
         
-        journal_entry = get_journal_entry(self.db, self.journal_entry_id)
+        journal_entry = await get_journal_entry(self.db, self.journal_entry_id)
         if journal_entry and journal_entry.dyad:
             return journal_entry.dyad.child_gender
         return "male"  # fallback
     
-    def start_conversation(self, location: str = None, people: List[str] = None) -> Message:
+    async def start_conversation(self, location: str = None, people: List[str] = None) -> Message:
         """대화 시작"""
         # Journal entry stage 업데이트
-        update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Intro)
+        await update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Intro)
         
         # Journal 데이터 업데이트
-        journal = get_journal(self.db, self.journal_entry_id)
+        journal = await get_journal(self.db, self.journal_entry_id)
         if journal:
-            update_journal_data(
+            await update_journal_data(
                 self.db, self.journal_entry_id,
                 location=location,
                 people=people
             )
         
         # 첫 번째 interaction turn 생성
-        interaction_turn = create_interaction_turn(
+        interaction_turn = await create_interaction_turn(
             self.db, self.journal_entry_id, JournalEntryStage.Intro
         )
         
         # 초기 메시지 생성
         initial_message = self._generate_intro_message(location, people)
-        message = create_message(
+        message = await create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             initial_message, MessageRole.Assistant, JournalEntryStage.Intro
         )
         
         return message
     
-    def start_conversation_with_suggestion(self) -> Message:
+    async def start_conversation_with_suggestion(self) -> Message:
         """대화 시작 (뭘 쓸지 모르겠네 버튼용)"""
         # Journal entry stage 업데이트
-        update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Intro)
+        await update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.Intro)
         
         # Journal 데이터 업데이트 (DB에서 장소와 사람 정보 가져와서 저장)
-        journal = get_journal(self.db, self.journal_entry_id)
+        journal = await get_journal(self.db, self.journal_entry_id)
         if journal:
             # DB에서 장소와 사람 정보 가져오기
             from backend.database.crud.chatbot import get_dyad_places, get_place_people
-            dyad = get_journal_entry(self.db, self.journal_entry_id).dyad
-            places = get_dyad_places(self.db, dyad.id)
-            people = get_place_people(self.db, dyad.id)
+            journal_entry = await get_journal_entry(self.db, self.journal_entry_id)
+            dyad = journal_entry.dyad
+            places = await get_dyad_places(self.db, dyad.id)
+            people = await get_place_people(self.db, dyad.id)
             
             # 첫 번째 장소와 사람 사용
             location = places[0].name if places else None
             people_list = [p.name for p in people[:2]] if people else []  # 최대 2명
             
-            update_journal_data(
+            await update_journal_data(
                 self.db, self.journal_entry_id,
                 location=location,
                 people=people_list
@@ -199,8 +212,8 @@ class ComicIntroStage:
         )
         
         # 초기 메시지 생성 (suggestion 모드)
-        initial_message = self._generate_suggestion_message()
-        message = create_message(
+        initial_message = await self._generate_suggestion_message()
+        message = await create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             initial_message, MessageRole.Assistant, JournalEntryStage.Intro
         )
@@ -210,10 +223,10 @@ class ComicIntroStage:
     async def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message:
         """사용자 메시지 처리"""
         # 현재 interaction turn 가져오기
-        interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.Intro)
+        interaction_turn = await self._get_or_create_interaction_turn(JournalEntryStage.Intro)
         
         # 사용자 메시지 저장 (audio_filename 포함)
-        create_message(
+        await create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             user_message, MessageRole.User, JournalEntryStage.Intro,
             intent=intent,
@@ -224,7 +237,7 @@ class ComicIntroStage:
         bot_response, response_intent = await self._generate_response(user_message, intent)
         
         # 봇 응답 저장
-        message = create_message(
+        message = await create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             bot_response, MessageRole.Assistant, JournalEntryStage.Intro,
             intent=response_intent
@@ -234,7 +247,7 @@ class ComicIntroStage:
     
     async def analyze_events(self) -> Dict[str, Any]:
         """이벤트 분석 - Structured Output 사용"""
-        messages = get_messages_by_journal_entry(self.db, self.journal_entry_id)
+        messages = await get_messages_by_journal_entry(self.db, self.journal_entry_id)
         
         # 대화 내용 추출
         conversation = []
@@ -348,8 +361,8 @@ Example response for TV watching:
 }}"""
 
         user_prompt = f"""CONTEXT:
-Location: {self._get_location()}
-People: {', '.join(self._get_people())}
+Location: {await self._get_location()}
+People: {', '.join(await self._get_people())}
 
 CONVERSATION:
 {conversation_text}"""
@@ -376,7 +389,7 @@ CONVERSATION:
                 }
                 
                 # Journal에 분석 결과 저장
-                update_journal_data(
+                await update_journal_data(
                     self.db, self.journal_entry_id,
                     events=analysis.get("events_identified", []),
                     summary=analysis.get("conversation_summary", ""),
@@ -399,9 +412,9 @@ CONVERSATION:
                     }
                 await asyncio.sleep(1)  # Brief delay before retry
     
-    def is_ready_for_next_stage(self) -> bool:
+    async def is_ready_for_next_stage(self) -> bool:
         """다음 단계로 진행할 준비가 되었는지 확인"""
-        journal = get_journal(self.db, self.journal_entry_id)
+        journal = await get_journal(self.db, self.journal_entry_id)
         if journal and journal.events:
             return len(journal.events) >= 2
         return False
@@ -415,10 +428,10 @@ CONVERSATION:
         else:
             return "대박대박!! 딱 쓰고 싶은 게 있었구나!! 오늘 있었던 무슨 일을 일기로 써볼까? 😊"
     
-    def _generate_suggestion_message(self) -> str:
+    async def _generate_suggestion_message(self) -> str:
         """뭘 쓸지 모르겠네 버튼용 메시지 생성"""
         # DB에서 저장된 장소 정보 가져오기
-        location = self._get_location()
+        location = await self._get_location()
         
         # 요일 정보 가져오기 (더 안전한 방법)
         from datetime import datetime
@@ -525,7 +538,7 @@ IMPORTANT:
 IMPORTANT: Always respond in natural, teenage-friendly Korean."""
 
         # DB에서 Intro stage의 모든 대화 기록 가져오기
-        messages = get_messages_by_journal_entry_and_stage(self.db, self.journal_entry_id, JournalEntryStage.Intro)
+        messages = await get_messages_by_journal_entry_and_stage(self.db, self.journal_entry_id, JournalEntryStage.Intro)
         conversation_context = ""
         if messages:
             conversation_context = "\n\nRecent conversation:\n" + "\n".join([
@@ -533,8 +546,8 @@ IMPORTANT: Always respond in natural, teenage-friendly Korean."""
                 for msg in messages
             ])
 
-        user_prompt = f"""Current objective: Help {self.child_name} identify events that happened today at {self._get_location()} with {', '.join(self._get_people())}
-Current events collected: {', '.join(self._get_events()) if self._get_events() else 'None yet'}
+        user_prompt = f"""Current objective: Help {self.child_name} identify events that happened today at {await self._get_location()} with {', '.join(await self._get_people())}
+Current events collected: {', '.join(await self._get_events()) if await self._get_events() else 'None yet'}
 
 Recent conversation:
 {conversation_context}
@@ -559,27 +572,28 @@ Recent conversation:
                 else:
                     await asyncio.sleep(1)  # Wait before retry
     
-    def _get_or_create_interaction_turn(self, stage: JournalEntryStage) -> Any:
+    async def _get_or_create_interaction_turn(self, stage: JournalEntryStage) -> Any:
         """현재 단계의 interaction turn 가져오기 또는 생성"""
         from backend.database.crud.chatbot import get_latest_interaction_turn
         
-        latest_turn = get_latest_interaction_turn(self.db, self.journal_entry_id)
+        latest_turn = await get_latest_interaction_turn(self.db, self.journal_entry_id)
         if latest_turn and latest_turn.stage == stage:
             return latest_turn
         else:
-            return create_interaction_turn(self.db, self.journal_entry_id, stage)
+            from backend.database.crud.chatbot import create_interaction_turn
+            return await create_interaction_turn(self.db, self.journal_entry_id, stage)
     
-    def _get_location(self) -> str:
+    async def _get_location(self) -> str:
         """저장된 위치 정보 가져오기"""
-        journal = get_journal(self.db, self.journal_entry_id)
+        journal = await get_journal(self.db, self.journal_entry_id)
         return journal.location if journal else ""
     
-    def _get_people(self) -> List[str]:
+    async def _get_people(self) -> List[str]:
         """저장된 사람들 정보 가져오기"""
-        journal = get_journal(self.db, self.journal_entry_id)
+        journal = await get_journal(self.db, self.journal_entry_id)
         return journal.people if journal and journal.people else []
     
-    def _get_events(self) -> List[str]:
+    async def _get_events(self) -> List[str]:
         """저장된 이벤트 정보 가져오기"""
-        journal = get_journal(self.db, self.journal_entry_id)
+        journal = await get_journal(self.db, self.journal_entry_id)
         return journal.events if journal and journal.events else [] 

@@ -17,6 +17,7 @@ import json
 import openai
 import os
 import asyncio
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 class PanelAnalysis(BaseModel):
     """Panel analysis result"""
@@ -58,11 +59,11 @@ class ComicContextStage:
     def __init__(self, db: Session, journal_entry_id: str):
         self.db = db
         self.journal_entry_id = journal_entry_id
-        self.child_name = self._get_child_name()
-        self.child_age = self._get_child_age()
-        self.child_gender = self._get_child_gender()
-        self.agent_name = self._get_agent_name()
-        self.agent_interests = self._get_agent_interests()
+        self.child_name = None
+        self.child_age = None
+        self.child_gender = None
+        self.agent_name = None
+        self.agent_interests = None
         self.story_analysis = None
         self.final_comic_generation_started = False
         self.current_panels = None  # 메모리상의 최신 패널 상태
@@ -77,21 +78,33 @@ class ComicContextStage:
         self.reconstruction_parser = PydanticOutputParser(pydantic_object=PanelReconstruction)
         self.question_parser = PydanticOutputParser(pydantic_object=QuestionData)
         self.next_question_parser = PydanticOutputParser(pydantic_object=NextQuestionData)
+    
+    @classmethod
+    async def create(cls, db: AsyncSession, journal_entry_id: str) -> 'ComicContextStage':
+        """비동기 팩토리 메서드"""
+        instance = cls(db, journal_entry_id)
+        instance.child_name = await instance._get_child_name()
+        instance.child_age = await instance._get_child_age()
+        instance.child_gender = await instance._get_child_gender()
+        instance.agent_name = await instance._get_agent_name()
+        instance.agent_interests = await instance._get_agent_interests()
         
         # 기존 comic_context가 있으면 메모리에 로드
-        journal = get_journal(self.db, self.journal_entry_id)
+        journal = await get_journal(db, journal_entry_id)
         if journal and journal.comic_context:
-            self.current_panels = journal.comic_context
+            instance.current_panels = journal.comic_context
+        
+        return instance
     
-    def _get_dyad(self) -> Dyad:
+    async def _get_dyad(self) -> Dyad:
         """dyad 정보를 가져오기"""
         from backend.database.crud.chatbot import get_journal_entry
-        journal_entry = get_journal_entry(self.db, self.journal_entry_id)
+        journal_entry = await get_journal_entry(self.db, self.journal_entry_id)
         return journal_entry.dyad if journal_entry and journal_entry.dyad else None
 
-    def _get_dyad_info(self) -> tuple[str, int, str, str, list[str]]:
+    async def _get_dyad_info(self) -> tuple[str, int, str, str, list[str]]:
         """dyad 정보를 한 번에 가져오기 (child_name, child_age, child_gender, agent_name, agent_interests)"""
-        dyad = self._get_dyad()
+        dyad = await self._get_dyad()
         if not dyad:
             return "사용자", 15, "male", "도도", ["Dinosaurs", "Counting things", "Talking to himself"]
         
@@ -113,25 +126,25 @@ class ComicContextStage:
         
         return child_name, child_age, child_gender, agent_name, agent_interests
     
-    def _get_child_name(self) -> str:
+    async def _get_child_name(self) -> str:
         """dyad의 child_name을 가져오기"""
-        return self._get_dyad_info()[0]
+        return (await self._get_dyad_info())[0]
     
-    def _get_child_age(self) -> int:
+    async def _get_child_age(self) -> int:
         """dyad의 child_age를 가져오기"""
-        return self._get_dyad_info()[1]
+        return (await self._get_dyad_info())[1]
     
-    def _get_agent_name(self) -> str:
+    async def _get_agent_name(self) -> str:
         """agent의 agent_name을 가져오기"""
-        return self._get_dyad_info()[3]
+        return (await self._get_dyad_info())[3]
     
-    def _get_agent_interests(self) -> list[str]:
+    async def _get_agent_interests(self) -> list[str]:
         """agent의 interest 목록을 가져오기"""
-        return self._get_dyad_info()[4]
+        return (await self._get_dyad_info())[4]
     
-    def _get_child_gender(self) -> str:
+    async def _get_child_gender(self) -> str:
         """dyad의 child_gender를 가져오기"""
-        return self._get_dyad_info()[2]
+        return (await self._get_dyad_info())[2]
     
     def _check_issues(self, story_analysis: Dict[str, Any]) -> tuple[bool, bool]:
         """Content와 Order issue 확인"""
@@ -182,10 +195,10 @@ You're having a friendly conversation with your autistic best friend, {self.chil
         """만화 컨텍스트 분석 시작"""
         try:
             # Journal entry stage 업데이트
-            update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.ComicContext)
+            await update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.ComicContext)
             
             # 새로운 interaction turn 생성
-            interaction_turn = create_interaction_turn(
+            interaction_turn = await create_interaction_turn(
                 self.db, self.journal_entry_id, JournalEntryStage.ComicContext
             )
             
@@ -198,7 +211,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                 metadata_json["focused_panel"] = focused_panel
                 print(f"[DEBUG] comic_context: start_context_analysis focused_panel = {focused_panel}")
             
-            message = create_message(
+            message = await create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
                 initial_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
                 intent=intent,
@@ -215,10 +228,10 @@ You're having a friendly conversation with your autistic best friend, {self.chil
         print(f"[DEBUG] comic_context: process_message called with user_message='{user_message}'")
         try:
             # 현재 interaction turn 가져오기
-            interaction_turn = self._get_or_create_interaction_turn(JournalEntryStage.ComicContext)
+            interaction_turn = await self._get_or_create_interaction_turn(JournalEntryStage.ComicContext)
             
             # 사용자 메시지 저장 (audio_filename 포함)
-            create_message(
+            await create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
                 user_message, MessageRole.User, JournalEntryStage.ComicContext,
                 audio_filename=audio_filename,
@@ -229,7 +242,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             print(f"[DEBUG] comic_context: story_analysis = {self.story_analysis}")
             
             # 데이터베이스에서 기존 comic_context가 있는지 확인
-            journal = get_journal(self.db, self.journal_entry_id)
+            journal = await get_journal(self.db, self.journal_entry_id)
             has_existing_context = journal and journal.comic_context
             
             if not self.story_analysis and not has_existing_context:
@@ -247,15 +260,16 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             # 완료 상태 확인
             if self.is_complete():
                 # 만화 생성 시작 신호 반환 (실제 만화 생성은 controller에서 처리)
-                child_name = self._get_child_name()
+                child_name = await self._get_child_name()
                 child_name_with_josa = append_josa(child_name, '이', '')
-                response_message = t('Journaling.Messages.ComicContextComplete', self._get_dyad().locale).format(
+                dyad = await self._get_dyad()
+                response_message = t('Journaling.Messages.ComicContextComplete', dyad.locale).format(
                     child_name=child_name_with_josa
                 )
                 response_intent = MessageIntent.StartComicGeneration
 
-                message = create_message(
-                self.db, self.journal_entry_id, interaction_turn.id,
+                message = await create_message(
+                    self.db, self.journal_entry_id, interaction_turn.id,
                     response_message, MessageRole.Assistant, JournalEntryStage.ComicContext,
                     intent=response_intent
                 )
@@ -272,7 +286,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                     print(f"[DEBUG] comic_context: focused_panel = {focused_panel}")
                 
                 # 봇 응답 저장
-                message = create_message(
+                message = await create_message(
                     self.db, self.journal_entry_id, interaction_turn.id,
                     next_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
                     intent=next_intent,
@@ -288,7 +302,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
     
     async def _analyze_story_flow(self) -> Dict[str, Any]:
         """스토리 플로우 분석 - Structured Output 사용"""
-        journal = get_journal(self.db, self.journal_entry_id)
+        journal = await get_journal(self.db, self.journal_entry_id)
         if not journal:
             return {"content": {"A": [], "B": [], "C": [], "D": []}, "order": []}
         
@@ -544,7 +558,7 @@ Output
         if not self.story_analysis:
             self.story_analysis = await self._analyze_story_flow()
         
-        journal = get_journal(self.db, self.journal_entry_id)
+        journal = await get_journal(self.db, self.journal_entry_id)
         if not journal:
             return
         
@@ -833,7 +847,7 @@ answer: "{answer}"
                 self.current_panels = reconstructed_panels
                 
                 # Journal에 재구성된 데이터 저장
-                update_journal_data(
+                await update_journal_data(
                     self.db, self.journal_entry_id,
                     comic_context=reconstructed_panels
                 )
@@ -909,7 +923,7 @@ answer: "{answer}"
             content_issues = self.story_analysis.get("content", {})
             
             # DB에서 journal 정보 가져오기
-            journal = get_journal(self.db, self.journal_entry_id)
+            journal = await get_journal(self.db, self.journal_entry_id)
             panels_content = journal.comic_context if journal and journal.comic_context else journal.revision_1 if journal and journal.revision_1 else {}
             
             # 각 패널의 실제 내용과 이슈를 비교하여 진짜 누락된 정보만 찾기
@@ -934,7 +948,7 @@ answer: "{answer}"
                         break
             
             # DB에서 ComicContext stage의 모든 메시지를 conversation_history로 가져오기
-            messages = get_messages_by_journal_entry_and_stage(self.db, self.journal_entry_id, JournalEntryStage.ComicContext)
+            messages = await get_messages_by_journal_entry_and_stage(self.db, self.journal_entry_id, JournalEntryStage.ComicContext)
             conversation_history = ""
             if messages:
                 conversation_history = "\n".join([
@@ -1173,7 +1187,7 @@ Output:
             
             
             # Get current panel contents
-            journal = get_journal(self.db, self.journal_entry_id)
+            journal = await get_journal(self.db, self.journal_entry_id)
             # comic_context가 있으면 그것을 사용, 없으면 revision_1 사용
             panels_content = journal.comic_context if journal and journal.comic_context else journal.revision_1 if journal and journal.revision_1 else {}
             
@@ -1240,15 +1254,16 @@ Please generate a question that addresses the FIRST missing information gap."""
             print(f"[DEBUG] comic_context: Error in _generate_first_question: {e}")
             return "다음에 대해 말해줘!", None, None
     
-    def _get_or_create_interaction_turn(self, stage: JournalEntryStage) -> Any:
+    async def _get_or_create_interaction_turn(self, stage: JournalEntryStage) -> Any:
         """현재 단계의 interaction turn 가져오기 또는 생성"""
         from backend.database.crud.chatbot import get_latest_interaction_turn
         
-        latest_turn = get_latest_interaction_turn(self.db, self.journal_entry_id)
+        latest_turn = await get_latest_interaction_turn(self.db, self.journal_entry_id)
         if latest_turn and latest_turn.stage == stage:
             return latest_turn
         else:
-            return create_interaction_turn(self.db, self.journal_entry_id, stage)
+            from backend.database.crud.chatbot import create_interaction_turn
+            return await create_interaction_turn(self.db, self.journal_entry_id, stage)
     
     def is_complete(self) -> bool:
         """분석이 완료되었는지 확인"""
@@ -1267,7 +1282,7 @@ Please generate a question that addresses the FIRST missing information gap."""
         """comic_context 완료 시 최종 만화 패널 생성 및 Comic 테이블에 저장"""
         try:
             # comic_context 데이터 가져오기
-            journal = get_journal(self.db, self.journal_entry_id)
+            journal = await get_journal(self.db, self.journal_entry_id)
             if not journal or not journal.comic_context:
                 return
             
@@ -1307,13 +1322,13 @@ Please generate a question that addresses the FIRST missing information gap."""
                 comic_data = await generator.generate_comic_grids(panel_contents, progress_callback)
 
                 # 데이터베이스에 저장
-                update_comic_data(self.db, self.journal_entry_id, comic_data)
+                await update_comic_data(self.db, self.journal_entry_id, comic_data)
                 
                 #Auto comic generation에서 하던대로 새 메시지 업데이트
 
                 # revision_2로 전환
-                revision2_stage = Revision2Stage(self.db, self.journal_entry_id)
-                revision2_response, intent = revision2_stage.start_revision()
+                revision2_stage = await Revision2Stage.create(self.db, self.journal_entry_id)
+                revision2_response, intent = await revision2_stage.start_revision()
                 
                 response = {
                     "response": revision2_response,

@@ -1,5 +1,5 @@
 from typing import Dict, Any, Optional, List
-from sqlalchemy.orm import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.database.crud.chatbot import (
     get_dyad_by_passcode, get_dyad_by_id, create_journal_entry, get_journal_entry, 
     create_journal, get_journal, update_journal_data, 
@@ -9,32 +9,32 @@ from backend.database.models import JournalEntryStage, JournalEntryStatus, Messa
 from backend.core.ai.pipelines import ComicIntroStage, Revision1Stage, ComicContextStage, Revision2Stage, TitleStage
 
 class ChatbotController:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.title_stage = None  # TitleStage 인스턴스 저장
         self.current_journal_entry_id: Optional[str] = None
         
-    def start_chatbot(self, dyad_id: str, location: str = None, people: List[str] = None) -> Dict[str, Any]:
+    async def start_chatbot(self, dyad_id: str, location: str = None, people: List[str] = None) -> Dict[str, Any]:
         """챗봇 시작"""
         # dyad_id로 dyad 조회
-        dyad = get_dyad_by_id(self.db, dyad_id)
+        dyad = await get_dyad_by_id(self.db, dyad_id)
         if not dyad:
             raise ValueError("Invalid dyad_id")
         
         # 새로운 journal entry 생성
-        journal_entry = create_journal_entry(self.db, dyad_id)
+        journal_entry = await create_journal_entry(self.db, dyad_id)
         self.current_journal_entry_id = journal_entry.id
         
         # journal 생성
-        journal = create_journal(self.db, journal_entry.id, dyad_id, location, people)
+        journal = await create_journal(self.db, journal_entry.id, dyad_id, location, people)
         
         # Comic 테이블 생성 (comic generation을 위해 필요)
         from backend.database.crud.chatbot import create_comic
-        create_comic(self.db, journal_entry.id, journal.id, dyad_id)
+        await create_comic(self.db, journal_entry.id, journal.id, dyad_id)
         
         # comic intro 단계 시작
-        intro_stage = ComicIntroStage(self.db, journal_entry.id)
-        initial_message = intro_stage.start_conversation(location, people)
+        intro_stage = await ComicIntroStage.create(self.db, journal_entry.id)
+        initial_message = await intro_stage.start_conversation(location, people)
         
         return {
             "journal_entry_id": journal_entry.id,
@@ -44,27 +44,27 @@ class ChatbotController:
             "stage": "intro"
         }
     
-    def start_chatbot_with_suggestion(self, dyad_id: str) -> Dict[str, Any]:
+    async def start_chatbot_with_suggestion(self, dyad_id: str) -> Dict[str, Any]:
         """챗봇 시작 (뭘 쓸지 모르겠네 버튼용)"""
         # dyad_id로 dyad 조회
-        dyad = get_dyad_by_id(self.db, dyad_id)
+        dyad = await get_dyad_by_id(self.db, dyad_id)
         if not dyad:
             raise ValueError("Invalid dyad_id")
         
         # 새로운 journal entry 생성
-        journal_entry = create_journal_entry(self.db, dyad_id)
+        journal_entry = await create_journal_entry(self.db, dyad_id)
         self.current_journal_entry_id = journal_entry.id
         
         # journal 생성 (location과 people은 DB에서 가져올 예정)
-        journal = create_journal(self.db, journal_entry.id, dyad_id, None, None)
+        journal = await create_journal(self.db, journal_entry.id, dyad_id, None, None)
         
         # Comic 테이블 생성 (comic generation을 위해 필요)
         from ...database.crud.chatbot import create_comic
-        create_comic(self.db, journal_entry.id, journal.id, dyad_id)
+        await create_comic(self.db, journal_entry.id, journal.id, dyad_id)
         
         # comic intro 단계 시작 (suggestion 모드)
-        intro_stage = ComicIntroStage(self.db, journal_entry.id)
-        initial_message = intro_stage.start_conversation_with_suggestion()
+        intro_stage = await ComicIntroStage.create(self.db, journal_entry.id)
+        initial_message = await intro_stage.start_conversation_with_suggestion()
         
         return {
             "journal_entry_id": journal_entry.id,
@@ -77,7 +77,7 @@ class ChatbotController:
     async def send_message(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
         """메시지 전송"""
         # journal entry 조회
-        journal_entry = get_journal_entry(self.db, journal_entry_id)
+        journal_entry = await get_journal_entry(self.db, journal_entry_id)
         if not journal_entry:
             raise ValueError("Journal entry not found")
         
@@ -91,13 +91,13 @@ class ChatbotController:
         elif current_stage == JournalEntryStage.Title:
             return await self._handle_title_stage(journal_entry_id, message, intent, audio_filename)
         elif current_stage == JournalEntryStage.Complete:
-            return self._handle_complete_stage(journal_entry_id, message, intent, audio_filename)
+            return await self._handle_complete_stage(journal_entry_id, message, intent, audio_filename)
         else:
             raise ValueError(f"Unknown stage: {current_stage}")
     
     async def _handle_intro_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
         """인트로 단계 처리"""
-        intro_stage = ComicIntroStage(self.db, journal_entry_id)
+        intro_stage = await ComicIntroStage.create(self.db, journal_entry_id)
         
         # 메시지 처리 (audio_filename 포함)
         intro_response_message = await intro_stage.process_message(message, intent, audio_filename)
@@ -106,16 +106,16 @@ class ChatbotController:
         analysis = await intro_stage.analyze_events()
         
         # 다음 단계로 진행할 준비가 되었는지 확인
-        if intro_stage.is_ready_for_next_stage():
+        if await intro_stage.is_ready_for_next_stage():
             # 마지막 assistant 메시지 삭제 (UI에 표시되지 않는 메시지)
             from ...database.crud.chatbot import get_messages_by_journal_entry, delete_message
-            messages = get_messages_by_journal_entry(self.db, journal_entry_id)
+            messages = await get_messages_by_journal_entry(self.db, journal_entry_id)
             if messages and messages[-1].role == MessageRole.Assistant:
-                delete_message(self.db, messages[-1].id)
+                await delete_message(self.db, messages[-1].id)
             
             # revision_1 단계로 전환
-            revision_stage = Revision1Stage(self.db, journal_entry_id)
-            response_message = revision_stage.start_revision()
+            revision_stage = await Revision1Stage.create(self.db, journal_entry_id)
+            response_message = await revision_stage.start_revision()
             
             return {
                 "message_id": response_message.id,
@@ -138,8 +138,8 @@ class ChatbotController:
     
     async def _handle_drawing_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
         """그리기 단계 처리 (revision_1, comic_context, revision_2)"""
-        journal_entry = get_journal_entry(self.db, journal_entry_id)
-        journal = get_journal(self.db, journal_entry_id)
+        journal_entry = await get_journal_entry(self.db, journal_entry_id)
+        journal = await get_journal(self.db, journal_entry_id)
         
         if not journal:
             return {"response": "Journal not found", "stage": "error"}
@@ -156,7 +156,7 @@ class ChatbotController:
     
     async def _handle_revision_1_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
         """revision_1 단계 처리"""
-        revision_stage = Revision1Stage(self.db, journal_entry_id)
+        revision_stage = await Revision1Stage.create(self.db, journal_entry_id)
         message = await revision_stage.process_message(message, intent, audio_filename)
         
         return {
@@ -168,7 +168,7 @@ class ChatbotController:
     
     async def _handle_comic_context_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
         """comic_context 단계 처리"""
-        context_stage = ComicContextStage(self.db, journal_entry_id)
+        context_stage = await ComicContextStage.create(self.db, journal_entry_id)
         context_response_message = await context_stage.process_message(message, intent, audio_filename)
         
         # focus panel 정보는 message의 metadata에서 가져오기
@@ -192,12 +192,12 @@ class ChatbotController:
         print(f"[DEBUG] _handle_revision_2_stage: message={message.strip()}, intent={intent}")
         if intent == MessageIntent.AnswerNext:
             # 사용자 메시지를 DB에 저장
-            revision2_stage = Revision2Stage(self.db, journal_entry_id)
-            interaction_turn = revision2_stage._get_or_create_interaction_turn(JournalEntryStage.Revision2)
+            revision2_stage = await Revision2Stage.create(self.db, journal_entry_id)
+            interaction_turn = await revision2_stage._get_or_create_interaction_turn(JournalEntryStage.Revision2)
             
             from backend.database.crud.chatbot import create_message
             
-            create_message(
+            await create_message(
                 self.db, journal_entry_id, interaction_turn.id,
                 message, MessageRole.User, JournalEntryStage.Revision2,
                 audio_filename=audio_filename,
@@ -205,7 +205,7 @@ class ChatbotController:
             )
             
             # title stage 시작
-            self.title_stage = TitleStage(self.db, journal_entry_id)
+            self.title_stage = await TitleStage.create(self.db, journal_entry_id)
             title_response_message = await self.title_stage.start_title_selection()
             
             return {
@@ -216,7 +216,7 @@ class ChatbotController:
                 "stage": "title"
             }
         
-        revision2_stage = Revision2Stage(self.db, journal_entry_id)
+        revision2_stage = await Revision2Stage.create(self.db, journal_entry_id)
         response_message = await revision2_stage.process_message(message, intent, audio_filename)
         
         return {
@@ -232,7 +232,7 @@ class ChatbotController:
         """title 단계 처리 (제목 정하기)"""
         if not self.title_stage:
             # TitleStage 인스턴스가 없으면 새로 생성
-            self.title_stage = TitleStage(self.db, journal_entry_id)
+            self.title_stage = await TitleStage.create(self.db, journal_entry_id)
         
         title_response_message = await self.title_stage.process_message(message, intent, audio_filename)
         
@@ -240,7 +240,7 @@ class ChatbotController:
         if intent == MessageIntent.AnswerNext:
             # complete stage로 전환
             from ...database.crud.chatbot import update_journal_entry_stage
-            update_journal_entry_stage(self.db, journal_entry_id, JournalEntryStage.Complete)
+            await update_journal_entry_stage(self.db, journal_entry_id, JournalEntryStage.Complete)
             
             return {
                 "message_id": title_response_message.id,
@@ -259,25 +259,25 @@ class ChatbotController:
             "stage": "title"
         }
     
-    def _handle_complete_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
+    async def _handle_complete_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
         """complete 단계 처리 (최종 완료)"""
         return {
             "response": "만화가 완성되었습니다!",
             "stage": "complete"
         }
     
-    def get_session_info(self, journal_entry_id: str) -> JournalingSessionInfo:
+    async def get_session_info(self, journal_entry_id: str) -> JournalingSessionInfo:
         """세션 정보 조회"""
-        journal_entry = get_journal_entry(self.db, journal_entry_id)
+        journal_entry = await get_journal_entry(self.db, journal_entry_id)
         if not journal_entry:
             raise ValueError("Journal entry not found")
         
-        journal = get_journal(self.db, journal_entry_id)
-        messages = get_messages_by_journal_entry(self.db, journal_entry_id)
+        journal = await get_journal(self.db, journal_entry_id)
+        messages = await get_messages_by_journal_entry(self.db, journal_entry_id)
         
         # Comic 테이블에서 comic 데이터 조회
         from ...database.crud.chatbot import get_comic
-        comic = get_comic(self.db, journal_entry_id)
+        comic = await get_comic(self.db, journal_entry_id)
         
         # 현재 패널 데이터 결정
         current_panels = {}
@@ -387,22 +387,22 @@ class ChatbotController:
                 messages=formatted_messages
             )
     
-    def reset_session(self, journal_entry_id: str) -> Dict[str, Any]:
+    async def reset_session(self, journal_entry_id: str) -> Dict[str, Any]:
         """세션 초기화"""
-        reset_journal_entry(self.db, journal_entry_id)
+        await reset_journal_entry(self.db, journal_entry_id)
         
         return {
             "response": "세션이 초기화되었습니다.",
             "stage": "intro"
         }
     
-    def delete_session(self, journal_entry_id: str) -> bool:
+    async def delete_session(self, journal_entry_id: str) -> bool:
         """세션 삭제"""
-        return delete_journal_entry(self.db, journal_entry_id)
+        return await delete_journal_entry(self.db, journal_entry_id)
     
-    def _wait_for_comic_generation(self, journal_entry_id: str, stage_name: str) -> None:
+    async def _wait_for_comic_generation(self, journal_entry_id: str, stage_name: str) -> None:
         """만화 생성이 완료될 때까지 대기"""
-        import time
+        import asyncio
         from backend.database.crud.chatbot import get_comic_status
         
         max_wait_time = 60  # 최대 60초 대기
@@ -411,7 +411,7 @@ class ChatbotController:
         for _ in range(int(max_wait_time / wait_interval)):
             try:
                 # DB에서 직접 만화 생성 상태 확인
-                status = get_comic_status(self.db, journal_entry_id)
+                status = await get_comic_status(self.db, journal_entry_id)
                 
                 if status == 'completed':
                     print(f"[DEBUG] {stage_name}: Comic generation completed for {journal_entry_id}")
@@ -420,7 +420,7 @@ class ChatbotController:
                     print(f"[DEBUG] {stage_name}: Comic generation failed for {journal_entry_id}")
                     break
                 
-                time.sleep(wait_interval)
+                await asyncio.sleep(wait_interval)
             except Exception as e:
                 print(f"[DEBUG] {stage_name}: Error checking comic generation status: {e}")
-                time.sleep(wait_interval) 
+                await asyncio.sleep(wait_interval) 

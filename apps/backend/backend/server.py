@@ -13,7 +13,7 @@ from backend.utils.environment import get_database_type, EnvironmentVariables
 from backend.router import admin, app as app_router
 from backend.core.socket import socket_app
 from re import compile
-from backend.database.migrations import migrate
+from backend.database.migrations import run_migrate
 
 @asynccontextmanager
 async def server_lifespan(app: FastAPI):
