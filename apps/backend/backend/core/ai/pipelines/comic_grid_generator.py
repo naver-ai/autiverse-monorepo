@@ -1,5 +1,4 @@
 import json
-import openai
 import asyncio
 from backend.utils.environment import get_env_variable, EnvironmentVariables
 from typing import Dict, Any, List, Optional
@@ -7,6 +6,10 @@ from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
 from langchain.output_parsers import PydanticOutputParser
 from langchain.schema import HumanMessage, SystemMessage
+
+# 전역 캐시
+_llm_cache = {}
+_parser_cache = {}
 
 class StoryElement(BaseModel):
     """Individual story element for comic analysis"""
@@ -45,14 +48,16 @@ class GridLayout(BaseModel):
 
 class ComicGridGenerator:
     def __init__(self):
-        self.openai = openai.OpenAI(
-            api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
-        )
-        self.llm = ChatOpenAI(
-            model="gpt-4.1-mini-2025-04-14",
-            temperature=0.2,
-            api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
-        )
+        # LLM 캐싱
+        model_key = "gpt-4.1-mini-2025-04-14"
+        if model_key not in _llm_cache:
+            _llm_cache[model_key] = ChatOpenAI(
+                model=model_key,
+                temperature=0.2,
+                api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY),
+                timeout=30  # 30초 타임아웃
+            )
+        self.llm = _llm_cache[model_key]
 
     async def generate_comic_grids(self, panel_contents: Dict[str, str], progress_callback=None) -> Dict[str, Any]:
         """비동기적으로 만화 그리드 생성"""
@@ -74,18 +79,30 @@ class ComicGridGenerator:
 
 class FourSceneComic:
     def __init__(self, panel_contents: Dict[str, str]):
-        self.openai = openai.OpenAI(
-            api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
-        )
-        self.llm = ChatOpenAI(
-            model="gpt-4.1-mini-2025-04-14",
-            temperature=0.2,
-            api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
-        )
+        # LLM 캐싱
+        model_key = "gpt-4.1-mini-2025-04-14"
+        if model_key not in _llm_cache:
+            _llm_cache[model_key] = ChatOpenAI(
+                model=model_key,
+                temperature=0.2,
+                api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY),
+                timeout=30  # 30초 타임아웃
+            )
+        self.llm = _llm_cache[model_key]
+        
         self.panels = panel_contents
-        self.parser = PydanticOutputParser(pydantic_object=StoryAnalysis)
-        self.topology_parser = PydanticOutputParser(pydantic_object=TopologyAnalysis)
-        self.grid_parser = PydanticOutputParser(pydantic_object=GridLayout)
+        
+        # Parser 캐싱
+        if "story_parser" not in _parser_cache:
+            _parser_cache["story_parser"] = PydanticOutputParser(pydantic_object=StoryAnalysis)
+        if "topology_parser" not in _parser_cache:
+            _parser_cache["topology_parser"] = PydanticOutputParser(pydantic_object=TopologyAnalysis)
+        if "grid_parser" not in _parser_cache:
+            _parser_cache["grid_parser"] = PydanticOutputParser(pydantic_object=GridLayout)
+        
+        self.parser = _parser_cache["story_parser"]
+        self.topology_parser = _parser_cache["topology_parser"]
+        self.grid_parser = _parser_cache["grid_parser"]
 
     @staticmethod
     def _create_empty_grid():

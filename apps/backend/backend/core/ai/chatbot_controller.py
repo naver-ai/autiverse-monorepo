@@ -405,8 +405,8 @@ class ChatbotController:
         import asyncio
         from backend.database.crud.chatbot import get_comic_status
         
-        max_wait_time = 60  # 최대 60초 대기
-        wait_interval = 0.5  # 0.5초마다 확인
+        max_wait_time = 30  # 최대 30초 대기 (단축)
+        wait_interval = 0.3  # 0.3초마다 확인 (더 빠른 체크)
         
         for _ in range(int(max_wait_time / wait_interval)):
             try:

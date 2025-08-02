@@ -98,7 +98,7 @@ export const useSpeech = () => {
     setIsSpeaking(true);
 
     try {
-      // 1. CLOVA TTS 요청
+      // 1. CLOVA TTS 요청 (타임아웃 설정으로 빠른 응답)
       const response = await NetworkHelper.axiosClient.post(
         NetworkHelper.ENDPOINTS.APP.SPEECH.CLOVA,
         {
@@ -111,18 +111,22 @@ export const useSpeech = () => {
           headers: {
             ...(await NetworkHelper.getHeaders(jwt)),
           },
+          timeout: 8000, // 8초 타임아웃으로 빠른 실패 처리
         }
       );
       const audioBase64 = response.data.audio;
 
-      // 2. 파일로 저장
-      const audioPath = `${FileSystem.cacheDirectory}clova_tts.mp3`;
+      // 2. 파일로 저장 (캐시 최적화)
+      const audioPath = `${FileSystem.cacheDirectory}clova_tts_${Date.now()}.mp3`;
       await FileSystem.writeAsStringAsync(audioPath, audioBase64, {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      // 3. 재생
-      const { sound } = await Audio.Sound.createAsync({ uri: audioPath });
+      // 3. 재생 (즉시 로드)
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: audioPath },
+        { shouldPlay: false } // 즉시 재생하지 않고 설정 후 재생
+      );
       globalSoundInstance = sound;
 
       // 볼륨 설정 (기본값 사용)

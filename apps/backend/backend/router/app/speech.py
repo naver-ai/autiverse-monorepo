@@ -1,7 +1,9 @@
 import os
 import json
 import base64
-import requests
+import asyncio
+import aiohttp
+import hashlib
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from pydantic import BaseModel
 from typing import Optional, List, Annotated
@@ -9,6 +11,9 @@ from backend.utils.environment import get_env_variable, EnvironmentVariables
 from backend.utils.speech import transcribe_audio
 from backend.database.models import Dyad, UserLocale
 from .common import get_signed_in_dyad
+
+# TTS 캐시 (메모리 기반)
+tts_cache = {}
 
 router = APIRouter()
 
@@ -25,6 +30,15 @@ class SpeechRecognitionRequest(BaseModel):
 @router.post("/clova")
 async def clova_tts(request: TTSRequest):
     try:
+        # 캐시 키 생성 (텍스트 + 설정의 해시)
+        cache_key = hashlib.md5(
+            f"{request.text}:{request.voice}:{request.speed}:{request.pitch}".encode()
+        ).hexdigest()
+        
+        # 캐시에서 확인
+        if cache_key in tts_cache:
+            return tts_cache[cache_key]
+        
         # CLOVA TTS API 설정
         client_id = get_env_variable(EnvironmentVariables.CLOVA_CLIENT_ID)
         client_secret = get_env_variable(EnvironmentVariables.CLOVA_CLIENT_SECRET)
@@ -32,7 +46,7 @@ async def clova_tts(request: TTSRequest):
         if not client_id or not client_secret:
             raise HTTPException(status_code=500, detail="CLOVA API credentials not configured")
         
-        # CLOVA TTS API 호출
+        # CLOVA TTS API 호출 (비동기 HTTP 클라이언트 사용)
         url = "https://naveropenapi.apigw.ntruss.com/tts-premium/v1/tts"
         headers = {
             "X-NCP-APIGW-API-KEY-ID": client_id,
@@ -50,18 +64,32 @@ async def clova_tts(request: TTSRequest):
             "text": request.text
         }
         
-        response = requests.post(url, headers=headers, data=data)
-        
-        if response.status_code != 200:
-            raise HTTPException(status_code=response.status_code, detail="CLOVA TTS API error")
+        # 비동기 HTTP 클라이언트 사용으로 성능 향상
+        timeout = aiohttp.ClientTimeout(total=8)  # 8초 타임아웃으로 단축
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(url, headers=headers, data=data) as response:
+                if response.status != 200:
+                    raise HTTPException(status_code=response.status, detail="CLOVA TTS API error")
+                
+                audio_content = await response.read()
         
         # 오디오 데이터를 base64로 인코딩하여 반환
-        audio_base64 = base64.b64encode(response.content).decode('utf-8')
+        audio_base64 = base64.b64encode(audio_content).decode('utf-8')
         
-        return {
+        result = {
             "audio": audio_base64,
             "format": "mp3"
         }
+        
+        # 캐시에 저장 (최대 100개 항목 유지)
+        if len(tts_cache) >= 100:
+            # 가장 오래된 항목 제거
+            oldest_key = next(iter(tts_cache))
+            del tts_cache[oldest_key]
+        
+        tts_cache[cache_key] = result
+        
+        return result
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")

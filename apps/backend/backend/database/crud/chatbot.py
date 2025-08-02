@@ -39,8 +39,8 @@ async def create_journal_entry(db: AsyncSession, dyad_id: str) -> JournalEntry:
         stage=JournalEntryStage.Intro
     )
     db.add(journal_entry)
-    await db.commit()
-    await db.refresh(journal_entry)
+    # commit과 refresh를 한 번에 처리
+    await db.flush()  # flush로 ID 생성
     return journal_entry
 
 async def get_journal_entry(db: AsyncSession, journal_entry_id: str) -> Optional[JournalEntry]:
@@ -77,8 +77,7 @@ async def create_journal(db: AsyncSession, journal_entry_id: str, dyad_id: str, 
         revision_2=None
     )
     db.add(journal)
-    await db.commit()
-    await db.refresh(journal)
+    await db.flush()  # flush로 ID 생성
     return journal
 
 async def get_journal(db: AsyncSession, journal_entry_id: str) -> Optional[Journal]:
@@ -125,8 +124,7 @@ async def create_comic(db: AsyncSession, journal_entry_id: str, journal_id: str,
         status=None
     )
     db.add(comic)
-    await db.commit()
-    await db.refresh(comic)
+    await db.flush()  # flush로 ID 생성
     return comic
 
 async def get_comic(db: AsyncSession, journal_entry_id: str) -> Optional[Comic]:

@@ -19,6 +19,10 @@ import os
 import asyncio
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+# LLM 인스턴스 캐시 (전역)
+_llm_cache = {}
+_parser_cache = {}
+
 class PanelAnalysis(BaseModel):
     """Panel analysis result"""
     A: List[str] = Field(description="Panel 1 (Antecedent) issues")
@@ -68,26 +72,44 @@ class ComicContextStage:
         self.final_comic_generation_started = False
         self.current_panels = None  # 메모리상의 최신 패널 상태
         
-        # LangChain setup
-        self.llm = ChatOpenAI(
-            model="gpt-4.1-mini-2025-04-14",
-            temperature=0.1,
-            api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY)
-        )
-        self.flow_parser = PydanticOutputParser(pydantic_object=StoryFlowAnalysis)
-        self.reconstruction_parser = PydanticOutputParser(pydantic_object=PanelReconstruction)
-        self.question_parser = PydanticOutputParser(pydantic_object=QuestionData)
-        self.next_question_parser = PydanticOutputParser(pydantic_object=NextQuestionData)
+        # LangChain setup (캐시된 인스턴스 사용)
+        model_key = "gpt-4.1-mini-2025-04-14"
+        if model_key not in _llm_cache:
+            _llm_cache[model_key] = ChatOpenAI(
+                model=model_key,
+                temperature=0.1,
+                api_key=get_env_variable(EnvironmentVariables.OPENAI_API_KEY),
+                timeout=20  # 20초 타임아웃 (단축)
+            )
+        self.llm = _llm_cache[model_key]
+        
+        # Parser 캐싱
+        if "flow_parser" not in _parser_cache:
+            _parser_cache["flow_parser"] = PydanticOutputParser(pydantic_object=StoryFlowAnalysis)
+        if "reconstruction_parser" not in _parser_cache:
+            _parser_cache["reconstruction_parser"] = PydanticOutputParser(pydantic_object=PanelReconstruction)
+        if "question_parser" not in _parser_cache:
+            _parser_cache["question_parser"] = PydanticOutputParser(pydantic_object=QuestionData)
+        if "next_question_parser" not in _parser_cache:
+            _parser_cache["next_question_parser"] = PydanticOutputParser(pydantic_object=NextQuestionData)
+        
+        self.flow_parser = _parser_cache["flow_parser"]
+        self.reconstruction_parser = _parser_cache["reconstruction_parser"]
+        self.question_parser = _parser_cache["question_parser"]
+        self.next_question_parser = _parser_cache["next_question_parser"]
     
     @classmethod
     async def create(cls, db: AsyncSession, journal_entry_id: str) -> 'ComicContextStage':
-        """비동기 팩토리 메서드"""
+        """비동기 팩토리 메서드 (최적화된 DB 쿼리)"""
         instance = cls(db, journal_entry_id)
-        instance.child_name = await instance._get_child_name()
-        instance.child_age = await instance._get_child_age()
-        instance.child_gender = await instance._get_child_gender()
-        instance.agent_name = await instance._get_agent_name()
-        instance.agent_interests = await instance._get_agent_interests()
+        
+        # 한 번의 DB 쿼리로 모든 정보 가져오기
+        dyad_info = await instance._get_dyad_info()
+        instance.child_name = dyad_info[0]
+        instance.child_age = dyad_info[1]
+        instance.child_gender = dyad_info[2]
+        instance.agent_name = dyad_info[3]
+        instance.agent_interests = dyad_info[4]
         
         # 기존 comic_context가 있으면 메모리에 로드
         journal = await get_journal(db, journal_entry_id)
