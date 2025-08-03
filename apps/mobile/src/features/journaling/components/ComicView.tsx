@@ -183,5 +183,6 @@ export const ComicView = ({
                 </View>
               </View>
             )}
-          </View>);
-}; 
+          </View>
+  );
+};

@@ -19,6 +19,7 @@ export async function getGalleryAPI(jwt: string): Promise<GalleryResponse> {
       NetworkHelper.ENDPOINTS.APP.CHATBOT.GALLERY,
       {
         headers: await NetworkHelper.getHeaders(jwt),
+        timeout: 10000, // 10초 타임아웃
       }
     );
     return response.data;

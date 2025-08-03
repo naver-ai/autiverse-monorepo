@@ -6,7 +6,7 @@ import {
   ViewStyle,
   StyleProp,
 } from 'react-native';
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { styleTemplates } from '../../../styles';
 import { ComicPanelView } from '../../comic/components/ComicPanelView';
 import { GridView } from '../../../components/GridView';
@@ -17,7 +17,7 @@ import { escapeJongseong, GalleryComicItem } from '@autiverse-monorepo/ts-core';
 import { twMerge } from 'tailwind-merge';
 import { ComicElementSize } from '../../comic/styles';
 
-export const JournalListElement = ({
+export const JournalListElement = memo(({
   comic,
   onPress,
   style,
@@ -36,9 +36,9 @@ export const JournalListElement = ({
         agent_name: escapeJongseong(comic.agent_name || '친구'),
       })
     );
-  }, [comic, t]);
+  }, [comic.title, comic.child_name, comic.agent_name, t]);
 
-  const isComplete = comic.stage === 'complete';
+  const isComplete = useMemo(() => comic.stage === 'complete', [comic.stage]);
 
   return (
     <TouchableOpacity
@@ -89,17 +89,15 @@ export const JournalListElement = ({
           style={styleTemplates.withSemiboldFont}
           numberOfLines={2}
         >
-          {comic.created_at
-            ? (() => {
-                const date = new Date(comic.created_at);
-                const month = date.getMonth() + 1;
-                const day = date.getDate();
-                const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][
-                  date.getDay()
-                ];
-                return `[${month}/${day} (${dayOfWeek})]`;
-              })()
-            : ''}{' '}
+          {comic.created_at ? (() => {
+            const date = new Date(comic.created_at);
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][
+              date.getDay()
+            ];
+            return `[${month}/${day} (${dayOfWeek})]`;
+          })() : ''}{' '}
           {title}
         </Text>
         <Text
@@ -114,4 +112,4 @@ export const JournalListElement = ({
       </View>
     </TouchableOpacity>
   );
-};
+});

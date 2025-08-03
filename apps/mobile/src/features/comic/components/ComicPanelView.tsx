@@ -1,6 +1,6 @@
 import { ComicGridItem, ComicGridItemAction, ComicGridItemType, ComicPanelInfo, Person } from "@autiverse-monorepo/ts-core";
 import { View, Text, LayoutChangeEvent } from "react-native";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, memo } from "react";
 import { styleTemplates } from "../../../styles";
 import { calculateCalloutBounds, convertPanelGridToMatrix, getTileColor } from "../utils";
 import { Pawn } from "./Pawn";
@@ -11,7 +11,7 @@ import { ComicElementSize, ComicProvider, useGetFigureColor } from "../styles";
 import { Callout } from "./Callout";
 
 
-export const ComicPanelView = ({
+export const ComicPanelView = memo(({
   panelIndex, panel, isHighlighted = false, panelSize, showStory = true, elementSize = ComicElementSize.medium
 }: {
   panelIndex: number;
@@ -47,6 +47,9 @@ export const ComicPanelView = ({
   }, [panel.grid])
 
   const callouts = useMemo(() => {
+    // showStory가 false이면 callout 계산하지 않음
+    if (!showStory) return [];
+    
     const figures = panel.grid.filter((item: ComicGridItem) => item.type === ComicGridItemType.Figure);
     const figuresWithCallouts = figures.filter((item: ComicGridItem) => item.action?.some((action) => action.type === 'tell' || action.type === 'think'));
     const actionsWithItem: Array<{item: ComicGridItem, action: ComicGridItemAction}> = []
@@ -67,7 +70,7 @@ export const ComicPanelView = ({
       }
     })
 
-  }, [panel.grid, matrix])
+  }, [panel.grid, matrix, showStory])
 
   return (<ComicProvider elementSize={elementSize} gridSize={gridSize}>
     <View
@@ -196,4 +199,4 @@ export const ComicPanelView = ({
       </View>
     </View></ComicProvider>
   );
-};
+});

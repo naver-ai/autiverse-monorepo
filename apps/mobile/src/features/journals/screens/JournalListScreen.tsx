@@ -27,6 +27,10 @@ export default function JournalListScreen() {
     queryKey: ['gallery'],
     queryFn: () => getGalleryAPI(jwt!!),
     enabled: !!jwt,
+    staleTime: 5 * 60 * 1000, // 5분간 캐시 유지
+    gcTime: 10 * 60 * 1000, // 10분간 캐시 보관
+    refetchOnWindowFocus: false, // 윈도우 포커스 시 재요청 방지
+    refetchOnMount: false, // 마운트 시 재요청 방지
   });
 
   const handleComicPress = (comic: any) => {
@@ -101,13 +105,17 @@ export default function JournalListScreen() {
           horizontal
           renderItem={({ item }) => (
             <JournalListElement
-              key={item.id}
               comic={item}
               onPress={() => handleComicPress(item)}
             />
           )}
           keyExtractor={(item, index) => item.id || index.toString()}
-          estimatedItemSize={20}
+          estimatedItemSize={480}
+          getItemType={() => 'comic'}
+          overrideItemLayout={(layout, item) => {
+            layout.size = 480;
+            layout.span = 1;
+          }}
         />
       </View>
     </View>
