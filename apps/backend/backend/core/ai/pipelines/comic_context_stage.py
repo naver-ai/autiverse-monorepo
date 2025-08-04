@@ -615,11 +615,13 @@ ABCD STRUCTURE:
      - **YES/NO QUESTIONS: When question asks "~ 했어?" and answer is "응"/"그래" → interpret as "YES, that happened"**
      - **CHOICE QUESTIONS: When question provides choices and answer is "1"/"2"/"3" → interpret as the selected choice**
      - **CONTEXT-BASED INTERPRETATION: Extract the specific information from the question that the user is confirming**
+     - **CRITICAL: For "응"/"그래" answers, extract the COMPLETE action from the question including the subject:**
      - **EXAMPLES:**
        - Q: "집에서 했어?" A: "응" → "집에서 했다" (집에서)
        - Q: "엄마가 칭찬했어?" A: "그래" → "엄마가 칭찬했다" (엄마가 칭찬)
+       - Q: "철수한테 미안하다고 했어?" A: "응" → "나는 철수에게 미안하다고 했다" (나는 철수에게 미안하다고)
+       - Q: "선생님이 뭐라고 했어?" A: "노래 잘한다고" → "선생님이 노래를 잘한다고 했다" (선생님이 노래를 잘한다고)
        - Q: "쉬는 시간에 했어? 점심시간에 했어?" A: "1" → "쉬는 시간에 했다" (쉬는 시간)
-       - Q: "기뻤어?" A: "응" → "기뻤다" (기뻤다)
    
    • **CRITICAL: Analyze question-answer context to determine the correct panel placement:**
    • **CRITICAL: When question asks about someone's words, preserve the speaker in the answer:**
@@ -632,6 +634,11 @@ ABCD STRUCTURE:
    • **CRITICAL: When question asks about someone's action, the answer should maintain the same subject:**
      - Q: "민수가 슈퍼에 갔어?" A: "응"
      - Result: "민수가 슈퍼에 갔다" (NOT "나는 슈퍼에 갔다")
+   • **CRITICAL: When question asks about the user's action with "응"/"그래", extract the complete action including subject:**
+     - Q: "철수한테 미안하다고 했어?" A: "응"
+     - Result: "나는 철수에게 미안하다고 했다" (extract complete action from question)
+     - Q: "선생님이 칭찬했어?" A: "그래"
+     - Result: "선생님이 칭찬했다" (preserve original subject from question)
    • Merge with existing content in the target panel, ONLY using information from user content (new_QA)
      - If user mentioned place/time → add to panel1 (A)
      - If user mentioned behavior → add to panel2 (B)
@@ -702,8 +709,8 @@ ABCD STRUCTURE:
 10. **CRITICAL: When question asks about someone's action, put it in panel2 (B) as behavior**
 11. **CRITICAL: D panel (emotion) content should ONLY contain pure emotion words**
 12. **CRITICAL: When combining sentences, use proper Korean grammar and natural flow**
-13. **CRITICAL: For simple agreement answers ("응", "네", "그래"), extract the specific information from the question:**
-    - Q: "놀이터에서 놀았어?" A: "응" → Extract "놀이터에서 놀았다" from question
+13. **CRITICAL: For simple agreement answers ("응", "네", "그래"), extract the COMPLETE action from the question including the subject:**
+    - Q: "놀이터에서 놀았어?" A: "응" → Extract "나는 놀이터에서 놀았다" from question
     - Q: "친구가 울었어?" A: "그래" → Extract "친구가 울었다" from question  
 14. **CRITICAL: For choice questions, interpret the selected choice:**
     - Q: "쉬는 시간에 했어? 점심시간에 했어?" A: "1" → "쉬는 시간에 했다"
@@ -743,7 +750,7 @@ answer: "1"
   "panel4": null
 }}
 
-### Example 2 - Simple Agreement Answer
+### Example 2 - Simple Agreement Answer with Subject Extraction
 <panels_original>
 "panel1": "나는 어머니에게 놀이공원에 가고 싶다고 말했다.",  
 "panel2": "어머니가 '그래, 가자'고 했다.",  
@@ -763,6 +770,25 @@ answer: "응"
   "panel2": "나는 어머니에게 놀이공원에 가고 싶다고 말했다.",  
   "panel3": "어머니가 '그래, 가자'고 해서 우리는 다음주 토요일에 가서 롤러코스터를 탈 것이다.",  
   "panel4": "나는 떨렸다."
+}}
+
+### Example 2b - Subject Extraction from Question
+<panels_original>
+"panel1": "나는 학교에서 친구와 다퉜다.",  
+"panel2": "나는 화가 나서 소리를 질렀다.",  
+"panel3": null,  
+"panel4": "나는 후회했다."
+<new_QA>
+question: "그래서 철수한테 미안하다고 했어?"
+answer: "응"
+<order>
+[]
+<expected_output>
+{{
+  "panel1": "나는 학교에서 친구와 다퉜다.",  
+  "panel2": "나는 화가 나서 소리를 질렀다.",  
+  "panel3": "나는 철수에게 미안하다고 했다.",  
+  "panel4": "나는 후회했다."
 }}
 
 ### Example 3 - Replace and Maintain Time Order

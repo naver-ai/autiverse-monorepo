@@ -196,8 +196,23 @@ class ComicIntroStage:
             places = await get_dyad_places(self.db, dyad.id)
             people = await get_place_people(self.db, dyad.id)
             
-            # 첫 번째 장소와 사람 사용
-            location = places[0].name if places else None
+            # 요일에 맞는 place 선택
+            from datetime import datetime
+            today = datetime.now()
+            weekday = today.weekday()  # 0=월요일, 1=화요일, ..., 6=일요일
+            
+            weekday_fields = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+            current_weekday_field = weekday_fields[weekday]
+            
+            # 해당 요일에 True로 설정된 place 찾기
+            suitable_places = [place for place in places if getattr(place, current_weekday_field) == True]
+            
+            if suitable_places:
+                location = suitable_places[0].name
+            else:
+                # 해당 요일에 맞는 place가 없으면 집으로 설정
+                location = "집"
+            
             people_list = [p.name for p in people[:2]] if people else []  # 최대 2명
             
             await update_journal_data(
@@ -207,7 +222,7 @@ class ComicIntroStage:
             )
         
         # 첫 번째 interaction turn 생성
-        interaction_turn = create_interaction_turn(
+        interaction_turn = await create_interaction_turn(
             self.db, self.journal_entry_id, JournalEntryStage.Intro
         )
         
@@ -451,7 +466,9 @@ CONVERSATION:
         
         print(f"Debug - weekday: {weekday}, korean_day: {korean_day}")  # 디버깅용
         
-        if location:
+        if location == "집":
+            return f"그럼 오늘 집에서 있었던 일을 일기로 써보자! 오늘 집에서 뭐했어?"
+        elif location:
             return f"오늘 {korean_day}이니 {location}에 가지 않았어?? 거기서 있었던 일을 써볼까?"
         else:
             return "오늘 뭐했어? 😊"
