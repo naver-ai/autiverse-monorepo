@@ -193,22 +193,24 @@ export const PresetSelectionStage = ({
           onLayout={onMessageViewLayout}
         >
           <Reanimated.View style={ttsBorderColorStyle} className="bg-white rounded-2xl p-6 w-full border-2">
-            <View className="flex-row items-center">
+            <View className="flex-row items-start">
               <Reanimated.View style={ttsScalePulseStyle}>
                 <AgentImage
                   avatarImage={agentConfig?.avatar_image || ''}
                   style={styles.avatarImage}
                 />
               </Reanimated.View>
-              <AnimatedText
-                textStyle={styleTemplates.withBoldFont}
-                textClassName="text-2xl text-gray-800 my-2"
-                text={selectionStep === 'location'
-                  ? t('Journaling.PresetSelection.LocationSelectionMessage')
-                  : format(t('Journaling.PresetSelection.PeopleSelectionMessageTemplate'), { location: selectedLocation?.name })}
-                initialDelay={0}
-                charInterval={100}
-              />
+              <View className="flex-1 ml-3">
+                <AnimatedText
+                  textStyle={styleTemplates.withBoldFont}
+                  textClassName="text-2xl text-gray-800 my-2"
+                  text={selectionStep === 'location'
+                    ? t('Journaling.PresetSelection.LocationSelectionMessage')
+                    : format(t('Journaling.PresetSelection.PeopleSelectionMessageTemplate'), { location: selectedLocation?.name })}
+                  initialDelay={0}
+                  charInterval={100}
+                />
+              </View>
             </View>
           </Reanimated.View>
         </Reanimated.View>
@@ -281,13 +283,13 @@ export const PresetSelectionStage = ({
 
                 <TailwindButton
               buttonStyleClassName={`rounded-xl p-5 ${
-                isTTSActive || selectedPersonIds.length === 0 || isLoadingPeopleInPlace
+                isTTSActive || isLoadingPeopleInPlace
                   ? 'bg-gray-200'
                   : 'bg-blue-500'
               }`}
               disabledButtonStyleClassName="bg-gray-200"
               titleClassName={`text-white text-2xl text-center ${
-                isTTSActive || selectedPersonIds.length === 0 || isLoadingPeopleInPlace
+                isTTSActive || isLoadingPeopleInPlace
                   ? 'text-gray-400'
                   : 'text-white'
               }`}
@@ -299,7 +301,7 @@ export const PresetSelectionStage = ({
                 onSelectionComplete(selectedLocation!, selectedPersonIds);
               })}
               disabled={
-                isTTSActive || selectedPersonIds.length === 0 || isLoadingPeopleInPlace
+                isTTSActive || isLoadingPeopleInPlace
               }
             />
             </View>
@@ -330,9 +332,15 @@ export const PresetSelectionStage = ({
                     roundedClassName="rounded-xl"
                     disabledButtonStyleClassName={twMerge("border-gray-200", isSelected ? 'bg-gray-300' : 'bg-gray-200')}
                     onPress={() =>
-                      executeWithConditionalTTSStop(() =>
-                        setSelectedPersonIds([...selectedPersonIds, person.id]),
-                      )
+                      executeWithConditionalTTSStop(() => {
+                        if (isSelected) {
+                          // 이미 선택된 경우 제거
+                          setSelectedPersonIds(selectedPersonIds.filter(id => id !== person.id));
+                        } else {
+                          // 선택되지 않은 경우 추가
+                          setSelectedPersonIds([...selectedPersonIds, person.id]);
+                        }
+                      })
                     }
                     disabled={isTTSActive}
                   >

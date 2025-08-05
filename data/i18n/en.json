@@ -12,7 +12,7 @@
     "Journaling": {
         "PresetSelection": {
             "LocationSelectionMessage": "Where did you have an experience today that you'd like to write about in your comic diary?",
-            "PeopleSelectionMessageTemplate": "Who were you with at {location} when you had an experience you'd like to write about? You can choose multiple people!",
+            "PeopleSelectionMessageTemplate": "Who were you with at {location} when you had an experience you'd like to write about? You can choose multiple people, and if you want to talk about someone not on screen, just go to the next step!",
             "DontKnowWhatToWrite": "I don't know what to write...",
             "IWantToWriteSomething": "I have something I want to write about today!",
             "NextStepTemplate": "Next step ({count} people selected)",

@@ -71,15 +71,16 @@ export const PresetSelectionScreen = () => {
           .map(person => person.name);
       }
       
-      if (peopleList.length > 0) {
-        const customPreset: Preset = {
-          location: selectedLocation.name,
-          people: peopleList,
-          label: `${selectedLocation.name}에서 ${peopleList.join(', ')}와`,
-          dayInfo: []
-        };
-        await startChatbot(customPreset);
-      }
+      // 아무도 선택하지 않아도 진행
+      const customPreset: Preset = {
+        location: selectedLocation.name,
+        people: peopleList,
+        label: peopleList.length > 0 
+          ? `${selectedLocation.name}에서 ${peopleList.join(', ')}와`
+          : `${selectedLocation.name}에서`,
+        dayInfo: []
+      };
+      await startChatbot(customPreset);
     }
   };
 

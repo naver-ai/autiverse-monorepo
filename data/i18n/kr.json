@@ -37,7 +37,7 @@
         },
         "PresetSelection": {
             "LocationSelectionMessage": "오늘은 어디서 있었던 일을 그림 일기로 써볼까?",
-            "PeopleSelectionMessageTemplate": "{location}에서 누구랑 있었던 일을 그림 일기로 써볼까? 여러 사람을 골라도 괜찮아!",
+            "PeopleSelectionMessageTemplate": "{location}에서 누구랑 있었던 일을 그림 일기로 써볼까? 여러 사람을 골라도 되고, 화면에 없는 사람에 대해 이야기하고 싶다면 바로 다음으로 넘어가자!",
             "DontKnowWhatToWrite": "뭘 쓸지 모르겠네..",
             "IWantToWriteSomething": "오늘은 내가 쓰고 싶은 게 있어!",
             "NextStepTemplate": "다음 단계로 ({count}명 선택됨)",
