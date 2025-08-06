@@ -953,9 +953,10 @@ answer: "{answer}"
                 if has_order_issues_after and not content_has_issues_after:
                     print(f"[DEBUG] comic_context: Still only order issues after 2 attempts, forcing completion")
                     # 만화 생성 시작 신호 반환 (실제 만화 생성은 controller에서 처리)
-                    child_name = self._get_child_name()
+                    child_name = await self._get_child_name()
                     child_name_with_josa = append_josa(child_name, '이', '')
-                    response_message = t('Journaling.Messages.ComicContextComplete', self._get_dyad().locale).format(
+                    dyad = await self._get_dyad()
+                    response_message = t('Journaling.Messages.ComicContextComplete', dyad.locale).format(
                         child_name=child_name_with_josa
                     )
                     response_intent = MessageIntent.StartComicGeneration
