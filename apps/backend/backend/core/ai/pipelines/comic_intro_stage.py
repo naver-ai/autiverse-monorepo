@@ -440,7 +440,7 @@ CONVERSATION:
             return f"오늘 {location}에서 {', '.join(people)}하고 무슨 일이 있었는지 너무 궁금해! 나한테 다 이야기해줘! 😊"
         elif location:
             # 장소는 있지만 사람을 선택하지 않은 경우
-            return f"오늘 {location}에서 누구랑 있었던 일에 대해서 일기를 써볼까? 😊"
+            return f"오늘 {location}에서 누구랑 있었던 일에 대해 일기를 써볼까? 😊"
         else:
             return "대박대박!! 딱 쓰고 싶은 게 있었구나!! 오늘 있었던 무슨 일을 일기로 써볼까? 😊"
     
