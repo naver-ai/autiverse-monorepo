@@ -216,7 +216,7 @@ Expected elements:
 [
 {"panel":"1","act":"찼다","figure":"나, 민수","object":"축구공","location":"학교 운동장"},
 {"panel":"2","act":"대화","figure":"민수","object":"","location":"","tell":"어!"},
-{"panel":"2","act":"날아갔다","figure":"축구공","object":"","location":"담장 너머"},
+{"panel":"2","act":"날아갔다","figure":"","object":"축구공","location":"담장 너머"},
 {"panel":"3","act":"나갔다","figure":"나, 민수","object":"","location":"담장 밖"},
 {"panel":"3","act":"찾았다","figure":"나, 민수","object":"축구공","location":"담장 밖"},
 {"panel":"4","act":"감정","figure":"나","object":"","location":"","emotion":"기쁨"}
@@ -417,7 +417,7 @@ OUTPUT
 EXAMPLE 2  
 INPUT  
 {"panel":"2","act":"대화","figure":"민수","object":"","location":"","tell":"어!?"},
-{"panel":"2","act":"날아갔다","figure":"축구공","object":"","location":"담장 너머"}  
+{"panel":"2","act":"날아갔다","figure":"","object":"축구공","location":"담장 너머"}  
 OUTPUT  
 {
   "relationships": [
