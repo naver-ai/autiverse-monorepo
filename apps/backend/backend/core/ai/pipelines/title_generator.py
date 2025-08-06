@@ -62,6 +62,7 @@ Examples:
 - {{"title1": "민수랑 학교에서 게임한 날🏫", "title2": "민수랑 재미있게 논 날😊", "title3": "학교에서 민수랑 즐거운 시간🎮"}}
 - {{"title1": "우리 강아지와 산책한 날🐕", "title2": "강아지랑 공원에서 논 날🌳", "title3": "강아지랑 산책🦮"}}
 - {{"title1": "진영이랑 숨바꼭질 재미있게 한 날😊", "title2": "진영이랑 신나는 숨바꼭질🎯", "title3": "진영이랑 숨바꼭질 대박 재밌었던 날😄"}}
+- {{"title1": "인사이드 아웃 또 본 날😊", "title2": "슬픔이에 빠진 날💙", "title3": "인사이드 아웃 집중해서 본 날😄"}} (When the only figure is the child, do not include the child's name in the title.)
 
 Generate three structured title options in JSON format."""
 
