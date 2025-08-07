@@ -42,7 +42,7 @@ export const getTTSOptionsFromAgentConfig = (agentConfig?: Record<string, any>) 
 
   return {
     voice: agentConfig.voice || FALLBACK_TTS_OPTIONS.voice,
-    speed: agentConfig.speed || FALLBACK_TTS_OPTIONS.speed,
+    rate: agentConfig.speed || FALLBACK_TTS_OPTIONS.speed,
     pitch: agentConfig.pitch || FALLBACK_TTS_OPTIONS.pitch,
     volume: agentConfig.volume || FALLBACK_TTS_OPTIONS.volume,
   };
