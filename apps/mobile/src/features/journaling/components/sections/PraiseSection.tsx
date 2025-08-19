@@ -270,7 +270,7 @@ export default function PraiseSection({ childName, sessionId, onComplete }: Prai
         }
       });
 
-      // 안전장치: 5초 후에도 완료되지 않으면 강제로 다음 단계로 진행
+      // 안전장치: 12초 후에도 완료되지 않으면 강제로 스탬프 활성화
       const safetyTimer = setTimeout(() => {
         if (!stampsActive) {
           console.log('PraiseSection: TTS 타임아웃, 강제로 스탬프 활성화');
@@ -281,12 +281,12 @@ export default function PraiseSection({ childName, sessionId, onComplete }: Prai
           setStampsActive(true);
           setIsSpeaking(false);
         }
-      }, 500);
+      }, 12000); // 12초로 변경
 
       return () => {
         clearTimeout(safetyTimer);
       };
-    }, 3000); // 0.3초 후 첫 번째 메시지 시작
+    }, 2000); // 2초 후 첫 번째 메시지 시작
 
     return () => clearTimeout(timer);
   }, []);
