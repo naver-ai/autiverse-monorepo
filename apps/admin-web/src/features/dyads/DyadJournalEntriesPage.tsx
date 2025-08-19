@@ -7,7 +7,7 @@ import { format } from 'date-fns'
 const { Text, Title } = Typography
 
 export const DyadJournalEntriesPage = () => {
-    const { dyadId } = useParams({ from: '/_protected/_layout/dyads/$dyadId/journal-entries' })
+    const { dyadId } = useParams({ strict: false })
     const navigate = useNavigate()
 
     const { data: journalEntries, isLoading, error } = useQuery({

@@ -16,8 +16,8 @@ import { Route as ProtectedLayoutDyadsIndexRouteImport } from './routes/_protect
 import { Route as ProtectedLayoutDataIndexRouteImport } from './routes/_protected/_layout.data/index'
 import { Route as ProtectedLayoutDyadsListRouteImport } from './routes/_protected/_layout.dyads/list'
 import { Route as ProtectedLayoutDyadsDyadIdIndexRouteImport } from './routes/_protected/_layout.dyads/$dyadId/index'
-import { Route as ProtectedLayoutDyadsDyadIdJournalEntriesRouteImport } from './routes/_protected/_layout.dyads/$dyadId/journal-entries'
-import { Route as ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRouteImport } from './routes/_protected/_layout.dyads/$dyadId/journal-entries.$journalEntryId'
+import { Route as ProtectedLayoutDyadsDyadIdJournalEntriesIndexRouteImport } from './routes/_protected/_layout.dyads/$dyadId/journal-entries/index'
+import { Route as ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRouteImport } from './routes/_protected/_layout.dyads/$dyadId/journal-entries/$journalEntryId'
 
 const SigninRoute = SigninRouteImport.update({
   id: '/signin',
@@ -57,17 +57,17 @@ const ProtectedLayoutDyadsDyadIdIndexRoute =
     path: '/dyads/$dyadId/',
     getParentRoute: () => ProtectedLayoutRoute,
   } as any)
-const ProtectedLayoutDyadsDyadIdJournalEntriesRoute =
-  ProtectedLayoutDyadsDyadIdJournalEntriesRouteImport.update({
-    id: '/dyads/$dyadId/journal-entries',
-    path: '/dyads/$dyadId/journal-entries',
+const ProtectedLayoutDyadsDyadIdJournalEntriesIndexRoute =
+  ProtectedLayoutDyadsDyadIdJournalEntriesIndexRouteImport.update({
+    id: '/dyads/$dyadId/journal-entries/',
+    path: '/dyads/$dyadId/journal-entries/',
     getParentRoute: () => ProtectedLayoutRoute,
   } as any)
 const ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRoute =
   ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRouteImport.update({
-    id: '/$journalEntryId',
-    path: '/$journalEntryId',
-    getParentRoute: () => ProtectedLayoutDyadsDyadIdJournalEntriesRoute,
+    id: '/dyads/$dyadId/journal-entries/$journalEntryId',
+    path: '/dyads/$dyadId/journal-entries/$journalEntryId',
+    getParentRoute: () => ProtectedLayoutRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -76,9 +76,9 @@ export interface FileRoutesByFullPath {
   '/dyads/list': typeof ProtectedLayoutDyadsListRoute
   '/data': typeof ProtectedLayoutDataIndexRoute
   '/dyads': typeof ProtectedLayoutDyadsIndexRoute
-  '/dyads/$dyadId/journal-entries': typeof ProtectedLayoutDyadsDyadIdJournalEntriesRouteWithChildren
   '/dyads/$dyadId': typeof ProtectedLayoutDyadsDyadIdIndexRoute
   '/dyads/$dyadId/journal-entries/$journalEntryId': typeof ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRoute
+  '/dyads/$dyadId/journal-entries': typeof ProtectedLayoutDyadsDyadIdJournalEntriesIndexRoute
 }
 export interface FileRoutesByTo {
   '/signin': typeof SigninRoute
@@ -86,9 +86,9 @@ export interface FileRoutesByTo {
   '/dyads/list': typeof ProtectedLayoutDyadsListRoute
   '/data': typeof ProtectedLayoutDataIndexRoute
   '/dyads': typeof ProtectedLayoutDyadsIndexRoute
-  '/dyads/$dyadId/journal-entries': typeof ProtectedLayoutDyadsDyadIdJournalEntriesRouteWithChildren
   '/dyads/$dyadId': typeof ProtectedLayoutDyadsDyadIdIndexRoute
   '/dyads/$dyadId/journal-entries/$journalEntryId': typeof ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRoute
+  '/dyads/$dyadId/journal-entries': typeof ProtectedLayoutDyadsDyadIdJournalEntriesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,9 +98,9 @@ export interface FileRoutesById {
   '/_protected/_layout/dyads/list': typeof ProtectedLayoutDyadsListRoute
   '/_protected/_layout/data/': typeof ProtectedLayoutDataIndexRoute
   '/_protected/_layout/dyads/': typeof ProtectedLayoutDyadsIndexRoute
-  '/_protected/_layout/dyads/$dyadId/journal-entries': typeof ProtectedLayoutDyadsDyadIdJournalEntriesRouteWithChildren
   '/_protected/_layout/dyads/$dyadId/': typeof ProtectedLayoutDyadsDyadIdIndexRoute
   '/_protected/_layout/dyads/$dyadId/journal-entries/$journalEntryId': typeof ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRoute
+  '/_protected/_layout/dyads/$dyadId/journal-entries/': typeof ProtectedLayoutDyadsDyadIdJournalEntriesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -110,9 +110,9 @@ export interface FileRouteTypes {
     | '/dyads/list'
     | '/data'
     | '/dyads'
-    | '/dyads/$dyadId/journal-entries'
     | '/dyads/$dyadId'
     | '/dyads/$dyadId/journal-entries/$journalEntryId'
+    | '/dyads/$dyadId/journal-entries'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/signin'
@@ -120,9 +120,9 @@ export interface FileRouteTypes {
     | '/dyads/list'
     | '/data'
     | '/dyads'
-    | '/dyads/$dyadId/journal-entries'
     | '/dyads/$dyadId'
     | '/dyads/$dyadId/journal-entries/$journalEntryId'
+    | '/dyads/$dyadId/journal-entries'
   id:
     | '__root__'
     | '/signin'
@@ -131,9 +131,9 @@ export interface FileRouteTypes {
     | '/_protected/_layout/dyads/list'
     | '/_protected/_layout/data/'
     | '/_protected/_layout/dyads/'
-    | '/_protected/_layout/dyads/$dyadId/journal-entries'
     | '/_protected/_layout/dyads/$dyadId/'
     | '/_protected/_layout/dyads/$dyadId/journal-entries/$journalEntryId'
+    | '/_protected/_layout/dyads/$dyadId/journal-entries/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -193,53 +193,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedLayoutDyadsDyadIdIndexRouteImport
       parentRoute: typeof ProtectedLayoutRoute
     }
-    '/_protected/_layout/dyads/$dyadId/journal-entries': {
-      id: '/_protected/_layout/dyads/$dyadId/journal-entries'
+    '/_protected/_layout/dyads/$dyadId/journal-entries/': {
+      id: '/_protected/_layout/dyads/$dyadId/journal-entries/'
       path: '/dyads/$dyadId/journal-entries'
       fullPath: '/dyads/$dyadId/journal-entries'
-      preLoaderRoute: typeof ProtectedLayoutDyadsDyadIdJournalEntriesRouteImport
+      preLoaderRoute: typeof ProtectedLayoutDyadsDyadIdJournalEntriesIndexRouteImport
       parentRoute: typeof ProtectedLayoutRoute
     }
     '/_protected/_layout/dyads/$dyadId/journal-entries/$journalEntryId': {
       id: '/_protected/_layout/dyads/$dyadId/journal-entries/$journalEntryId'
-      path: '/$journalEntryId'
+      path: '/dyads/$dyadId/journal-entries/$journalEntryId'
       fullPath: '/dyads/$dyadId/journal-entries/$journalEntryId'
       preLoaderRoute: typeof ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRouteImport
-      parentRoute: typeof ProtectedLayoutDyadsDyadIdJournalEntriesRoute
+      parentRoute: typeof ProtectedLayoutRoute
     }
   }
 }
-
-interface ProtectedLayoutDyadsDyadIdJournalEntriesRouteChildren {
-  ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRoute: typeof ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRoute
-}
-
-const ProtectedLayoutDyadsDyadIdJournalEntriesRouteChildren: ProtectedLayoutDyadsDyadIdJournalEntriesRouteChildren =
-  {
-    ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRoute:
-      ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRoute,
-  }
-
-const ProtectedLayoutDyadsDyadIdJournalEntriesRouteWithChildren =
-  ProtectedLayoutDyadsDyadIdJournalEntriesRoute._addFileChildren(
-    ProtectedLayoutDyadsDyadIdJournalEntriesRouteChildren,
-  )
 
 interface ProtectedLayoutRouteChildren {
   ProtectedLayoutDyadsListRoute: typeof ProtectedLayoutDyadsListRoute
   ProtectedLayoutDataIndexRoute: typeof ProtectedLayoutDataIndexRoute
   ProtectedLayoutDyadsIndexRoute: typeof ProtectedLayoutDyadsIndexRoute
-  ProtectedLayoutDyadsDyadIdJournalEntriesRoute: typeof ProtectedLayoutDyadsDyadIdJournalEntriesRouteWithChildren
   ProtectedLayoutDyadsDyadIdIndexRoute: typeof ProtectedLayoutDyadsDyadIdIndexRoute
+  ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRoute: typeof ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRoute
+  ProtectedLayoutDyadsDyadIdJournalEntriesIndexRoute: typeof ProtectedLayoutDyadsDyadIdJournalEntriesIndexRoute
 }
 
 const ProtectedLayoutRouteChildren: ProtectedLayoutRouteChildren = {
   ProtectedLayoutDyadsListRoute: ProtectedLayoutDyadsListRoute,
   ProtectedLayoutDataIndexRoute: ProtectedLayoutDataIndexRoute,
   ProtectedLayoutDyadsIndexRoute: ProtectedLayoutDyadsIndexRoute,
-  ProtectedLayoutDyadsDyadIdJournalEntriesRoute:
-    ProtectedLayoutDyadsDyadIdJournalEntriesRouteWithChildren,
   ProtectedLayoutDyadsDyadIdIndexRoute: ProtectedLayoutDyadsDyadIdIndexRoute,
+  ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRoute:
+    ProtectedLayoutDyadsDyadIdJournalEntriesJournalEntryIdRoute,
+  ProtectedLayoutDyadsDyadIdJournalEntriesIndexRoute:
+    ProtectedLayoutDyadsDyadIdJournalEntriesIndexRoute,
 }
 
 const ProtectedLayoutRouteWithChildren = ProtectedLayoutRoute._addFileChildren(
