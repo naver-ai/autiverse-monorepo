@@ -113,10 +113,7 @@ export const PresetSelectionStage = ({
         ...getTTSOptionsFromAgentConfig(agentConfig),
         onDone: () => {
           setIsTTSActive(false);
-        },
-        onError: (error) => {
-          setIsTTSActive(false);
-        },
+        }
       });
     };
     stopAndStartTTS();

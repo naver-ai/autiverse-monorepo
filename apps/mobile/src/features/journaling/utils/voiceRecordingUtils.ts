@@ -162,54 +162,83 @@ export async function transcribeAudio(
   peopleNames: string[] = [], 
   placeNames: string[] = []
 ): Promise<string> {
-  try {
-    // audioUri가 문자열인지 확인
-    console.log('transcribeAudio 호출됨, audioUri:', audioUri, '타입:', typeof audioUri);
-    if (typeof audioUri !== 'string') {
-      console.log('audioUri가 문자열이 아님:', audioUri);
-      throw new Error('오디오 파일 경로가 올바르지 않습니다.');
-    }
-
-    // Validate audio file exists
+  const maxRetries = 3;
+  let lastError: any;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const fileInfo = await FileSystem.getInfoAsync(audioUri);
-      if (!fileInfo.exists) {
-        console.log('오디오 파일을 찾을 수 없습니다.');
-        throw new Error('오디오 파일을 찾을 수 없습니다.');
+      console.log(`음성 인식 API 호출 시도 ${attempt}/${maxRetries}`);
+      
+      // audioUri가 문자열인지 확인
+      console.log('transcribeAudio 호출됨, audioUri:', audioUri, '타입:', typeof audioUri);
+      if (typeof audioUri !== 'string') {
+        console.log('audioUri가 문자열이 아님:', audioUri);
+        throw new Error('오디오 파일 경로가 올바르지 않습니다.');
       }
-    } catch (fileError) {
-      console.log('파일 존재 여부 확인 실패:', fileError);
-      // 파일 확인 실패해도 계속 진행 (파일이 실제로 존재할 수 있음)
+
+      // Validate audio file exists
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(audioUri);
+        if (!fileInfo.exists) {
+          console.log('오디오 파일을 찾을 수 없습니다.');
+          throw new Error('오디오 파일을 찾을 수 없습니다.');
+        }
+      } catch (fileError) {
+        console.log('파일 존재 여부 확인 실패:', fileError);
+        // 파일 확인 실패해도 계속 진행 (파일이 실제로 존재할 수 있음)
+      }
+
+      // Create form data for backend API
+      const formData = new FormData();
+      formData.append('audio_file', {
+        uri: audioUri,
+        type: 'audio/m4a',
+        name: 'recording.m4a',
+      } as any);
+      formData.append('people_names', JSON.stringify(peopleNames));
+      formData.append('place_names', JSON.stringify(placeNames));
+      
+      // Call backend speech recognition API using NetworkHelper with timeout
+      const response = await NetworkHelper.axiosClient.post(
+        NetworkHelper.ENDPOINTS.APP.SPEECH.RECOGNIZE, 
+        formData, 
+        {
+          headers: {
+            ...(await NetworkHelper.getHeaders(token)),
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 7000, // 7초 타임아웃 (음성 인식은 시간이 더 걸릴 수 있음)
+        }
+      );
+
+      console.log(`음성 인식 API 호출 성공 (시도 ${attempt}/${maxRetries})`);
+      console.log('음성 변환 결과:', response.data);
+      
+      const transcribedText = response.data.text || '';
+      console.log('추출된 텍스트:', transcribedText);
+      
+      return transcribedText;
+      
+    } catch (error: any) {
+      lastError = error;
+      const axiosError = error as AxiosError;
+      console.log(`음성 인식 API 호출 실패 (시도 ${attempt}/${maxRetries}):`, {
+        message: error?.message,
+        response: axiosError?.response?.data,
+        status: axiosError?.response?.status,
+        cause: axiosError?.cause,
+      });
+      
+      // 마지막 시도가 아니면 잠시 대기 후 재시도
+      if (attempt < maxRetries) {
+        const delay = Math.min(2000 * attempt, 6000); // 2초, 4초, 6초 (최대 6초)
+        console.log(`${delay}ms 후 음성 인식 재시도...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
-
-    // Create form data for backend API
-    const formData = new FormData();
-    formData.append('audio_file', {
-      uri: audioUri,
-      type: 'audio/m4a',
-      name: 'recording.m4a',
-    } as any);
-    formData.append('people_names', JSON.stringify(peopleNames));
-    formData.append('place_names', JSON.stringify(placeNames));
-    
-    // Call backend speech recognition API using NetworkHelper
-    const response = await NetworkHelper.axiosClient.post(NetworkHelper.ENDPOINTS.APP.SPEECH.RECOGNIZE, formData, {
-      headers: {
-        ...(await NetworkHelper.getHeaders(token)),
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    console.log('음성 변환 결과:', response.data);
-    
-    const transcribedText = response.data.text || '';
-    console.log('추출된 텍스트:', transcribedText);
-    
-    return transcribedText;
-  } catch (error) {
-    const axiosError = error as AxiosError;
-    // 개발자용 로그만 남기고 사용자에게는 조용히 처리
-    console.log('음성 변환 실패 (조용히 처리):', error, axiosError.cause);
-    throw error;
   }
+  
+  // 모든 시도 실패
+  console.log('음성 인식 모든 재시도 실패');
+  throw lastError;
 }

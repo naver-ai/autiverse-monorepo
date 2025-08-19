@@ -76,14 +76,6 @@ export function AgentIntroScreen() {
           setTimeout(() => {
             setAutoNavigate(true);
           }, 1000);
-        },
-        onError: (error) => {
-          setHasSpoken(true);
-          setIsTTSActive(false);
-          // 에러 발생 시에도 3초 후 이동
-          setTimeout(() => {
-            setAutoNavigate(true);
-          }, 3000);
         }
       });
     }

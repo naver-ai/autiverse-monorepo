@@ -280,7 +280,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
 
 
             # 완료 상태 확인
-            if self.is_complete():
+            if self.is_complete() or "다음으로 넘어가기" in user_message:
                 # 만화 생성 시작 신호 반환 (실제 만화 생성은 controller에서 처리)
                 child_name = await self._get_child_name()
                 child_name_with_josa = append_josa(child_name, '이', '')
@@ -1037,15 +1037,23 @@ ABCD STRUCTURE:
    - If "problematic": Focus on situational overview questions (context, timing, environment)
    - If "normal": Focus on "HOW" questions (methods, details)
 3. **CRITICAL: Focus on the FIRST missing information in order: A → B → C → D**
-   - **MANDATORY: Check content in story_analysis and focus ONLY on the FIRST panel with missing information**
-   - **MANDATORY: If A has missing info, ask about A ONLY. If A is complete but B has missing info, ask about B ONLY.**
+   - **MANDATORY: Check story_analysis.content array and focus ONLY on the FIRST panel with missing information**
+   - **MANDATORY: If A has missing info (non-empty array), ask about A ONLY. If A is complete (empty array) but B has missing info, ask about B ONLY.**
    - **CRITICAL: Before asking any question, verify that the information is NOT already present in ANY panel**
    - **CRITICAL: Cross-reference all panels to avoid asking about information that already exists**
+      - **CRITICAL: Use the specific examples from story_analysis to create targeted questions**
+   - **CRITICAL: NEVER ask generic questions like "그 다음에는 뭐했어?" or "뭐가 일어났어?"**
+   - **CRITICAL: ALWAYS extract specific details from the analysis example and create precise questions**
+   - **CRITICAL: Extract the specific action, result, or emotion from the example and create a choice-based question**
+   - **CRITICAL: Make questions specific and actionable based on the analysis examples**
 4. Ask exactly ONE question that can elicit the missing detail.
 5. **CRITICAL: When asking about C (Consequence), focus on NEXT actions, not HOW:**
    - If B already describes the result, ask "What did you do next?" or "What happened after that?"
    - Examples: "자전거를 계속 탔어? 아니면 멈춰서 짱구한테 고맙다고 했어?"
    - Do NOT ask "어떻게 했어?" when the result is already clear
+   - **CRITICAL: NEVER ask generic questions like "그 다음에는 뭐했어?" or "뭐가 일어났어?"**
+   - **CRITICAL: ALWAYS extract specific details from the analysis example and create precise questions**
+   - **CRITICAL: Extract the specific action, result, or emotion from the example and create a choice-based question**
 6. **CRITICAL: Use proper character references - NEVER use "we" to refer to characters:**
    - **NEVER say "we" when referring to characters in the story**
    - **ALWAYS use specific character names**
@@ -1120,20 +1128,22 @@ Input:
 analysis_result:
 {{
   "situation_type": "normal",
-  "A": ["배경 상황 누락 — e.g. '쉬는 시간에'"],
-  "B": ["B content in C: '나는 머리를 자르고 배를 열어서 장기를 봉투에 넣었다' should move to B"],
-  "C": [
-    "Non-C content in C (behavior described)",
-    "결과 누락 — e.g. '민수가 웃으면서 대박이라고 했다'"
-  ],
-  "D": ["감정 누락 — e.g. '나는 기뻤다'"]
+  "content": {{
+    "A": ["배경 상황 누락 — e.g. '쉬는 시간에'"],
+    "B": ["B content in C: '나는 머리를 자르고 배를 열어서 장기를 봉투에 넣었다' should move to B"],
+    "C": [
+      "Non-C content in C (behavior described)",
+      "결과 누락 — e.g. '민수가 웃으면서 대박이라고 했다'"
+    ],
+    "D": ["감정 누락 — e.g. '나는 기뻤다'"]
+  }}
 }}
 
 conversation_summary:
 
 Output:
 {{
-"question": "고등어 해부라니 너무 신기하다! 🐟 그런데 학교에서 언제 했던 거야?",
+"question": "고등어 해부라니 너무 신기하다! 🐟 그런데 학교에서 언제 했던 거야? 쉬는 시간에? 점심시간에? 아니면 다른 시간에?",
 "focused_panel": "panel1"
 }}
 
@@ -1147,20 +1157,46 @@ Input:
 analysis_result:
 {{
   "situation_type": "normal",
-  "A": [""],
-  "B": [""],
-  "C": [""],
-  "D": ["감정 누락 — e.g. '나는 기뻤다'"]
+  "content": {{
+    "A": [""],
+    "B": [""],
+    "C": [""],
+    "D": ["감정 누락 — e.g. '나는 기뻤다'"]
+  }}
 }}
 
 conversation_summary:
-Q: "고등어 해부라니 너무 신기하다! 🐟 그런데 학교에서 언제 했던 거야?"
+Q: "고등어 해부라니 너무 신기하다! 🐟 그런데 학교에서 언제 했던 거야? 쉬는 시간에? 점심시간에? 아니면 다른 시간에?"
 A: "쉬는 시간에"
 
 Output:
 {{
 "question": "고등어 해부 쇼를 하고 민수가 대박이라고 했구나! 😊 그럼 그 때 기분이 어땠어?",
 "focused_panel": "panel4"
+}}
+
+### Example 1c - Specific Consequence Question
+Input:
+"panel1": "나는 친구랑 선생님들이랑 블루베리 농장에 갔다 왔다.",
+"panel2": "나는 블루베리 농장에서 피자를 만들었다.",
+"panel3": null,
+"panel4": null
+
+analysis_result:
+{{
+  "situation_type": "normal",
+  "content": {{
+    "A": [""],
+    "B": [""],
+    "C": ["결과 누락 — e.g. '피자를 다 만들고 모두가 맛있게 먹었다'"],
+    "D": ["감정 누락 — e.g. '나는 즐거웠다'"]
+  }}
+}}
+
+Output:
+{{
+"question": "피자를 만들고는 다 같이 맛있게 먹었어? 아니면 다른 걸 했어?",
+"focused_panel": "panel3"
 }}
 
 ### Example 2
@@ -1173,17 +1209,19 @@ Input:
 analysis_result:
 {{
   "situation_type": "normal",
-  "A": [
-    "장소 누락 — e.g. '집에서'",
-    "Non-A content in A (telling Mom is a behavior, which is B)"
-  ],
-  "B": [
-    "Non-B content in B (Mom's reaction belongs to C)",
-    "B missing — actual behavior is in panel 1"
-  ],
-  "C": [""],                    
-  "D": [""],
-  "Order": ["Behavior in panel 1 should move to panel 2",
+  "content": {{
+    "A": [
+      "장소 누락 — e.g. '집에서'",
+      "Non-A content in A (telling Mom is a behavior, which is B)"
+    ],
+    "B": [
+      "Non-B content in B (Mom's reaction belongs to C)",
+      "B missing — actual behavior is in panel 1"
+    ],
+    "C": [""],                    
+    "D": [""]
+  }},
+  "order": ["Behavior in panel 1 should move to panel 2",
     "Reaction in panel 2 should move to panel 3"]
 }}
 
@@ -1209,6 +1247,7 @@ Input:
 analysis_result:
 {{
 "situation_type": "problematic",
+"content": {{
 "A": [""],
 "B": [
     "울게 된 이유 누락 — e.g. '내가 실수로 부딪혔기 때문'"
@@ -1216,8 +1255,9 @@ analysis_result:
   "C": [
     "C 누락 — e.g. '소현이가 계속 울면서 움직이지 않았다'"
   ],
-  "D": [""],
-  "Order": [""]
+  "D": [""]
+}},
+"order": [""]
 }}
 
 conversation_summary:

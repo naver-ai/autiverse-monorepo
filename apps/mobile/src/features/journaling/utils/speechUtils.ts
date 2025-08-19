@@ -9,21 +9,32 @@ import { useAuth } from '../../auth/hooks';
 // Global singleton for audio instance
 let globalSoundInstance: Audio.Sound | null = null;
 
+// TTS 요청 추적을 위한 Map
+const activeTTSRequests = new Map<string, {
+  sound: Audio.Sound;
+  startTime: number;
+  text: string;
+}>();
+
 // Zustand store for speech state
 interface SpeechStore {
   isSpeaking: boolean;
   currentText: string;
+  activeRequestId: string | null;
   setIsSpeaking: (speaking: boolean) => void;
   setCurrentText: (text: string) => void;
+  setActiveRequestId: (requestId: string | null) => void;
   reset: () => void;
 }
 
 export const useSpeechState = create<SpeechStore>((set) => ({
   isSpeaking: false,
   currentText: '',
+  activeRequestId: null,
   setIsSpeaking: (speaking) => set({ isSpeaking: speaking }),
   setCurrentText: (text) => set({ currentText: text }),
-  reset: () => set({ isSpeaking: false, currentText: '' }),
+  setActiveRequestId: (requestId) => set({ activeRequestId: requestId }),
+  reset: () => set({ isSpeaking: false, currentText: '', activeRequestId: null }),
 }));
 
 // 기본 TTS 설정 (fallback)
@@ -42,7 +53,7 @@ export const getTTSOptionsFromAgentConfig = (agentConfig?: Record<string, any>) 
 
   return {
     voice: agentConfig.voice || FALLBACK_TTS_OPTIONS.voice,
-    speed: agentConfig.speed || FALLBACK_TTS_OPTIONS.speed,
+    rate: agentConfig.speed || FALLBACK_TTS_OPTIONS.speed,
     pitch: agentConfig.pitch || FALLBACK_TTS_OPTIONS.pitch,
     volume: agentConfig.volume || FALLBACK_TTS_OPTIONS.volume,
   };
@@ -55,50 +66,19 @@ export interface SpeechOptions {
   voice?: string;
   volume?: number;
   onDone?: () => void;
-  onError?: (error: any) => void;
 }
 
-export const useSpeech = () => {
-  const { isSpeaking, currentText, setIsSpeaking, setCurrentText, reset } = useSpeechState();
-  const {jwt} = useAuth();
-
-  // Cleanup function for global sound instance
-  const cleanupSound = useCallback(async () => {
-    if (globalSoundInstance) {
-      await globalSoundInstance.stopAsync();
-      await globalSoundInstance.unloadAsync();
-      globalSoundInstance = null;
-    }
-  }, []);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      // Only cleanup if this is the last component using the hook
-      // We'll keep the global instance alive for other components
-    };
-  }, []);
-
-  const stop = useCallback(async () => {
-    if (isSpeaking && globalSoundInstance) {
-      await cleanupSound();
-      reset()
-    }
-  }, [cleanupSound, isSpeaking, cleanupSound]);
-
-  const speak = useCallback(async (text: string, options: SpeechOptions = {}) => {
-
-    if(!jwt){
-      return;
-    }
-
-    await stop();
-
-    setCurrentText(text);
-    setIsSpeaking(true);
-
+// TTS API 호출을 재시도하는 함수
+const retryTTSRequest = async (
+  text: string,
+  options: SpeechOptions,
+  jwt: string,
+  maxRetries: number = 3
+): Promise<{ audio: string; format: string }> => {
+  let lastError: any;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // 1. CLOVA TTS 요청 (타임아웃 설정으로 빠른 응답)
       const response = await NetworkHelper.axiosClient.post(
         NetworkHelper.ENDPOINTS.APP.SPEECH.CLOVA,
         {
@@ -111,13 +91,86 @@ export const useSpeech = () => {
           headers: {
             ...(await NetworkHelper.getHeaders(jwt)),
           },
-          timeout: 8000, // 8초 타임아웃으로 빠른 실패 처리
+          timeout: 3000, // 3초 타임아웃으로 단축
         }
       );
-      const audioBase64 = response.data.audio;
+      
+      return response.data;
+      
+    } catch (error: any) {
+      lastError = error;
+      
+      // 마지막 시도가 아니면 잠시 대기 후 재시도
+      if (attempt < maxRetries) {
+        const delay = Math.min(1000 * attempt, 3000); // 1초, 2초, 3초 (최대 3초)
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  // 모든 시도 실패
+  throw lastError;
+};
+
+export const useSpeech = () => {
+  const { isSpeaking, currentText, setIsSpeaking, setCurrentText, setActiveRequestId, reset } = useSpeechState();
+  const {jwt} = useAuth();
+
+  // Cleanup function for specific sound instance
+  const cleanupSound = useCallback(async (requestId?: string) => {
+    if (requestId && activeTTSRequests.has(requestId)) {
+      const request = activeTTSRequests.get(requestId);
+      if (request?.sound) {
+        await request.sound.stopAsync();
+        await request.sound.unloadAsync();
+      }
+      activeTTSRequests.delete(requestId);
+    } else if (globalSoundInstance) {
+      await globalSoundInstance.stopAsync();
+      await globalSoundInstance.unloadAsync();
+      globalSoundInstance = null;
+    }
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Cleanup all active requests
+      activeTTSRequests.forEach((request, requestId) => {
+        cleanupSound(requestId);
+      });
+    };
+  }, [cleanupSound]);
+
+  const stop = useCallback(async () => {
+    if (isSpeaking) {
+      await cleanupSound();
+      reset();
+    }
+  }, [cleanupSound, isSpeaking, reset]);
+
+  const speak = useCallback(async (text: string, options: SpeechOptions = {}) => {
+    if(!jwt){
+      return;
+    }
+
+    // Generate unique request ID
+    const requestId = `tts_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Stop any existing TTS
+    await stop();
+
+    setCurrentText(text);
+    setIsSpeaking(true);
+    setActiveRequestId(requestId);
+
+    try {
+      // 1. CLOVA TTS 요청 (재시도 로직 포함)
+      const response = await retryTTSRequest(text, options, jwt, 3);
+      const audioBase64 = response.audio;
 
       // 2. 파일로 저장 (캐시 최적화)
-      const audioPath = `${FileSystem.cacheDirectory}clova_tts_${Date.now()}.mp3`;
+      const audioPath = `${FileSystem.cacheDirectory}clova_tts_${requestId}.mp3`;
       await FileSystem.writeAsStringAsync(audioPath, audioBase64, {
         encoding: FileSystem.EncodingType.Base64,
       });
@@ -127,7 +180,13 @@ export const useSpeech = () => {
         { uri: audioPath },
         { shouldPlay: false } // 즉시 재생하지 않고 설정 후 재생
       );
-      globalSoundInstance = sound;
+      
+      // Store this request
+      activeTTSRequests.set(requestId, {
+        sound,
+        startTime: Date.now(),
+        text
+      });
 
       // 볼륨 설정 (기본값 사용)
       const volume = options.volume !== undefined ? options.volume : FALLBACK_TTS_OPTIONS.volume;
@@ -135,24 +194,73 @@ export const useSpeech = () => {
 
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
-          setIsSpeaking(false);
-          setCurrentText('');
-          options.onDone?.();
+          // Only update state if this is still the active request
+          if (activeTTSRequests.has(requestId)) {
+            setIsSpeaking(false);
+            setCurrentText('');
+            setActiveRequestId(null);
+            activeTTSRequests.delete(requestId);
+            options.onDone?.();
+          }
         }
       });
 
       await sound.playAsync();
     } catch (error: any) {
-      console.error('Clova TTS Error:', {
-        message: error?.message,
-        response: error?.response?.data,
-        status: error?.response?.status,
-      });
-      setIsSpeaking(false);
-      setCurrentText('');
-      options.onError?.(error);
+      // TTS 실패 시 자동으로 다시 시도
+      console.log('TTS 실패, 자동 재시도 중...');
+      
+      // 잠시 대기 후 다시 시도
+      setTimeout(async () => {
+        try {
+          const retryResponse = await retryTTSRequest(text, options, jwt, 2); // 재시도는 2번만
+          const audioBase64 = retryResponse.audio;
+
+          const audioPath = `${FileSystem.cacheDirectory}clova_tts_retry_${requestId}.mp3`;
+          await FileSystem.writeAsStringAsync(audioPath, audioBase64, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+
+          const { sound } = await Audio.Sound.createAsync(
+            { uri: audioPath },
+            { shouldPlay: false }
+          );
+          
+          // Update the stored request
+          activeTTSRequests.set(requestId, {
+            sound,
+            startTime: Date.now(),
+            text
+          });
+
+          const volume = options.volume !== undefined ? options.volume : FALLBACK_TTS_OPTIONS.volume;
+          await sound.setVolumeAsync(volume);
+
+          sound.setOnPlaybackStatusUpdate((status) => {
+            if (status.isLoaded && status.didJustFinish) {
+              // Only update state if this is still the active request
+              if (activeTTSRequests.has(requestId)) {
+                setIsSpeaking(false);
+                setCurrentText('');
+                setActiveRequestId(null);
+                activeTTSRequests.delete(requestId);
+                options.onDone?.();
+              }
+            }
+          });
+
+          await sound.playAsync();
+        } catch (retryError) {
+          // 재시도도 실패하면 TTS를 완료된 것으로 처리
+          activeTTSRequests.delete(requestId);
+          setIsSpeaking(false);
+          setCurrentText('');
+          setActiveRequestId(null);
+          options.onDone?.();
+        }
+      }, 1000); // 1초 후 재시도
     }
-  }, [jwt, isSpeaking, setIsSpeaking, setCurrentText, stop]);
+  }, [jwt, isSpeaking, setIsSpeaking, setCurrentText, setActiveRequestId, stop]);
 
   return {
     isSpeaking,

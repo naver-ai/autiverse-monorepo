@@ -78,16 +78,6 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         startSpeech(cleanText, {
           ...getTTSOptionsFromAgentConfig(agentConfig),
           onDone: () => {
-            // TTS 완료 후 ChatInput 활성화
-            if (onTTSComplete) {
-              onTTSComplete(messageId);
-            }
-            setIsInputActive(true);
-            lastSpokenMessageId.current = messageId;
-          },
-          onError: (error) => {
-            console.error('TTS error:', error);
-            // 에러 발생 시에도 ChatInput 활성화
             if (onTTSComplete) {
               onTTSComplete(messageId);
             }

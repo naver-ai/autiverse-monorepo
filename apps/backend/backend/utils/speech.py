@@ -1,5 +1,6 @@
 import os
 import openai
+import asyncio
 from typing import List, Optional
 from backend.utils.environment import get_env_variable, EnvironmentVariables
 
@@ -93,7 +94,7 @@ async def transcribe_audio(
             raise ValueError("OpenAI API key not configured")
         
         # Set up OpenAI client
-        client = openai.OpenAI(api_key=api_key)
+        client = openai.OpenAI(api_key=api_key, timeout=10.0)
         
         # Check if file exists
         if not os.path.exists(audio_file_path):
@@ -105,20 +106,33 @@ async def transcribe_audio(
         # Generate prompt for better transcription
         prompt = generate_whisper_prompt(people_names, place_names, user_locale)
         
-        # Call OpenAI Whisper API
-        with open(audio_file_path, "rb") as audio_file:
-            response = client.audio.transcriptions.create(
-                model="gpt-4o-transcribe",
-                file=audio_file,
-                language=language_code,
-                temperature=0,
-                prompt=prompt
-            )
+        print(f"음성 인식 시작: {audio_file_path}")
         
-        transcribed_text = response.text or ""
-        print(f"음성 변환 결과: {transcribed_text}")
-        
-        return transcribed_text
+        # Call OpenAI Whisper API with timeout
+        try:
+            with open(audio_file_path, "rb") as audio_file:
+                response = client.audio.transcriptions.create(
+                    model="gpt-4o-transcribe",
+                    file=audio_file,
+                    language=language_code,
+                    temperature=0,
+                    prompt=prompt
+                )
+            
+            transcribed_text = response.text or ""
+            print(f"음성 변환 성공: {transcribed_text}")
+            
+            return transcribed_text
+            
+        except openai.RateLimitError as e:
+            print(f"OpenAI API 속도 제한 에러: {e}")
+            raise Exception("API 호출 제한에 도달했습니다. 잠시 후 다시 시도해주세요.")
+        except openai.APITimeoutError as e:
+            print(f"OpenAI API 타임아웃 에러: {e}")
+            raise Exception("음성 인식 시간이 초과되었습니다. 다시 시도해주세요.")
+        except openai.APIError as e:
+            print(f"OpenAI API 에러: {e}")
+            raise Exception("음성 인식 중 오류가 발생했습니다.")
         
     except Exception as error:
         print(f"음성 변환 실패: {error}")

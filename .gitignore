@@ -68,3 +68,5 @@ npm-debug.*
 web-build/
 cache/
 audio/
+logs/
+apps/backend/uploads/

@@ -225,7 +225,7 @@ export default function PraiseSection({ childName, sessionId, onComplete }: Prai
       startSpeech(firstMessage, {
           ...getTTSOptionsFromAgentConfig(agentConfig),
           onDone: () => {
-          // 첫 번째 메시지 TTS 완료 후 1초 뒤에 사라지고 두 번째 메시지 시작
+          // 첫 번째 메시지 TTS 완료 후 0.3초 뒤에 사라지고 두 번째 메시지 시작
           setTimeout(() => {
             setShowFirstMessage(false);
             setShowSecondMessage(true);
@@ -234,7 +234,7 @@ export default function PraiseSection({ childName, sessionId, onComplete }: Prai
             startSpeech(secondMessage, {
               ...getTTSOptionsFromAgentConfig(agentConfig),
               onDone: () => {
-                // 두 번째 메시지 TTS 완료 후 1초 뒤에 사라지고 스탬프 메시지 시작
+                // 두 번째 메시지 TTS 완료 후 0.3초 뒤에 사라지고 스탬프 메시지 시작
                 setTimeout(() => {
                   setShowSecondMessage(false);
                   setShowStampMessage(true);
@@ -260,45 +260,33 @@ export default function PraiseSection({ childName, sessionId, onComplete }: Prai
                     onDone: () => {
                       // 스탬프 메시지 TTS 완료 후 활성화
                       setStampsActive(true);
-
-                      setIsSpeaking(false);
-                    },
-                    onError: (error) => {
-                      // 에러 시에도 스탬프 등장
-                      setTimeout(() => {
-                        setShowStamp(true);
-                        setStampsActive(true);
-                      }, 500);
                       setIsSpeaking(false);
                     }
                   });
                 }, 500);
-              },
-              onError: (error) => {
-                // 에러 시에도 다음 단계로 진행
-                setTimeout(() => {
-                  setShowSecondMessage(false);
-                  setShowStampMessage(true);
-                  setShowStamp(true);
-                  setStampsActive(true);
-                }, 500);
-                setIsSpeaking(false);
               }
             });
           }, 500);
-        },
-        onError: (error) => {
-          // 에러 시에도 다음 단계로 진행
-          setTimeout(() => {
-            setShowFirstMessage(false);
-            setShowSecondMessage(true);
-            setShowStamp(true);
-            setStampsActive(true);
-          }, 500);
-          setIsSpeaking(false);
         }
       });
-    }, 500); // 1초 후 첫 번째 메시지 시작
+
+      // 안전장치: 5초 후에도 완료되지 않으면 강제로 다음 단계로 진행
+      const safetyTimer = setTimeout(() => {
+        if (!stampsActive) {
+          console.log('PraiseSection: TTS 타임아웃, 강제로 스탬프 활성화');
+          setShowFirstMessage(false);
+          setShowSecondMessage(false);
+          setShowStampMessage(true);
+          setShowStamp(true);
+          setStampsActive(true);
+          setIsSpeaking(false);
+        }
+      }, 500);
+
+      return () => {
+        clearTimeout(safetyTimer);
+      };
+    }, 3000); // 0.3초 후 첫 번째 메시지 시작
 
     return () => clearTimeout(timer);
   }, []);

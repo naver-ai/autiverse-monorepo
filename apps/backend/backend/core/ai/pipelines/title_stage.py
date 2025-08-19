@@ -57,7 +57,7 @@ class TitleStage:
             generated_titles = await self.title_generator.generate_title(comic_data, child_name)
 
             # 첫 번째 질문 생성 (제목 3개 제시)
-            initial_question = f"우리 오늘 일기의 제목은 뭐로 할까? 1) {generated_titles['title1']} 2) {generated_titles['title2']} 3) {generated_titles['title3']} 어떤 제목이 마음에 들어?"
+            initial_question = f"우리 오늘 일기의 제목은 뭐로 할까? 1) {generated_titles['title1']}. 2) {generated_titles['title2']}. 3) {generated_titles['title3']}. 어떤 제목이 마음에 들어?"
             
             new_message = await create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
