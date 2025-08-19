@@ -4,6 +4,7 @@ import { Card, Descriptions, Collapse, Tag, Space, Typography, Button } from 'an
 import { getJournalEntryDetailApi } from './api'
 import { format } from 'date-fns'
 import { ArrowLeftIcon } from '@heroicons/react/24/solid'
+import { Comic } from '@autiverse-monorepo/ts-core'
 
 const { Text, Title } = Typography
 
@@ -175,14 +176,15 @@ const getTotalWholeDuration = (messages: any[]) => {
     return totalWholeDuration
 }
 
-const renderComicGrid = (comicData: any, type: 'first' | 'second') => {
+const renderComicGrid = (comicData: Comic, type: 'first' | 'second') => {
     console.log(`Rendering ${type} comic grid:`, comicData)
     
     // panel 데이터 수집
     const panels = []
     for (let i = 1; i <= 4; i++) {
-        const panelKey = `${type}_panel${i}`
-        const panelData = comicData?.[panelKey]
+        const panelKey = `${type}_panel${i}` as keyof Comic
+        const panelData: any = comicData?.[panelKey]
+        console.log(comicData)
         console.log(`Panel ${panelKey}:`, panelData)
         if (panelData) {
             console.log(`Panel ${panelKey} grid:`, panelData.grid)

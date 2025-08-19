@@ -39,6 +39,11 @@ export class NetworkHelper {
         getJournalEntriesEndpoint: (dyadId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/journal-entries`,
         getJournalEntryDetailEndpoint: (dyadId: string, journalEntryId: string) => `${this.ENDPOINT_PREFIX}/dyads/${dyadId}/journal-entries/${journalEntryId}`,
       },
+
+      DATA: {
+        EXPORT_DB: `${this.ENDPOINT_PREFIX}/data/export/db`,
+        EXPORT_JSON: `${this.ENDPOINT_PREFIX}/data/export/json`
+      }
     },
 
     APP: {

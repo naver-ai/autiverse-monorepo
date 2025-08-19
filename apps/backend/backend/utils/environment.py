@@ -62,6 +62,11 @@ class FilePaths:
     # 오디오 파일 저장 디렉토리
     audio_dir_path: str = path.join(getcwd(), "../../audio")
 
+    user_uploads_dir_path: str = path.join(getcwd(), "uploads")
+
+
+    data_archives_dir_path: str = path.join(getcwd(), "../../data_archives")
+
     @classmethod
     def get_database_dir_path(cls) -> str:
         if not path.exists(cls.__database_dir_path):
@@ -118,3 +123,10 @@ class FilePaths:
     def get_journal_audio_file_path(cls, journal_entry_id: str, filename: str) -> str:
         """특정 journal entry의 오디오 파일 전체 경로 반환"""
         return path.join(cls.get_journal_audio_dir_path(journal_entry_id), filename)
+    
+
+    @classmethod
+    def get_data_archives_dir_path(cls) -> str:
+        if not path.exists(cls.data_archives_dir_path):
+            makedirs(cls.data_archives_dir_path)
+        return cls.data_archives_dir_path

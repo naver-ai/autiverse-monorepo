@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { NetworkHelper, Dyad, DyadInfo, Place, Agent, AvatarConfig } from '@autiverse-monorepo/ts-core';
+import { NetworkHelper, Dyad, DyadInfo, Place, Agent, AvatarConfig, JournalEntryStage, Comic, ChatMessage } from '@autiverse-monorepo/ts-core';
 
 export const getAllDyadsApi = async (): Promise<Array<Dyad>> => {
     const token = localStorage.getItem('auth_token') || undefined;
@@ -392,7 +392,18 @@ export const getDyadJournalEntriesApi = async (dyadId: string) => {
     return response.data;
 };
 
-export const getJournalEntryDetailApi = async (dyadId: string, journalEntryId: string) => {
+export interface JournalEntryDetail {
+    id: string,
+    stage: JournalEntryStage,
+    title: string,
+    created_at: string,
+    updated_at: string,
+    journal: any,
+    comic: Comic,
+    messages: ChatMessage[]
+}
+
+export const getJournalEntryDetailApi = async (dyadId: string, journalEntryId: string): Promise<JournalEntryDetail> => {
     const token = localStorage.getItem('auth_token') || undefined;
     const response = await NetworkHelper.axiosClient.get(
         NetworkHelper.ENDPOINTS.ADMIN.DYADS.getJournalEntryDetailEndpoint(dyadId, journalEntryId),

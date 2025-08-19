@@ -244,6 +244,13 @@ class JournalEntry(SQLModel, IdTimestampMixin, TimezoneTimestampMixin, DyadIdMix
     interaction_turns: list['InteractionTurn'] = Relationship(back_populates="journal_entry", sa_relationship_kwargs={'lazy': 'selectin'}, cascade_delete=True)
     dyad: Dyad = Relationship(back_populates="journal_entries", sa_relationship_kwargs={'lazy': 'selectin'})
     messages: list['Message'] = Relationship(back_populates="journal_entry", sa_relationship_kwargs={'lazy': 'selectin'}, cascade_delete=True)
+
+    def to_sharable(self) -> dict:
+        obj = self.model_dump(mode="json")
+        obj["messages"] = [message.model_dump(mode="json") for message in self.messages]
+        obj["interaction_turns"] = [interaction_turn.model_dump(mode="json") for interaction_turn in self.interaction_turns]
+        return obj
+
     
 class JournalEntryIdMixin(BaseModel):
     journal_entry_id: str = Field(foreign_key=f"{JournalEntry.__tablename__}.id")

@@ -104,6 +104,36 @@
       }
     },
 
+    "dump-data": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "poetry run python backend/backup.py --dump",
+        "cwd": "{projectRoot}"
+      }
+    },
+
+    "restore-data": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "poetry run python backend/backup.py --restore",
+        "cwd": "{projectRoot}",
+        "forwardAllArgs": true
+      },
+      "configurations": {
+        "production": {
+          "command": "poetry run python backend/backup.py --restore --skip-confirmation",
+          "forwardAllArgs": true
+        }
+      }
+    },
+    "restore-data-force": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "poetry run python backend/backup.py --restore {args} --skip-confirmation",
+        "cwd": "{projectRoot}"
+      }
+    },
+
     "test_langchain": {
       "executor": "@nxlv/python:run-commands",
       "options": {
