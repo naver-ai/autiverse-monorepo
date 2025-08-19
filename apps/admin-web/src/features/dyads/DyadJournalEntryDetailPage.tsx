@@ -10,7 +10,7 @@ const { Text, Title } = Typography
 
 export const DyadJournalEntryDetailPage = () => {
     const { dyadId, journalEntryId } = useParams({ 
-        from: '/_protected/_layout/dyads/$dyadId/journal-entry/$journalEntryId' 
+        strict: false
     })
     const navigate = useNavigate()
 

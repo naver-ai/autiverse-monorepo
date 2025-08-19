@@ -66,7 +66,7 @@ export const DyadJournalEntriesPage = () => {
 
     const handleRowClick = (record: any) => {
         navigate({ 
-            to: '/dyads/$dyadId/journal-entry/$journalEntryId', 
+            to: '/dyads/$dyadId/journal-entries/$journalEntryId', 
             params: { 
                 dyadId: dyadId,
                 journalEntryId: record.id 
