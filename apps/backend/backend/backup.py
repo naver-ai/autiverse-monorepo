@@ -8,7 +8,7 @@ from datetime import datetime
 import questionary
 from backend.utils.environment import FilePaths, get_database_type, EnvironmentVariables, get_env_variable
 
-def dump_data() -> str:
+def dump_data() -> tuple[str, str]:
     """
     Creates a complete data dump including database and dyads directory.
     
@@ -123,7 +123,7 @@ def dump_data() -> str:
         # Clean up temporary directory
         shutil.rmtree(temp_dir)
         
-        return str(zip_filename)
+        return str(zip_filename), str(zip_path)
         
     except Exception as e:
         # Clean up temporary directory on error
