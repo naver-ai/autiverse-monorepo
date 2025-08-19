@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuration from gunicorn.config.py
-PROCESS_NAME = "autihero_backend"
+PROCESS_NAME = "autiverse_backend"
 BACKEND_PORT = os.getenv('BACKEND_PORT', '3000')
 
 

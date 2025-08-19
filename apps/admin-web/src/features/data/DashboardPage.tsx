@@ -10,7 +10,7 @@ export const DashboardPage = () => {
         onSuccess: (data) => {
             // Create filename with current timestamp
             const timestamp = format(new Date(), 'yyyyMMdd-HHmmss');
-            const filename = `autihero-data-${timestamp}.json`;
+            const filename = `autiverse-data-${timestamp}.json`;
             
             // Convert data to JSON string
             const jsonString = JSON.stringify(data, null, 2);
@@ -36,7 +36,7 @@ export const DashboardPage = () => {
         onSuccess: (data) => {
             // Create filename with current timestamp
             const timestamp = format(new Date(), 'yyyyMMdd-HHmmss');
-            const filename = `autihero-db-${timestamp}.zip`;
+            const filename = `autiverse-db-${timestamp}.zip`;
             
             // Create blob and download
             const blob = new Blob([data], { type: 'application/zip' });
