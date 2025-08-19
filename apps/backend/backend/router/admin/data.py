@@ -15,7 +15,7 @@ router = APIRouter()
 
 @router.get("/export/db", response_class=FileResponse)    
 async def download_db_dump():
-    file_path = asyncio.to_thread(dump_data)
+    file_path = await asyncio.to_thread(dump_data)
     return FileResponse(file_path, media_type="application/zip")
 
 
