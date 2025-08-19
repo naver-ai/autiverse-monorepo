@@ -1,6 +1,6 @@
 import { Button, Layout, Menu } from "antd"
 import {Outlet, useLocation, useNavigate} from '@tanstack/react-router'
-import { UserCircleIcon, BookOpenIcon } from '@heroicons/react/24/solid'
+import { UserCircleIcon, BookOpenIcon, CircleStackIcon } from '@heroicons/react/24/solid'
 import { useQuery } from "@tanstack/react-query"
 import { getAllDyadsApi } from "../dyads/api"
 import { Dyad } from '@autiverse-monorepo/ts-core'
@@ -39,6 +39,11 @@ export const SignedInLayout = () => {
                 label: dyad.alias,
                 key: `dyads/${dyad.id}/journal-entries`,
             })) || []
+        },
+        {
+            label: 'Data',
+            key: 'data',
+            icon: <CircleStackIcon className="w-5 h-5" />,
         }
     ]
 

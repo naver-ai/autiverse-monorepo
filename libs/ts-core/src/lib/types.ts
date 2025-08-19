@@ -238,3 +238,29 @@ export interface GalleryResponse {
   dyad_id: string;
   comics: GalleryComicItem[];
 }
+
+export enum ComicStatus {
+  Generating0="generating-0",
+  Generating1="generating-1",
+  Generating2="generating-2",
+  Generating3="generating-3",
+  Generating4="generating-4",
+  Completed="completed",
+  Error="error",
+  Cancelled="cancelled"
+}
+
+export interface Comic extends DBModel {
+  dyad_id: string;
+  journal_entry_id: string;
+  journal_id: string;
+  status: ComicStatus;
+  first_panel1: ComicPanelInfo | null;
+  first_panel2: ComicPanelInfo | null;
+  first_panel3: ComicPanelInfo | null;
+  first_panel4: ComicPanelInfo | null;
+  second_panel1: ComicPanelInfo | null;
+  second_panel2: ComicPanelInfo | null;
+  second_panel3: ComicPanelInfo | null;
+  second_panel4: ComicPanelInfo | null;
+}

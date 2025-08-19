@@ -271,9 +271,9 @@ async def _get_journal_entry_data(journal_entry: JournalEntry, db: AsyncSession)
         "title": journal.title if journal else None,
         "created_at": journal_entry.created_at,
         "updated_at": journal_entry.updated_at,
-        "journal": journal.model_dump() if journal else None,
-        "comic": comic.model_dump() if comic else None,
-        "messages": [message.model_dump() for message in messages]
+        "journal": journal.model_dump(mode="json") if journal else None,
+        "comic": comic.model_dump(mode="json") if comic else None,
+        "messages": [message.model_dump(mode="json") for message in messages]
     }
 
 @router.get("/{dyad_id}/journal-entries")
