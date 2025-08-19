@@ -16,8 +16,9 @@ export async function exportDbAPI(): Promise<any> {
     const response = await NetworkHelper.axiosClient.get(
         NetworkHelper.ENDPOINTS.ADMIN.DATA.EXPORT_DB,
         {
-            headers: NetworkHelper.getHeaders(token)
+            headers: NetworkHelper.getHeaders(token),
+            responseType: 'blob'
         }
     );
-    return response.data;
+    return response.data
 }
