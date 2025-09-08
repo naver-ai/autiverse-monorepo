@@ -1,5 +1,19 @@
 {
-    "Welcome to React": "Welcome to React and react-i18next",
+    "Auth": {
+        "SignIn": {
+            "EnterPasscode": "Please enter your passcode.",
+            "SignIn": "Sign In",
+            "Authenticating": "Signing in...",
+            "Errors": {
+                "ServerNotResponding": "The server is not responding. Please try again later.",
+                "WrongCredential": "Please check if your user number is correct.",
+                "UnknownError": "Sign in failed. Please contact the administrator."
+            },
+            "ConfirmSignOut": "Are you sure you want to sign out?",
+            "SignOut": "Sign Out",
+            "Cancel": "Cancel"
+        }
+    },
     "Home": {
         "ViewPastDiaries": "View Past Diaries",
         "WriteDiary": "Write Diary",
@@ -9,7 +23,18 @@
             "StartNew": "No, I want to write a new one!"
         }
     },
+    "Label": {
+        "CaregiverType": {
+            "FATHER": "Dad",
+            "MOTHER": "Mom",
+            "TEACHER": "Teacher"
+        },
+        "ChildAndCaregiverTemplate": "{child_name} and {caregiver_type}"
+    },
     "Journaling": {
+        "Header": {
+            "TitleTemplate": "Writing Diary with {agent_name}"
+        },
         "PresetSelection": {
             "LocationSelectionMessage": "Where did you have an experience today that you'd like to write about in your comic diary?",
             "PeopleSelectionMessageTemplate": "Who were you with at {location} when you had an experience you'd like to write about? You can choose multiple people, and if you want to talk about someone not on screen, just go to the next step!",
@@ -17,6 +42,7 @@
             "IWantToWriteSomething": "I have something I want to write about today!",
             "NextStepTemplate": "Next step ({count} people selected)",
             "BackToLocation": "← Back to location selection",
+            "Dismiss": "← Back to home",
             "Preparing": "Preparing...",
             "LocationDataError": "Unable to load location data",
             "PeopleDataError": "Unable to load people data",
@@ -40,6 +66,7 @@
             "End": "End"
         },
         "Messages": {
+            "Loading": "Loading diary...",
             "NextButton": "Next",
             "NextButtonPrompt": "Please press the next button",
             "Revision1Confirmation": "Great!:) Then I'll draw what you confirmed for me! Please wait a moment~",
@@ -72,12 +99,16 @@
         "WaitMessage": "Please wait a moment..."
     },
     "Chat": {
-        "VoiceModePlaceholder": "Click here to switch to chat mode",
-        "SendButton": "Send"
+        "Placeholder": "Please enter your message.",
+        "ChatButton": "Press and hold to input via chat",
+        "SendButton": "Send",
+        "VoiceCompleteButton": "I'm done talking",
+        "SubmittingMessage": "Sending message...",
+        "LoadingMessage": "Thinking of a response..."
     },
     "ChatStage": {
-        "DefaultComicMessage": "I'll draw a 4-panel comic here with what you told me~",
-        "EndSession": "End",
+        "DefaultComicMessage": "I'll draw a 4-panel comic here with what you told me!",
+        "EndSession": "Do it again next time",
         "ProgressCompleteTemplate": "{progress}% complete",
         "ChatHeaderTemplate": "💬 Chat with {agent_name}"
     },
@@ -108,7 +139,8 @@
             "CompleteError": "An error occurred during voice conversion.",
             "DetectionFailed": "I couldn't hear you well! Please say it again~",
             "DetectionFailedTitle": "Voice Detection Failed",
-            "Confirm": "Confirm"
+            "Confirm": "Confirm",
+            "ListeningTextTemplate": "{agentName} is listening..."
         }
     }
 } 
