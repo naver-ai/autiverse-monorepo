@@ -66,19 +66,23 @@ export function calculateCalloutBounds(callouts: Array<{item: ComicGridItem, act
     // item 위치 주변의 가능한 위치들을 우선순위 순으로 정렬
     const possiblePositions = [];
     
-    // 1. item 바로 옆 위치들 (상하좌우)
-    const adjacentPositions = [
-      [itemX + 1, itemY], // 오른쪽
+    // 1. 왼쪽 아래 우선 배치
+    const leftBottomPositions = [
+      [itemX - 1, itemY], // 왼쪽 아래 (최우선)
       [itemX - 1, itemY], // 왼쪽
       [itemX, itemY + 1], // 아래
+    ];
+    
+    // 2. item 바로 옆 위치들 (상하좌우)
+    const adjacentPositions = [
+      [itemX + 1, itemY], // 오른쪽
       [itemX, itemY - 1], // 위
     ];
     
-    // 2. item 대각선 위치들
+    // 3. item 대각선 위치들
     const diagonalPositions = [
       [itemX + 1, itemY + 1], // 오른쪽 아래
       [itemX + 1, itemY - 1], // 오른쪽 위
-      [itemX - 1, itemY + 1], // 왼쪽 아래
       [itemX - 1, itemY - 1], // 왼쪽 위
     ];
     
@@ -89,8 +93,8 @@ export function calculateCalloutBounds(callouts: Array<{item: ComicGridItem, act
       [itemX + 1, itemY + 2], [itemX - 1, itemY + 2], [itemX + 1, itemY - 2], [itemX - 1, itemY - 2],
     ];
     
-    // 우선순위 순으로 가능한 위치들을 추가
-    possiblePositions.push(...adjacentPositions, ...diagonalPositions, ...distantPositions);
+    // 우선순위 순으로 가능한 위치들을 추가 (왼쪽 아래 우선)
+    possiblePositions.push(...leftBottomPositions, ...adjacentPositions, ...diagonalPositions, ...distantPositions);
     
     // 유효한 위치 찾기
     let selectedPosition: [number, number] | null = null;
@@ -155,12 +159,12 @@ export function calculateCalloutBounds(callouts: Array<{item: ComicGridItem, act
  * @returns 색상 코드
  */
 export function getTileColor(item: ComicGridItem): string {
-  if(item.content === '나') {
+  if(item.content === '나' || item.content === 'Me') {
     return colors.orange[400];  // 연한 주황색 (인물)
   }
   switch (item.type) {
     case 'figure': {
-      if(item.content === '나') {
+      if(item.content === '나' || item.content === 'Me') {
         return colors.orange[400];  // 연한 주황색 (인물)
       } else {
         return colors.fuchsia[300];  // 연한 주황색 (인물)

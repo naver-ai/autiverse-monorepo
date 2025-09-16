@@ -16,7 +16,7 @@
     },
     "Home": {
         "ViewPastDiaries": "View Past Diaries",
-        "WriteDiary": "Write Diary",
+        "WriteDiary": "Write Journal",
         "ContinueModal": {
             "Message": "Would you like to continue the unfinished comic diary?",
             "Continue": "Yes, let's continue!",
@@ -33,11 +33,11 @@
     },
     "Journaling": {
         "Header": {
-            "TitleTemplate": "Writing Diary with {agent_name}"
+            "TitleTemplate": "Writing Journal with {agent_name}"
         },
         "PresetSelection": {
-            "LocationSelectionMessage": "Where did you have an experience today that you'd like to write about in your comic diary?",
-            "PeopleSelectionMessageTemplate": "Who were you with at {location} when you had an experience you'd like to write about? You can choose multiple people, and if you want to talk about someone not on screen, just go to the next step!",
+            "LocationSelectionMessage": "Which place shall we write the journal about??",
+            "PeopleSelectionMessageTemplate": "Who shall we write the journal about from {location}? You can choose multiple people, and if you want to talk about someone not on screen, just move on to the next step!",
             "DontKnowWhatToWrite": "I don't know what to write...",
             "IWantToWriteSomething": "I have something I want to write about today!",
             "NextStepTemplate": "Next step ({count} people selected)",
@@ -66,7 +66,7 @@
             "End": "End"
         },
         "Messages": {
-            "Loading": "Loading diary...",
+            "Loading": "Loading journal...",
             "NextButton": "Next",
             "NextButtonPrompt": "Please press the next button",
             "Revision1Confirmation": "Great!:) Then I'll draw what you confirmed for me! Please wait a moment~",
@@ -80,12 +80,12 @@
         "VoiceRecording": {
             "CleanupError": "Error during voice recording cleanup:"
         },
-        "DefaultTitleTemplate": "Comic Diary by {child_name} and {agent_name}",
+        "DefaultTitleTemplate": "Comic Strip by {child_name} and {agent_name}",
         "FarewellSection": {
-            "MessageTemplate": "{child_name}, let's meet again next time and write a fun comic diary together. Goodbye~"
+            "MessageTemplate": "{child_name}, let's meet again next time and write a fun comic strip together. Goodbye~"
         },
         "PraiseSection": {
-            "FirstMessageTemplate": "Our {child_name}, you did a perfect job writing a comic diary today!!",
+            "FirstMessageTemplate": "Our {child_name}, you did a perfect job making a journal today!!",
             "SecondMessage": "Thank you for remembering today's events well, answering questions well, and waiting for me to draw pictures~",
             "StampMessage": "Let's finish by popping the stamps below~"
         },
@@ -102,7 +102,7 @@
         "Placeholder": "Please enter your message.",
         "ChatButton": "Press and hold to input via chat",
         "SendButton": "Send",
-        "VoiceCompleteButton": "I'm done talking",
+        "VoiceCompleteButton": "All done",
         "SubmittingMessage": "Sending message...",
         "LoadingMessage": "Thinking of a response..."
     },
@@ -142,5 +142,20 @@
             "Confirm": "Confirm",
             "ListeningTextTemplate": "{agentName} is listening..."
         }
-    }
+    },
+    "Emotions": {
+        "Happy": "Happy",
+        "Joyful": "Joyful",
+        "Loved": "Loved",
+        "Excited": "Excited",
+        "Sad": "Sad",
+        "Angry": "Angry",
+        "Upset": "Upset",
+        "Scared": "Scared",
+        "Afraid": "Afraid",
+        "Surprised": "Surprised",
+        "Amazed": "Amazed",
+        "Bored": "Bored"
+    },
+    "Next": "Next"
 } 

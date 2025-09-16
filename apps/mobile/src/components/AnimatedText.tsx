@@ -83,6 +83,10 @@ export const AnimatedText = ({
 
     // Array.from()을 사용하여 이모지와 유니코드 문자를 올바르게 분리
     const characters = Array.from(text);
+    
+    // 단어 단위로 줄바꿈을 위해 단어들을 그룹화
+    const words = text.split(' ');
+    const visibleText = characters.slice(0, visibleChars).join('');
 
     return (
         visibleChars > 0 && <Animated.View 
@@ -95,21 +99,13 @@ export const AnimatedText = ({
             ]}
             className={className}
         >
-            {characters.map((char, index) => {
-                if (index < visibleChars) {
-                    return (
-                        <Animated.Text
-                            key={`${text}-${index}`}
-                            className={textClassName}
-                            style={textStyle}
-                            entering={customEntering}
-                        >
-                            {char}
-                        </Animated.Text>
-                    );
-                }
-                return null;
-            })}
+            <Animated.Text
+                className={textClassName}
+                style={textStyle}
+                entering={customEntering}
+            >
+                {visibleText}
+            </Animated.Text>
         </Animated.View>
     );
 };

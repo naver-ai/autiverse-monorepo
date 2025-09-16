@@ -90,7 +90,7 @@ export const Revision1TextView = ({
                     </Text>
                   </View>
                   <View className="w-3" />
-                  <Text className="text-xl text-gray-800 leading-relaxed flex-1" style={styleTemplates.withSemiboldFont}>
+                  <Text className="text-xl text-gray-800 leading-relaxed flex-1" style={{...styleTemplates.withSemiboldFont, ...styleTemplates.englishTextWrap}}>
                     {content}
                   </Text>
                 </View>

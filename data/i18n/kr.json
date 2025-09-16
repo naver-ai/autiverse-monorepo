@@ -142,5 +142,20 @@
             "Confirm": "확인",
             "ListeningTextTemplate": "{agentName}가 듣는 중..."
         }
-    }
+    },
+    "Emotions": {
+        "Happy": "즐거웠다",
+        "Joyful": "기뻤다",
+        "Loved": "행복했다",
+        "Excited": "신났다",
+        "Sad": "슬펐다",
+        "Angry": "화났다",
+        "Upset": "속상했다",
+        "Scared": "무서웠다",
+        "Afraid": "두려웠다",
+        "Surprised": "놀랐다",
+        "Amazed": "감탄했다",
+        "Bored": "지루했다"
+    },
+    "Next": "다음"
 } 

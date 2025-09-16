@@ -199,7 +199,7 @@ export const PresetSelectionStage = ({
               </Reanimated.View>
               <View className="flex-1 ml-3">
                 <AnimatedText
-                  textStyle={styleTemplates.withBoldFont}
+                  textStyle={{...styleTemplates.withBoldFont, ...styleTemplates.englishTextWrap}}
                   textClassName="text-2xl text-gray-800 my-2"
                   text={selectionStep === 'location'
                     ? t('Journaling.PresetSelection.LocationSelectionMessage')

@@ -85,7 +85,7 @@ export const ComicPanelView = memo(({
       {/* 스토리 텍스트 */}
       {showStory && (
         <View className="mb-2 p-2 rounded-lg border-l-3 border-blue-500">
-          <Text className="text-base text-gray-800 leading-6" style={styleTemplates.withSemiboldFont}>
+          <Text className="text-base text-gray-800 leading-6" style={{...styleTemplates.withSemiboldFont, ...styleTemplates.englishTextWrap}}>
             <Text className="text-blue-500" style={styleTemplates.withBoldFont}>{panelIndex + 1}. </Text>
             {!panel.content?.startsWith('null') && panel.content}
           </Text>
@@ -115,7 +115,7 @@ export const ComicPanelView = memo(({
                     }
 
                     // figure 타입이면 Pawn 컴포넌트 표시
-                    if (tile.type === 'figure' || tile.content === '나') {
+                    if (tile.type === 'figure' || tile.content === '나' || tile.content === 'Me') {
                       return (
                         <View
                           key={`${x}-${y}`}

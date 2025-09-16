@@ -82,6 +82,7 @@ export function Pawn({
             emotions.map((action, index) => (
               <Text
                 key={index}
+                // numberOfLines={1}
                 style={{
                   backgroundColor: Color(bandColor).alpha(0.5).rgb().string(),
                   padding: 4,

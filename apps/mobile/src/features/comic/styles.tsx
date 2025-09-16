@@ -30,7 +30,7 @@ export const MEDIUM_COMIC_STYLE: ComicStyle = {
     calloutPaddingVertical: 4,
     calloutBorderWidth: 2,
     calloutBorderRadius: 12,
-    objectNameFontSize: 13,
+    objectNameFontSize: 12,
 }
 
 export const SMALL_COMIC_STYLE: ComicStyle = {
@@ -89,7 +89,7 @@ export const useComicStyle = () => {
 export const useGetFigureColor = () => {
   const {dyad} = useDyad()
   const getFigureColor = useCallback((tile: ComicGridItem) => {
-    if(tile.content === '나') {
+    if(tile.content === '나' || tile.content === 'Me') {
       return dyad?.avatar_config?.color || 'transparent'
     }else{
       const person = dyad?.people.find((person: Person) => person.name === tile.content);

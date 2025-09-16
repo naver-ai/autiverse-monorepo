@@ -1,7 +1,8 @@
-import { Dyad, NetworkHelper, GalleryResponse } from "@autiverse-monorepo/ts-core";
+import { Dyad, NetworkHelper, GalleryResponse, changeLanguage, UserLocale } from "@autiverse-monorepo/ts-core";
 import { useAuthStore } from "../features/auth/store";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { useEffect } from "react";
 
     
 export async function getDyadAPI(jwt: string): Promise<Dyad> {
@@ -29,13 +30,21 @@ export function useDyad() {
 
     const { jwt } = useAuthStore();
 
-    const {t} = useTranslation();
+    const {t, i18n} = useTranslation();
 
     const {data: dyad, isLoading: isDyadLoading, error: dyadError} = useQuery({
         queryKey: ['dyad'],
         queryFn: () => getDyadAPI(jwt!!),
         enabled: !!jwt
       });
+
+    // Change language when dyad data is loaded
+    useEffect(() => {
+        if (dyad?.locale && dyad.locale !== i18n.language) {
+            console.log(`Changing language from ${i18n.language} to ${dyad.locale}`);
+            changeLanguage(dyad.locale as UserLocale);
+        }
+    }, [dyad?.locale, i18n.language]);
 
     // console.log("Dyad: ", JSON.stringify(dyad, null, 2));
 

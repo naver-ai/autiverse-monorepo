@@ -27,18 +27,18 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
   const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
 
   const emotionButtons = [
-    { text: '즐거웠다', emoji: '😊' },
-    { text: '기뻤다', emoji: '😄' },
-    { text: '행복했다', emoji: '🥰' },
-    { text: '신났다', emoji: '🤩' },
-    { text: '슬펐다', emoji: '😢' },
-    { text: '화났다', emoji: '😠' },
-    { text: '속상했다', emoji: '😞' },
-    { text: '무서웠다', emoji: '😨' },
-    { text: '두려웠다', emoji: '😰' },
-    { text: '놀랐다', emoji: '😲' },
-    { text: '감탄했다', emoji: '😍' },
-    { text: '지루했다', emoji: '😴' }
+    { text: t('Emotions.Happy'), emoji: '😊', key: 'Happy' },
+    { text: t('Emotions.Joyful'), emoji: '😄', key: 'Joyful' },
+    { text: t('Emotions.Loved'), emoji: '🥰', key: 'Loved' },
+    { text: t('Emotions.Excited'), emoji: '🤩', key: 'Excited' },
+    { text: t('Emotions.Sad'), emoji: '😢', key: 'Sad' },
+    { text: t('Emotions.Angry'), emoji: '😠', key: 'Angry' },
+    { text: t('Emotions.Upset'), emoji: '😞', key: 'Upset' },
+    { text: t('Emotions.Scared'), emoji: '😨', key: 'Scared' },
+    { text: t('Emotions.Afraid'), emoji: '😰', key: 'Afraid' },
+    { text: t('Emotions.Surprised'), emoji: '😲', key: 'Surprised' },
+    { text: t('Emotions.Amazed'), emoji: '😍', key: 'Amazed' },
+    { text: t('Emotions.Bored'), emoji: '😴', key: 'Bored' }
   ];
 
 
@@ -85,19 +85,23 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
   const showNextButton = buttonMode === UserButtonMode.NEXT_BUTTON;
   const showTitleSelectionButtons = buttonMode === UserButtonMode.TITLE_SELECTION_BUTTON;
 
-  const handleEmotionClick = (emotion: string) => {
+  const handleEmotionClick = (emotionKey: string) => {
     if (isDisabled) return;
     
-    if (selectedEmotions.includes(emotion)) {
-      setSelectedEmotions(selectedEmotions.filter(e => e !== emotion));
+    if (selectedEmotions.includes(emotionKey)) {
+      setSelectedEmotions(selectedEmotions.filter(e => e !== emotionKey));
     } else {
-      setSelectedEmotions([...selectedEmotions, emotion]);
+      setSelectedEmotions([...selectedEmotions, emotionKey]);
     }
   };
 
   const handleEmotionComplete = () => {
     if (selectedEmotions.length > 0 && !isDisabled) {
-      sendMessage(selectedEmotions.join(', '), MessageIntent.AnswerEmotion);
+      const selectedEmotionTexts = selectedEmotions.map(key => {
+        const emotion = emotionButtons.find(e => e.key === key);
+        return emotion?.text || key;
+      });
+      sendMessage(selectedEmotionTexts.join(', '), MessageIntent.AnswerEmotion);
       setSelectedEmotions([]);
     }
   };
@@ -208,12 +212,12 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
           {[0, 1, 2, 3].map((row) => (
             <View key={row} className="flex-row gap-2 mb-2">
               {emotionButtons.slice(row * 3, (row + 1) * 3).map((emotion) => {
-                const isSelected = selectedEmotions.includes(emotion.text);
+                const isSelected = selectedEmotions.includes(emotion.key);
                 return (
                   <TouchableOpacity
-                    key={emotion.text}
+                    key={emotion.key}
                     className="flex-1"
-                    onPress={() => handleEmotionClick(emotion.text)}
+                    onPress={() => handleEmotionClick(emotion.key)}
                     disabled={isDisabled}
                     style={{
                       padding: 12,
@@ -221,7 +225,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
                         ? '#9CA3AF' 
                         : isSelected ? '#28a745' : '#4A90E2',
                       borderRadius: 8,
-                      minHeight: 44,
+                      minHeight: 50,
                       alignItems: 'center',
                       justifyContent: 'center',
                       shadowColor: '#000',
@@ -231,7 +235,13 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
                       elevation: isSelected ? 4 : 2,
                     }}
                   >
-                    <Text className="text-white text-lg text-center" style={styleTemplates.withBoldFont}>
+                    <Text 
+                      className="text-white text-lg text-center" 
+                      style={styleTemplates.withBoldFont}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit={true}
+                      minimumFontScale={0.7}
+                    >
                       {emotion.emoji} {emotion.text}
                     </Text>
                   </TouchableOpacity>
@@ -243,7 +253,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
           {selectedEmotions.length > 0 && (
             <View className="mt-3 items-center">
               <Text className="text-gray-600 text-lg mb-2" style={styleTemplates.withSemiboldFont}>
-                선택된 감정: {selectedEmotions.join(', ')}
+                Selected emotions: {selectedEmotions.join(', ')}
               </Text>
               <TouchableOpacity
                 onPress={handleEmotionComplete}
@@ -261,7 +271,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
                 }}
               >
                 <Text className="text-white text-lg text-center" style={styleTemplates.withBoldFont}>
-                  선택 완료
+                  Done
                 </Text>
               </TouchableOpacity>
             </View>
@@ -276,7 +286,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
             className={`px-6 py-4 rounded-xl justify-center ${
               isDisabled ? 'bg-gray-400' : 'bg-blue-500'
             }`}
-            onPress={() => sendMessage('다음', MessageIntent.AnswerNext)}
+            onPress={() => sendMessage(t('Next'), MessageIntent.AnswerNext)}
             disabled={isDisabled}
             style={{
               backgroundColor: isDisabled ? '#9CA3AF' : '#4A90E2',
@@ -289,7 +299,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
               elevation: 3,
             }}
           >
-            <Text className="text-white text-2xl text-center" style={styleTemplates.withBoldFont}>다음</Text>
+            <Text className="text-white text-2xl text-center" style={styleTemplates.withBoldFont}>{t('Next')}</Text>
           </TouchableOpacity>
         </View>
       )}

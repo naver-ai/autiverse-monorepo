@@ -6,8 +6,8 @@ import krTranslations from "../../../../data/i18n/kr.json";
 import enTranslations from "../../../../data/i18n/en.json";
 import { UserLocale } from "./types";
 
-export async function initializeI18n(defaultLanguage: UserLocale = UserLocale.Korean, 
-    fallbackLanguage: UserLocale = UserLocale.Korean,
+export async function initializeI18n(defaultLanguage: UserLocale = UserLocale.English, 
+    fallbackLanguage: UserLocale = UserLocale.English,
     options: {
         middlewares?: Array<any>,
         resources?: {[locale: string]: any}
@@ -54,3 +54,7 @@ export const getLocale = (language: UserLocale | string): Locale => {
                 return enUS
         }
     }
+
+export const changeLanguage = async (language: UserLocale): Promise<void> => {
+    await i18next.changeLanguage(language);
+}
