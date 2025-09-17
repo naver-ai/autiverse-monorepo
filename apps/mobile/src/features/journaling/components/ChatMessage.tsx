@@ -144,7 +144,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                 .reduce((total, prevSentence) => {
                   // Array.from()을 사용하여 이모지를 포함한 정확한 글자 수 계산
                   const charCount = Array.from(prevSentence.trim()).length;
-                  return total + (charCount * 80);
+                  return total + (charCount * 75);
                 }, 0) + (index * 400); // 문장별 100ms 간격 추가
               
               return (
@@ -154,7 +154,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                     style={ttsBorderColorStyle}
                     text={sentence.trim()}
                     initialDelay={previousDelay}
-                    charInterval={80}
+                    charInterval={75}
                     textClassName="text-xl leading-8 text-gray-800"
                     textStyle={{...styleTemplates.withSemiboldFont, ...styleTemplates.englishTextWrap}}
                   />

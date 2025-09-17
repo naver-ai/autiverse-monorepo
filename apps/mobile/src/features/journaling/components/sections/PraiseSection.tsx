@@ -338,7 +338,7 @@ export default function PraiseSection({ childName, sessionId, onComplete }: Prai
                     textStyle={styleTemplates.withBoldFont}
                     text={firstMessage}
                     initialDelay={0}
-                    charInterval={80}
+                    charInterval={75}
                   />
                 )}
                 {showSecondMessage && (
@@ -348,7 +348,7 @@ export default function PraiseSection({ childName, sessionId, onComplete }: Prai
                     textStyle={styleTemplates.withBoldFont}
                     text={secondMessage}
                     initialDelay={0}
-                    charInterval={80}
+                    charInterval={75}
                   />    
                 )}
                 {showStampMessage && (
@@ -358,7 +358,7 @@ export default function PraiseSection({ childName, sessionId, onComplete }: Prai
                     textStyle={styleTemplates.withBoldFont}
                     text={stampMessage}
                     initialDelay={0}
-                    charInterval={80}
+                    charInterval={75}
                   />
                 )}
               </View>

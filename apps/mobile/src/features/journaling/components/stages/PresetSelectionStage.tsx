@@ -205,7 +205,7 @@ export const PresetSelectionStage = ({
                     ? t('Journaling.PresetSelection.LocationSelectionMessage')
                     : format(t('Journaling.PresetSelection.PeopleSelectionMessageTemplate'), { location: selectedLocation?.name })}
                   initialDelay={0}
-                  charInterval={80}
+                  charInterval={75}
                 />
               </View>
             </View>

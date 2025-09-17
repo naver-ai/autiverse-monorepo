@@ -106,7 +106,7 @@ const FarewellSection = forwardRef<FarewellSectionRef, FarewellSectionProps>(
             <Reanimated.View 
                     entering={FadeIn.easing(Easing.ease)}
                     style={ttsBorderColorStyle} className="rounded-2xl p-10 w-[70vw] border-2 border-gray-200">
-              <AnimatedText className="mb-2 justify-center" textClassName="text-3xl text-gray-800 my-2" textStyle={styleTemplates.withBoldFont} text={farewellMessage} initialDelay={0} charInterval={80} />
+              <AnimatedText className="mb-2 justify-center" textClassName="text-3xl text-gray-800 my-2" textStyle={styleTemplates.withBoldFont} text={farewellMessage} initialDelay={0} charInterval={75} />
               
               <View className="items-center mt-12">
                 <TailwindButton
