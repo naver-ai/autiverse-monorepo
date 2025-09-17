@@ -60,7 +60,7 @@ class ComicPanel:
     missing_content: Optional[str] = None
 
 class ComicContextStage:
-    def __init__(self, db: Session, journal_entry_id: str):
+    def __init__(self, db: AsyncSession, journal_entry_id: str):
         self.db = db
         self.journal_entry_id = journal_entry_id
         self.child_name = None
@@ -214,24 +214,114 @@ You're having a friendly conversation with your autistic best friend, {self.chil
 """
         
     async def start_context_analysis(self) -> Message:
-        """만화 컨텍스트 분석 시작"""
+        """만화 컨텍스트 분석 시작 - 하드코딩된 첫 메시지"""
         try:
             # Journal entry stage 업데이트
             await update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.ComicContext)
+            
+            # 고정된 comic panels 설정 (comic generation과 같은 grid 형태)
+            fixed_comic_panels = {
+                "panel1": {
+                    "content": "I played with Oliver at school today.",
+                    "place": "School",
+                    "grid": [
+                        {"type": "figure", "content": "Me", "position": [1, 2]},
+                        {"type": "figure", "content": "Oliver", "position": [2, 2]}
+                    ]
+                },
+                "panel2": {
+                    "content": "",
+                    "place": "",
+                    "grid": []
+                },
+                "panel3": {
+                    "content": "Oliver was in a bad mood.",
+                    "place": "",
+                    "grid": [
+                        {"type": "figure", "content": "Oliver", "position": [2, 2], "action": [{"type": "emotion", "content": "bad mood"}]}
+                    ]
+                },
+                "panel4": {
+                    "content": "",
+                    "place": "",
+                    "grid": []
+                }
+            }
+            
+            # comic_context에 고정된 panels 저장 (grid 정보 포함)
+            await update_journal_data(
+                self.db, self.journal_entry_id,
+                comic_context=fixed_comic_panels
+            )
             
             # 새로운 interaction turn 생성
             interaction_turn = await create_interaction_turn(
                 self.db, self.journal_entry_id, JournalEntryStage.ComicContext
             )
             
-            # 첫 번째 분석 질문 생성
-            initial_question, intent, focused_panel = await self._generate_first_question()
+            # 하드코딩된 대화 순서와 각 메시지별 설정
+            hardcoded_messages = [
+                {
+                    "message": "I turned what you told me into a four-panel comic! But I couldn't draw everything with the information I had. Could you help me fill in the missing parts? When you're ready, press the 'Next' button!",
+                    "focused_panel": None,
+                    "panel_updates": {}
+                },
+                {
+                    "message": "It must have been fun playing with Oliver at school! 😄 What did you do with him?",
+                    "focused_panel": "panel2",
+                    "panel_updates": {}
+                },
+                {
+                    "message": "Playing with the eraser sounds like fun! 😄 But then, what happened to Oliver that made him feel bad? Was it because of the eraser, or did something else happen?",
+                    "focused_panel": "panel2",
+                    "panel_updates": {
+                        "panel2": "Oliver and I played with an eraser."
+                    }
+                },
+                {
+                    "message": "What did you do with Oliver’s eraser? Did you just erase something quickly, or did you do something else too?",
+                    "focused_panel": "panel2",
+                    "panel_updates": {
+                        "panel1": "I played with Oliver at school today with an eraser.",
+                        "panel2": "I used his eraser without asking."
+                    }
+                },
+                {
+                    "message": "Oh, I see. What was Oliver's reaction when he saw you throwing the eraser? Did he get angry, or did he say something?",
+                    "focused_panel": "panel3",
+                    "panel_updates": {
+                        "panel2": "I threw his eraser without asking."
+                    }
+                },
+                {
+                    "message": "Oh, Oliver got mad.. 😥 How did you feel when he got angry and told the teacher?",
+                    "focused_panel": "panel4",
+                    "panel_updates": {
+                        "panel3": "Oliver got angry and told the teacher."
+                    }
+                }
+            ]
             
-            # focus panel 정보를 metadata에 포함
+            # 첫 번째 메시지 (comic 소개)
+            initial_question = hardcoded_messages[0]["message"]
+            initial_focused_panel = hardcoded_messages[0]["focused_panel"]
+            initial_panel_updates = hardcoded_messages[0]["panel_updates"]
+            intent = MessageIntent.PromptNext
+            
+            # 첫 번째 메시지이므로 카운터는 0
+            
+            # 첫 번째 메시지에도 panel_updates는 UI에서만 적용 (DB 저장 안 함)
+            if initial_panel_updates:
+                print(f"[DEBUG] comic_context: initial_panel_updates: {initial_panel_updates}")
+            
+            # 첫 번째 메시지에도 focused_panel과 panel_updates 정보 포함
             metadata_json = {}
-            if focused_panel:
-                metadata_json["focused_panel"] = focused_panel
-                print(f"[DEBUG] comic_context: start_context_analysis focused_panel = {focused_panel}")
+            if initial_focused_panel:
+                metadata_json["focused_panel"] = initial_focused_panel
+            if initial_panel_updates:
+                metadata_json["panel_updates"] = initial_panel_updates
+            metadata_json = metadata_json if metadata_json else None
+            print(f"[DEBUG] comic_context: Creating initial message with focused_panel={initial_focused_panel}, panel_updates={initial_panel_updates}, metadata_json={metadata_json}")
             
             message = await create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
@@ -246,8 +336,9 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             raise
     
     async def process_message(self, user_message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Message:
-        """사용자 메시지 처리 - Structured Output 사용"""
-        print(f"[DEBUG] comic_context: process_message called with user_message='{user_message}'")
+        """사용자 메시지 처리 - 완전히 하드코딩된 대화"""
+        print(f"[DEBUG] comic_context: process_message called with user_message='{user_message}', intent={intent}")
+        print(f"[DEBUG] comic_context: current conversation_count before: {getattr(self, '_conversation_count', 'NOT_SET')}")
         try:
             # 현재 interaction turn 가져오기
             interaction_turn = await self._get_or_create_interaction_turn(JournalEntryStage.ComicContext)
@@ -260,34 +351,12 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                 intent=intent
             )
             
-            # 첫 번째 메시지인 경우 분석 수행
-            print(f"[DEBUG] comic_context: story_analysis = {self.story_analysis}")
-            
-            # 데이터베이스에서 기존 comic_context가 있는지 확인
-            journal = await get_journal(self.db, self.journal_entry_id)
-            has_existing_context = journal and journal.comic_context
-            
-            if not self.story_analysis and not has_existing_context:
-                # 첫 번째 메시지: 분석 후 재구성
-                self.story_analysis = await self._analyze_story_flow()
-                print(f"[DEBUG] comic_context: story_analysis created: {self.story_analysis}")
-                await self._reconstruct_panel(user_message, "", True)
-            else:
-                # 이후 메시지: 먼저 재구성 후 분석 업데이트
-                await self._reconstruct_panel(user_message, "사용자 입력", False)
-                self.story_analysis = await self._analyze_story_flow()
-                print(f"[DEBUG] comic_context: story_analysis updated: {self.story_analysis}")
-
-
-            # 완료 상태 확인
-            if self.is_complete() or "다음으로 넘어가기" in user_message:
-                # 만화 생성 시작 신호 반환 (실제 만화 생성은 controller에서 처리)
-                child_name = await self._get_child_name()
-                child_name_with_josa = append_josa(child_name, '이', '')
-                dyad = await self._get_dyad()
-                response_message = t('Journaling.Messages.ComicContextComplete', dyad.locale).format(
-                    child_name=child_name_with_josa
-                )
+            # 감정 선택이 완료된 경우 comic_generation 시작
+            if intent == MessageIntent.AnswerEmotion:
+                print(f"[DEBUG] comic_context: Emotion selected, starting comic generation")
+                
+                # comic_generation 시작 신호 반환
+                response_message = "Thanks for answering my questions. Now I can draw in the rest of the panel! Just wait a little bit!"
                 response_intent = MessageIntent.StartComicGeneration
 
                 message = await create_message(
@@ -295,27 +364,123 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                     response_message, MessageRole.Assistant, JournalEntryStage.ComicContext,
                     intent=response_intent
                 )
+                
+                return message
             
+            # 하드코딩된 대화 순서와 각 메시지별 설정
+            hardcoded_messages = [
+                {
+                    "message": "I turned what you told me into a four-panel comic! But I couldn't draw everything with the information I had. Could you help me fill in the missing parts? When you're ready, press the 'Next' button!",
+                    "focused_panel": None,
+                    "panel_updates": {}
+                },
+                {
+                    "message": "It must have been fun playing with Oliver at school! 😄 What did you do with Oliver?",
+                    "focused_panel": "panel2",
+                    "panel_updates": {}
+                },
+                {
+                    "message": "Playing with the eraser sounds like fun! But then, what happened to Oliver that made him feel bad? Was it because of the eraser, or did something else happen?",
+                    "focused_panel": "panel2",
+                    "panel_updates": {
+                        "panel2": "Oliver and I played with an eraser."
+                    }
+                },
+                {
+                    "message": "How did you use the Oliver's eraser? Did you just erase it quickly, or did you do something else too?",
+                    "focused_panel": "panel2",
+                    "panel_updates": {
+                        "panel1": "I played with Oliver at school today with an eraser.",
+                        "panel2": "I used his eraser without asking."
+                    }
+                },
+                {
+                    "message": "Oh, I see. What was Oliver's reaction when he saw you throwing the eraser? Did he get angry, or did he say something?",
+                    "focused_panel": "panel3",
+                    "panel_updates": {
+                        "panel2": "I threw his eraser without asking."
+                    }
+                },
+                {
+                    "message": "Oh, Oliver got mad.. 😥 How did you feel when he got angry and told the teacher?",
+                    "focused_panel": "panel4",
+                    "panel_updates": {
+                        "panel3": "Oliver got angry and told the teacher."
+                    }
+                }
+            ]
+            
+            # 현재 comic_context stage의 Assistant 메시지 개수를 세어서 카운터 계산
+            messages = await get_messages_by_journal_entry_and_stage(self.db, self.journal_entry_id, JournalEntryStage.ComicContext)
+            assistant_messages = [msg for msg in messages if msg.role == MessageRole.Assistant]
+            current_count = len(assistant_messages)  # 첫 번째 메시지 포함해서 계산
+            
+            print(f"[DEBUG] comic_context: Total messages: {len(messages)}")
+            print(f"[DEBUG] comic_context: Assistant messages: {len(assistant_messages)}")
+            print(f"[DEBUG] comic_context: Current count: {current_count}")
+            print(f"[DEBUG] comic_context: Hardcoded messages length: {len(hardcoded_messages)}")
+            
+            # 카운터가 범위를 벗어나지 않도록 제한
+            if current_count < 0:
+                current_count = 0
+            elif current_count >= len(hardcoded_messages):
+                current_count = len(hardcoded_messages) - 1
+                
+            print(f"[DEBUG] comic_context: Adjusted count: {current_count}")
+            print(f"[DEBUG] comic_context: Will return: {hardcoded_messages[current_count]['message'] if current_count < len(hardcoded_messages) else 'END'}")
+            
+            # 마지막 메시지인 경우 만화 생성으로 전환
+            if current_count >= len(hardcoded_messages):
+                # 하드코딩된 대화가 끝났으므로 _generate_final_comic_panels 호출
+                await self._generate_final_comic_panels()
+                
+                # 만화 생성 시작 신호 반환
+                response_message = "Thanks for answering my questions. Now I can draw in the rest of the panel! "
+                response_intent = MessageIntent.StartComicGeneration
+
+                message = await create_message(
+                    self.db, self.journal_entry_id, interaction_turn.id,
+                    response_message, MessageRole.Assistant, JournalEntryStage.ComicContext,
+                    intent=response_intent
+                )
+                
                 return message
             else:
-                # 다음 질문 생성
-                next_question, next_intent, focused_panel = await self._get_next_question()
+                # 현재 메시지 설정 가져오기
+                current_message_config = hardcoded_messages[current_count]
+                response_message = current_message_config["message"]
+                focused_panel = current_message_config["focused_panel"]
+                panel_updates = current_message_config["panel_updates"]
                 
-                # focus panel 정보를 metadata에 포함
+                # 첫 번째 메시지는 Next 버튼, 마지막 메시지는 감정 입력, 나머지는 텍스트 입력
+                if current_count == 0:
+                    response_intent = MessageIntent.PromptNext
+                elif current_count == len(hardcoded_messages) - 1:
+                    response_intent = MessageIntent.PromptEmotion
+                else:
+                    response_intent = MessageIntent.PromptOpenEndedAnswer
+                print(f"[DEBUG] comic_context: Returning message {current_count}: {response_message}")
+
+                # panel_updates는 UI에서만 적용 (DB 저장 안 함)
+                print(f"[DEBUG] comic_context: panel_updates: {panel_updates}")
+
+                # 메시지 생성 (focused_panel과 panel_updates 정보 포함)
                 metadata_json = {}
                 if focused_panel:
                     metadata_json["focused_panel"] = focused_panel
-                    print(f"[DEBUG] comic_context: focused_panel = {focused_panel}")
-                
-                # 봇 응답 저장
+                if panel_updates:
+                    metadata_json["panel_updates"] = panel_updates
+                metadata_json = metadata_json if metadata_json else None
+                print(f"[DEBUG] comic_context: Creating message with focused_panel={focused_panel}, panel_updates={panel_updates}, metadata_json={metadata_json}")
                 message = await create_message(
                     self.db, self.journal_entry_id, interaction_turn.id,
-                    next_question, MessageRole.Assistant, JournalEntryStage.ComicContext,
-                    intent=next_intent,
+                    response_message, MessageRole.Assistant, JournalEntryStage.ComicContext,
+                    intent=response_intent,
                     metadata_json=metadata_json
                 )
                 
                 return message
+                
         except Exception as e:
             print(f"[DEBUG] comic_context: Error in process_message: {e}")
             import traceback
@@ -920,7 +1085,7 @@ answer: "{answer}"
         """다음 질문 생성 - focus panel 정보도 함께 반환"""
         try:
             if not self.story_analysis:
-                return "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래?? 준비되면 '다음' 버튼을 눌러줘!", MessageIntent.PromptNext, None
+                return "I turned what you told me into a four-panel comic! But I couldn't draw everything with the information I had. Could you help me fill in the missing parts? When you’re ready, press the 'Next' button!", MessageIntent.PromptNext, None
             
             # Content와 Order issue 확인
             has_content_issues, has_order_issues = self._check_issues(self.story_analysis)
@@ -1322,7 +1487,7 @@ Please generate a question that addresses the FIRST missing information gap."""
                             await asyncio.sleep(1)  # Wait before retry
                 
                 # 기분을 물어보는 질문인지 확인
-                if "기분이 어땠어" in question or "기분이었어" in question:
+                if "기분이 어땠어" in question or "기분이었어" in question or "How did you feel" in question:
                     return question, MessageIntent.PromptEmotion, focused_panel_from_ai
                 else:
                     return question, None, focused_panel_from_ai
@@ -1375,13 +1540,25 @@ Please generate a question that addresses the FIRST missing information gap."""
             if not journal or not journal.comic_context:
                 return
             
-            # 패널 내용 추출 (Null은 빈 문자열로 처리)
+            # 패널 내용 추출 (ComicPanelInfo 형식에서 content 필드만 추출)
+            # 하드코딩된 패널 내용으로 설정
             panel_contents = {
-                "panel1": journal.comic_context.get("panel1", "") if journal.comic_context.get("panel1") != "null" else "",
-                "panel2": journal.comic_context.get("panel2", "") if journal.comic_context.get("panel2") != "null" else "",
-                "panel3": journal.comic_context.get("panel3", "") if journal.comic_context.get("panel3") != "null" else "",
-                "panel4": journal.comic_context.get("panel4", "") if journal.comic_context.get("panel4") != "null" else ""
+                "panel1": "I played with Oliver at school today with an eraser.",
+                "panel2": "I threw his eraser without asking.",
+                "panel3": "Oliver got angry and told the teacher.",
+                "panel4": "I was sad and scared"
             }
+            
+            # 원래 로직 (주석 처리)
+            # panel_contents = {}
+            # for panel_key in ['panel1', 'panel2', 'panel3', 'panel4']:
+            #     panel_data = journal.comic_context.get(panel_key, {})
+            #     if isinstance(panel_data, dict) and 'content' in panel_data:
+            #         panel_contents[panel_key] = panel_data['content']
+            #     else:
+            #         panel_contents[panel_key] = ""
+            
+            print(f"[DEBUG] comic_context panel_contents after conversion: {panel_contents}")
             
             # 직접 ComicGridGenerator 호출
             try:

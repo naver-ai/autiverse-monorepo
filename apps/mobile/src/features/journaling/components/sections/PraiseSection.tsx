@@ -234,7 +234,7 @@ export default function PraiseSection({ childName, sessionId, onComplete }: Prai
             startSpeech(secondMessage, {
               ...getTTSOptionsFromAgentConfig(agentConfig),
               onDone: () => {
-                // 두 번째 메시지 TTS 완료 후 0.3초 뒤에 사라지고 스탬프 메시지 시작
+                // 두 번째 메시지 TTS 완료 후 0.5초 뒤에 사라지고 스탬프 메시지 시작
                 setTimeout(() => {
                   setShowSecondMessage(false);
                   setShowStampMessage(true);
@@ -270,23 +270,7 @@ export default function PraiseSection({ childName, sessionId, onComplete }: Prai
         }
       });
 
-      // 안전장치: 12초 후에도 완료되지 않으면 강제로 스탬프 활성화
-      const safetyTimer = setTimeout(() => {
-        if (!stampsActive) {
-          console.log('PraiseSection: TTS 타임아웃, 강제로 스탬프 활성화');
-          setShowFirstMessage(false);
-          setShowSecondMessage(false);
-          setShowStampMessage(true);
-          setShowStamp(true);
-          setStampsActive(true);
-          setIsSpeaking(false);
-        }
-      }, 12000); // 12초로 변경
-
-      return () => {
-        clearTimeout(safetyTimer);
-      };
-    }, 2000); // 2초 후 첫 번째 메시지 시작
+    }, 500); // 0.5초 후 첫 번째 메시지 시작
 
     return () => clearTimeout(timer);
   }, []);
@@ -354,7 +338,7 @@ export default function PraiseSection({ childName, sessionId, onComplete }: Prai
                     textStyle={styleTemplates.withBoldFont}
                     text={firstMessage}
                     initialDelay={0}
-                    charInterval={100}
+                    charInterval={80}
                   />
                 )}
                 {showSecondMessage && (
@@ -364,7 +348,7 @@ export default function PraiseSection({ childName, sessionId, onComplete }: Prai
                     textStyle={styleTemplates.withBoldFont}
                     text={secondMessage}
                     initialDelay={0}
-                    charInterval={100}
+                    charInterval={80}
                   />    
                 )}
                 {showStampMessage && (
@@ -374,7 +358,7 @@ export default function PraiseSection({ childName, sessionId, onComplete }: Prai
                     textStyle={styleTemplates.withBoldFont}
                     text={stampMessage}
                     initialDelay={0}
-                    charInterval={100}
+                    charInterval={80}
                   />
                 )}
               </View>

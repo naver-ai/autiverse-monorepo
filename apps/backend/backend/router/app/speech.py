@@ -20,7 +20,7 @@ router = APIRouter()
 class TTSRequest(BaseModel):
     text: str
     voice: str = "nara"
-    speed: float = 0.6
+    speed: float = 0.9
     pitch: float = 0.9
 
 class SpeechRecognitionRequest(BaseModel):
@@ -28,17 +28,26 @@ class SpeechRecognitionRequest(BaseModel):
     place_names: Optional[List[str]] = []
 
 @router.post("/clova")
-async def clova_tts(request: TTSRequest):
+async def clova_tts(request: TTSRequest, dyad: Annotated[Dyad, Depends(get_signed_in_dyad)]):
     import time
     start_time = time.time()
     request_id = f"tts_{int(start_time * 1000)}"
     
-    print(f"[TTS] [{request_id}] 요청 수신: text_length={len(request.text)}, voice={request.voice}, speed={request.speed}, pitch={request.pitch}")
+    # agent_config에서 TTS 설정 가져오기
+    agent_config = dyad.agents[0].agent_config if dyad.agents else {}
+    
+    # agent_config의 설정을 우선 사용, 없으면 요청의 기본값 사용
+    voice = agent_config.get('voice', request.voice)
+    speed = agent_config.get('speed', request.speed)
+    pitch = agent_config.get('pitch', request.pitch)
+    
+    print(f"[TTS] [{request_id}] 요청 수신: text_length={len(request.text)}, voice={voice}, speed={speed}, pitch={pitch}")
+    print(f"[TTS] [{request_id}] agent_config: {agent_config}")
     
     try:
         # 캐시 키 생성 (텍스트 + 설정의 해시)
         cache_key = hashlib.md5(
-            f"{request.text}:{request.voice}:{request.speed}:{request.pitch}".encode()
+            f"{request.text}:{voice}:{speed}:{pitch}".encode()
         ).hexdigest()
         
         # 캐시에서 확인
@@ -65,10 +74,10 @@ async def clova_tts(request: TTSRequest):
         }
         
         data = {
-            "speaker": request.voice,
+            "speaker": voice,
             "volume": "0",
-            "speed": str(request.speed),
-            "pitch": str(request.pitch),
+            "speed": str(speed),
+            "pitch": str(pitch),
             "emotion": "0",
             "format": "mp3",
             "text": request.text

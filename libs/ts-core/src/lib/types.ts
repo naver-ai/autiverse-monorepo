@@ -212,6 +212,7 @@ export enum MessageIntent {
   PromptOpenEndedAnswer = "prompt_open_ended_answer",
   PromptIssueExist = "prompt_issue_exist",
   PromptRevision2IssueExist = "prompt_revision2_issue_exist",
+  PromptRevision2Confirm = "prompt_revision2_confirm",
   StartComicGeneration = "start_comic_generation",
   TransitionToTitle="transition_to_title",
 

@@ -2,7 +2,7 @@ from typing import Dict, Any, Optional, List
 from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.database.crud.chatbot import (
     get_dyad_by_passcode, get_dyad_by_id, create_journal_entry, get_journal_entry, 
-    create_journal, get_journal, update_journal_data, 
+    create_journal, get_journal, update_journal_data, update_journal_entry_stage,
     get_messages_by_journal_entry, delete_journal_entry, reset_journal_entry
 )
 from backend.database.models import JournalEntryStage, JournalEntryStatus, MessageRole, JournalingSessionInfo, ChatMessage, ComicData, MessageIntent
@@ -13,6 +13,7 @@ class ChatbotController:
         self.db = db
         self.title_stage = None  # TitleStage 인스턴스 저장
         self.current_journal_entry_id: Optional[str] = None
+        self.comic_context_count: int = -1  # comic_context 대화 카운터
         
     async def start_chatbot(self, dyad_id: str, location: str = None, people: List[str] = None) -> Dict[str, Any]:
         """챗봇 시작"""
@@ -96,48 +97,53 @@ class ChatbotController:
             raise ValueError(f"Unknown stage: {current_stage}")
     
     async def _handle_intro_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
-        """인트로 단계 처리"""
-        intro_stage = await ComicIntroStage.create(self.db, journal_entry_id)
+        """인트로 단계 처리 - 완전히 하드코딩으로 revision_1 처리"""
+        # 고정된 comic panels를 comic_intro에 저장
+        fixed_comic_panels = {
+            "panel1": "I played with Oliver at school today.",
+            "panel2": None,
+            "panel3": "Oliver was in a bad mood.",
+            "panel4": None
+        }
         
-        # 메시지 처리 (audio_filename 포함)
-        intro_response_message = await intro_stage.process_message(message, intent, audio_filename)
+        # Journal entry stage를 Revision1으로 업데이트
+        await update_journal_entry_stage(self.db, journal_entry_id, JournalEntryStage.Revision1)
         
-        # 이벤트 분석
-        analysis = await intro_stage.analyze_events()
+        await update_journal_data(
+            self.db, journal_entry_id,
+            events=["I played with Oliver at school today.", "Oliver was in a bad mood."],
+            summary="I played with Oliver at school today. Oliver was in a bad mood.",
+            comic_intro=fixed_comic_panels
+        )
         
-        # 다음 단계로 진행할 준비가 되었는지 확인
-        if await intro_stage.is_ready_for_next_stage():
-            # 마지막 assistant 메시지 삭제 (UI에 표시되지 않는 메시지)
-            from ...database.crud.chatbot import get_messages_by_journal_entry, delete_message
-            messages = await get_messages_by_journal_entry(self.db, journal_entry_id)
-            if messages and messages[-1].role == MessageRole.Assistant:
-                await delete_message(self.db, messages[-1].id)
-            
-            # revision_1 단계로 전환
-            revision_stage = await Revision1Stage.create(self.db, journal_entry_id)
-            response_message = await revision_stage.start_revision()
-            
-            return {
-                "message_id": response_message.id,
-                "response": response_message.content,
-                "stage": "revision_1",
-                "intent": response_message.intent,
-                "data": {
-                    "events": analysis.get("events_identified", []),
-                    "summary": analysis.get("conversation_summary", ""),
-                    "panels": analysis.get("comic_panels", {})
-                }
-            }
+        # Message를 DB에 저장
+        from ...database.crud.chatbot import create_interaction_turn, create_message
+        interaction_turn = await create_interaction_turn(
+            self.db, journal_entry_id, JournalEntryStage.Revision1
+        )
         
+        message = await create_message(
+            self.db, journal_entry_id, interaction_turn.id,
+            "I see! Then let's try writing today's journal entry using what you just told me. Is anything incorrect here? 🤔",
+            MessageRole.Assistant, JournalEntryStage.Revision1,
+            intent=MessageIntent.PromptIssueExist
+        )
+        
+        # 하드코딩된 응답으로 바로 반환 (LLM 호출 없이)
         return {
-            "message_id": intro_response_message.id,
-            "response": intro_response_message.content,
-            "intent": intro_response_message.intent,
-            "stage": "intro"
+            "message_id": message.id,
+            "response": "I see! Then let's try writing today's journal entry using what you just told me. Is anything incorrect here? 🤔",
+            "stage": "revision_1",
+            "intent": "prompt_issue_exist",
+            "data": {
+                "events": ["I played with Oliver at school today.", "Oliver was in a bad mood."],
+                "summary": "I played with Oliver at school today. Oliver was in a bad mood.",
+                "panels": fixed_comic_panels
+            }
         }
     
     async def _handle_drawing_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
-        """그리기 단계 처리 (revision_1, comic_context, revision_2)"""
+        """그리기 단계 처리 - 하드코딩으로 처리"""
         journal_entry = await get_journal_entry(self.db, journal_entry_id)
         journal = await get_journal(self.db, journal_entry_id)
         
@@ -148,7 +154,12 @@ class ChatbotController:
         current_stage = journal_entry.stage
         
         if current_stage == JournalEntryStage.Revision1:
-            return await self._handle_revision_1_stage(journal_entry_id, message, intent, audio_filename)
+            # revision_1에서 "All correct"를 누른 경우 comic_context로 넘어가기
+            if intent == MessageIntent.StartComicGeneration:
+                return await self._handle_comic_context_stage(journal_entry_id, message, intent, audio_filename)
+            else:
+                # revision_1 단계 처리 (기존 로직 사용)
+                return await self._handle_revision_1_stage(journal_entry_id, message, intent, audio_filename)
         elif current_stage == JournalEntryStage.ComicContext:
             return await self._handle_comic_context_stage(journal_entry_id, message, intent, audio_filename)
         elif current_stage == JournalEntryStage.Revision2:
@@ -167,25 +178,39 @@ class ChatbotController:
         }
     
     async def _handle_comic_context_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
-        """comic_context 단계 처리"""
-        context_stage = await ComicContextStage.create(self.db, journal_entry_id)
-        context_response_message = await context_stage.process_message(message, intent, audio_filename)
+        """comic_context 단계 처리 - comic generation 후 하드코딩된 대화 시작"""
+        from .pipelines.comic_context_stage import ComicContextStage
+        stage = await ComicContextStage.create(self.db, journal_entry_id)
         
-        # focus panel 정보는 message의 metadata에서 가져오기
-        focused_panel = None
-        metadata = {}
-        if context_response_message.metadata_json:
-            metadata = context_response_message.metadata_json
-            focused_panel = metadata.get("focused_panel")
-
-        return {
-            "message_id": context_response_message.id,
-            "response": context_response_message.content,
-            "intent": context_response_message.intent,
-            "stage": "comic_context",
-            "focusedPanel": focused_panel,
-            "metadata": metadata
-        }
+        # 첫 번째 호출인지 확인 (comic generation이 필요한지)
+        journal = await get_journal(self.db, journal_entry_id)
+        if not journal.comic_context:
+            # 첫 번째 호출: comic generation 수행 후 start_context_analysis
+            from .pipelines.revision_1_stage import Revision1Stage
+            revision1_stage = await Revision1Stage.create(self.db, journal_entry_id)
+            await revision1_stage._generate_comic_panels()
+            
+            message_obj = await stage.start_context_analysis()
+            
+            return {
+                "message_id": message_obj.id,
+                "response": message_obj.content,
+                "intent": message_obj.intent,
+                "stage": "comic_context",
+                "metadata": message_obj.metadata_json
+            }
+        else:
+            # 이후 호출: comic_context_stage의 process_message 사용
+            print(f"[DEBUG] chatbot_controller: Calling comic_context_stage.process_message with user_message='{message}', intent={intent}")
+            message_obj = await stage.process_message(message, intent, audio_filename)
+            
+            return {
+                "message_id": message_obj.id,
+                "response": message_obj.content,
+                "intent": message_obj.intent,
+                "stage": "comic_context",
+                "metadata": message_obj.metadata_json
+            }
     
     async def _handle_revision_2_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
         """revision_2 단계 처리"""
@@ -283,14 +308,177 @@ class ChatbotController:
         current_panels = {}
         if journal:
             # 현재 단계에 따라 적절한 패널 데이터 선택
-            if journal_entry.stage == JournalEntryStage.Complete or journal_entry.stage == JournalEntryStage.Title:
-                # 완료 단계와 제목 단계에서는 revision_2 우선, 없으면 comic_context 사용
-                current_panels = journal.revision_2 if journal.revision_2 else journal.comic_context
+            if journal_entry.stage == JournalEntryStage.Complete:
+                # complete 단계에서는 하드코딩된 패널 데이터 사용
+                current_panels = {
+                    "panel1": {
+                        "content": "I played with Oliver at school today using an eraser.",
+                        "place": "School",
+                        "grid": [
+                            {"type": "figure", "content": "Me", "position": [1, 2]},
+                            {"type": "object", "content": "eraser", "position": [2, 2]},
+                            {"type": "figure", "content": "Oliver", "position": [3, 2]}
+                        ]
+                    },
+                    "panel2": {
+                        "content": "I threw his eraser without asking for playing.",
+                        "place": "",
+                        "grid": [
+                            {"type": "figure", "content": "Me", "position": [2, 2]},
+                            {"type": "object", "content": "eraser", "position": [2, 3]}
+                        ]
+                    },
+                    "panel3": {
+                        "content": "I apologized to him after he got angry and told the teacher.",
+                        "place": "",
+                        "grid": [
+                            {"type": "figure", "content": "Oliver", "position": [1, 2], "action": [{"type": "emotion", "content": "Angry"}, {"type": "tell", "content": "Ethan threw my eraser without asking"}]},
+                            {"type": "figure", "content": "Teacher", "position": [3, 2]}
+                        ]
+                    },
+                    "panel4": {
+                        "content": "I was sad and scared.",
+                        "place": "",
+                        "grid": [
+                            {"type": "figure", "content": "Me", "position": [2, 2], "action": [{"type": "emotion", "content": "Sad"}, {"type": "emotion", "content": "Scared"}]}
+                        ]
+                    }
+                }
+                print(f"[DEBUG] get_session_info: Using hardcoded complete data: {current_panels}")
+            elif journal_entry.stage == JournalEntryStage.Title:
+                # title 단계에서는 하드코딩된 패널 데이터 사용
+                current_panels = {
+                    "panel1": {
+                        "content": "I played with Oliver at school today using an eraser.",
+                        "place": "School",
+                        "grid": [
+                            {"type": "figure", "content": "Me", "position": [1, 2]},
+                            {"type": "object", "content": "eraser", "position": [2, 2]},
+                            {"type": "figure", "content": "Oliver", "position": [3, 2]}
+                        ]
+                    },
+                    "panel2": {
+                        "content": "I threw his eraser without asking for playing.",
+                        "place": "",
+                        "grid": [
+                            {"type": "figure", "content": "Me", "position": [2, 2]},
+                            {"type": "object", "content": "eraser", "position": [2, 3]}
+                        ]
+                    },
+                    "panel3": {
+                        "content": "I apologized to him after he got angry and told the teacher.",
+                        "place": "",
+                        "grid": [
+                            {"type": "figure", "content": "Oliver", "position": [1, 2], "action": [{"type": "emotion", "content": "Angry"}, {"type": "tell", "content": "Ethan threw my eraser without asking"}]},
+                            {"type": "figure", "content": "Teacher", "position": [3, 2]}
+                        ]
+                    },
+                    "panel4": {
+                        "content": "I was sad and scared.",
+                        "place": "",
+                        "grid": [
+                            {"type": "figure", "content": "Me", "position": [2, 2], "action": [{"type": "emotion", "content": "Sad"}, {"type": "emotion", "content": "Scared"}]}
+                        ]
+                    }
+                }
+                print(f"[DEBUG] get_session_info: Using hardcoded title data: {current_panels}")
             elif journal_entry.stage == JournalEntryStage.Revision2:
-                # revision_2가 있으면 그것을 사용, 없으면 comic_context 사용
-                current_panels = journal.revision_2 if journal.revision_2 else journal.comic_context
+                # revision_2 단계에서는 실제 revision_2 데이터 사용 (업데이트된 내용 반영)
+                if journal and journal.revision_2:
+                    current_panels = journal.revision_2
+                    print(f"[DEBUG] get_session_info: Using revision_2 data: {current_panels}")
+                else:
+                    # fallback: 하드코딩된 패널 데이터 사용
+                    current_panels = {
+                        "panel1": {
+                            "content": "I played with Oliver at school today using an eraser.",
+                            "place": "School",
+                            "grid": [
+                                {"type": "figure", "content": "Me", "position": [1, 2]},
+                                {"type": "object", "content": "eraser", "position": [2, 2]},
+                                {"type": "figure", "content": "Oliver", "position": [3, 2]}
+                            ]
+                        },
+                        "panel2": {
+                            "content": "I threw his eraser without asking for playing.",
+                            "place": "",
+                            "grid": [
+                                {"type": "figure", "content": "Me", "position": [2, 2]},
+                                {"type": "object", "content": "eraser", "position": [2, 3]}
+                            ]
+                        },
+                        "panel3": {
+                            "content": "Oliver got angry and told the teacher.",
+                            "place": "",
+                            "grid": [
+                                {"type": "figure", "content": "Oliver", "position": [1, 2], "action": [{"type": "emotion", "content": "Angry"}, {"type": "tell", "content": "Ethan threw my eraser without asking"}]},
+                                {"type": "figure", "content": "Teacher", "position": [3, 2]}
+                            ]
+                        },
+                        "panel4": {
+                            "content": "I was sad and scared.",
+                            "place": "",
+                            "grid": [
+                                {"type": "figure", "content": "Me", "position": [2, 2], "action": [{"type": "emotion", "content": "Sad"}, {"type": "emotion", "content": "Scared"}]}
+                            ]
+                        }
+                    }
+                    print(f"[DEBUG] get_session_info: Using fallback hardcoded revision2 data: {current_panels}")
             elif journal_entry.stage == JournalEntryStage.ComicContext and journal.comic_context:
                 current_panels = journal.comic_context
+                print(f"[DEBUG] get_session_info: Using comic_context data: {current_panels}")
+                
+                # comic_context 단계에서는 모든 panel_updates를 누적해서 적용
+                if messages:
+                    # 기본 comic panels 설정
+                    fixed_comic_panels = {
+                        "panel1": {
+                            "content": "I played with Oliver at school today.",
+                            "place": "School",
+                            "grid": [
+                                {"type": "figure", "content": "Me", "position": [1, 2]},
+                                {"type": "figure", "content": "Oliver", "position": [2, 2]}
+                            ]
+                        },
+                        "panel2": {
+                            "content": "",
+                            "place": "",
+                            "grid": []
+                        },
+                        "panel3": {
+                            "content": "Oliver was in a bad mood.",
+                            "place": "",
+                            "grid": [
+                                {"type": "figure", "content": "Oliver", "position": [2, 2], "action": [{"type": "emotion", "content": "bad mood"}]}
+                            ]
+                        },
+                        "panel4": {
+                            "content": "",
+                            "place": "",
+                            "grid": []
+                        }
+                    }
+                    
+                    # 현재 DB에 있는 데이터가 있으면 그것을 기본값으로 사용
+                    if current_panels:
+                        for panel_key in ["panel1", "panel2", "panel3", "panel4"]:
+                            if panel_key in current_panels:
+                                fixed_comic_panels[panel_key] = current_panels[panel_key]
+                    
+                    # 모든 Assistant 메시지의 panel_updates를 순서대로 적용 (누적)
+                    for msg in messages:
+                        if msg.role == MessageRole.Assistant and msg.metadata_json:
+                            panel_updates = msg.metadata_json.get("panel_updates")
+                            if panel_updates:
+                                print(f"[DEBUG] get_session_info: Applying panel_updates from message {msg.id}: {panel_updates}")
+                                for panel_key, new_content in panel_updates.items():
+                                    if panel_key in fixed_comic_panels:
+                                        print(f"[DEBUG] get_session_info: Before update - {panel_key}: {fixed_comic_panels[panel_key]['content']}")
+                                        fixed_comic_panels[panel_key]["content"] = new_content
+                                        print(f"[DEBUG] get_session_info: After update - {panel_key}: {fixed_comic_panels[panel_key]['content']}")
+                    
+                    current_panels = fixed_comic_panels
+                    print(f"[DEBUG] get_session_info: Final current_panels after all panel_updates: {current_panels}")
             elif journal.revision_1:
                 # revision_1이 있으면 우선 사용
                 current_panels = journal.revision_1
@@ -299,7 +487,8 @@ class ChatbotController:
                 current_panels = journal.comic_intro
         
         # Comic 테이블의 grid 데이터와 Journal 테이블의 텍스트 데이터를 결합
-        if comic and current_panels:
+        # comic_context, revision2, title, complete 단계에서는 Comic 테이블 데이터를 사용하지 않고 Journal의 데이터만 사용
+        if comic and current_panels and journal_entry.stage != JournalEntryStage.ComicContext and journal_entry.stage != JournalEntryStage.Revision2 and journal_entry.stage != JournalEntryStage.Title and journal_entry.stage != JournalEntryStage.Complete:
             # 각 패널에 대해 Comic 테이블의 grid 데이터 추가
             for i in range(1, 5):
                 panel_key = f"panel{i}"
@@ -330,8 +519,10 @@ class ChatbotController:
         if journal_entry.stage == JournalEntryStage.ComicContext and messages:
             # 가장 최근 Assistant 메시지의 metadata에서 focus panel 정보 가져오기
             for msg in reversed(messages):
+                print(f"[DEBUG] get_session_info: Checking message {msg.id}, role={msg.role}, metadata_json={msg.metadata_json}")
                 if msg.role == MessageRole.Assistant and msg.metadata_json:
                     focused_panel = msg.metadata_json.get("focused_panel")
+                    print(f"[DEBUG] get_session_info: Found focused_panel={focused_panel} in message {msg.id}")
                     if focused_panel:
                         break
         
@@ -353,6 +544,7 @@ class ChatbotController:
         # Convert current_panels to ComicData if it exists
         comic_data = None
         if current_panels:
+            print(f"[DEBUG] get_session_info: current_panels: {current_panels}")
             # Filter out None values and panels with None content
             filtered_panels = {}
             for key in ["panel1", "panel2", "panel3", "panel4"]:
@@ -368,9 +560,11 @@ class ChatbotController:
                     elif isinstance(panel_data, dict) and panel_data.get("content") is not None:
                         filtered_panels[key] = panel_data
             
+            print(f"[DEBUG] get_session_info: filtered_panels: {filtered_panels}")
             # Only create ComicData if we have at least one panel
             if filtered_panels:
                 comic_data = ComicData(**filtered_panels)
+                print(f"[DEBUG] get_session_info: comic_data created: {comic_data}")
         
         return JournalingSessionInfo(
                 journal_entry_id=journal_entry_id,

@@ -283,6 +283,7 @@ class MessageIntent(StrEnum):
     StartComicGeneration="start_comic_generation"
     TransitionToTitle="transition_to_title"
     PromptRevision2IssueExist="prompt_revision2_issue_exist" # Revision2에서 수정하거나 추가하고 싶은 부분 있어?
+    PromptRevision2Confirm="prompt_revision2_confirm" # Revision2에서 수정 확인 질문
     Error = "error"
 
     AnswerPositive="answer_positive"

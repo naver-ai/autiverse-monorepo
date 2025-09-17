@@ -143,7 +143,7 @@ export function AgentIntroScreen() {
                 textClassName="text-2xl text-gray-800 my-2"
                 text={greetingText}
                 initialDelay={0}
-                charInterval={100}
+                charInterval={80}
               />
 
               <View className="items-center">

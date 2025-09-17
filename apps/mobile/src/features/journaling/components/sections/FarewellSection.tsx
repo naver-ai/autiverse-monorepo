@@ -85,13 +85,6 @@ const FarewellSection = forwardRef<FarewellSectionRef, FarewellSectionProps>(
             onCompleteHandler?.();
           }, 2000);
           setIsSpeaking(false);
-        },
-        onError: (error) => {
-          // 에러 발생 시에도 5초 후 완료
-          setTimeout(() => {
-            onCompleteHandler?.();
-          }, 6000);
-          setIsSpeaking(false);
         }
       });
     }, [farewellMessage, agentConfig, startSpeech, onCompleteHandler]);
@@ -113,7 +106,7 @@ const FarewellSection = forwardRef<FarewellSectionRef, FarewellSectionProps>(
             <Reanimated.View 
                     entering={FadeIn.easing(Easing.ease)}
                     style={ttsBorderColorStyle} className="rounded-2xl p-10 w-[70vw] border-2 border-gray-200">
-              <AnimatedText className="mb-2 justify-center" textClassName="text-3xl text-gray-800 my-2" textStyle={styleTemplates.withBoldFont} text={farewellMessage} initialDelay={0} charInterval={100} />
+              <AnimatedText className="mb-2 justify-center" textClassName="text-3xl text-gray-800 my-2" textStyle={styleTemplates.withBoldFont} text={farewellMessage} initialDelay={0} charInterval={80} />
               
               <View className="items-center mt-12">
                 <TailwindButton
@@ -139,4 +132,4 @@ const FarewellSection = forwardRef<FarewellSectionRef, FarewellSectionProps>(
 
 FarewellSection.displayName = 'FarewellSection';
 
-export default FarewellSection; 
+export default FarewellSection;

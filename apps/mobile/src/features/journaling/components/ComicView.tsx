@@ -69,7 +69,7 @@ export const ComicView = ({
 
               {/* 메시지 */}
               <Text className="text-center mb-4 text-lg text-gray-800" style={styleTemplates.withBoldFont}>
-                {comicGenerationStatus.message || '열심히 그리고 있는 중~'}
+                {comicGenerationStatus.message || 'I’m working hard on the drawing!'}
               </Text>
 
               {/* 프로그레스 바 */}
@@ -160,7 +160,7 @@ export const ComicView = ({
 
                   {/* 메시지 */}
                   <Text className="text-center mb-4 text-lg text-gray-800" style={styleTemplates.withBoldFont}>
-                  {comicGenerationStatus.message || '열심히 그리고 있는 중~'}
+                  {comicGenerationStatus.message || 'I’m working hard on the drawing!'}
                   </Text>
 
                   {/* 프로그레스 바 */}

@@ -74,6 +74,34 @@ class ComicGridGenerator:
                 "panel4": {"content": "", "grid": self._create_empty_grid()}
             }
 
+        #     return {
+        #     "panel1": {
+        #         "content": "I played with Oliver at school today.",
+        #         "place": "School",
+        #         "grid": [
+        #             {"type": "figure", "content": "Me", "position": [1, 2]},
+        #             {"type": "figure", "content": "Oliver", "position": [2, 2]}
+        #         ]
+        #     },
+        #     "panel2": {
+        #         "content": "",
+        #         "place": "",
+        #         "grid": []
+        #     },
+        #     "panel3": {
+        #         "content": "Oliver was in a bad mood.",
+        #         "place": "",
+        #         "grid": [
+        #             {"type": "figure", "content": "Oliver", "position": [2, 2], "action": [{"type": "emotion", "content": "bad mood"}]}
+        #         ]
+        #     },
+        #     "panel4": {
+        #         "content": "",
+        #         "place": "",
+        #         "grid": []
+        #     }
+        # }
+
     def _create_empty_grid(self):
         return [[{"type": "empty", "content": "", "position": [x, y]} for x in range(5)] for y in range(5)]
 

@@ -51,6 +51,8 @@ export const ChatSidebar = memo(({
         return UserButtonMode.TITLE_SELECTION_BUTTON;
       case MessageIntent.CustomTitleConfirm:
         return UserButtonMode.YES_NO_BUTTON;
+      case MessageIntent.PromptRevision2Confirm:
+        return UserButtonMode.YES_NO_BUTTON;
       case MessageIntent.TransitionToTitle:
         return UserButtonMode.NEXT_BUTTON;
       default:

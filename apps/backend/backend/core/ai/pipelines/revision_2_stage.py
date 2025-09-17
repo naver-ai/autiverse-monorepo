@@ -105,30 +105,51 @@ class Revision2Stage:
             self.db, self.journal_entry_id, JournalEntryStage.Revision2
         )
         
-        # Comic 테이블에서 second_panel 데이터 불러오기
-        from backend.database.crud.chatbot import get_comic
-        comic = await get_comic(self.db, self.journal_entry_id)
+        # 하드코딩된 패널 데이터 설정
+        hardcoded_panels = {
+            "panel1": {
+                "content": "I played with Oliver at school today using an eraser.",
+                "place": "School",
+                "grid": [
+                    {"type": "figure", "content": "Me", "position": [1, 2]},
+                    {"type": "object", "content": "eraser", "position": [2, 2]},
+                    {"type": "figure", "content": "Oliver", "position": [3, 2]}
+                ]
+            },
+            "panel2": {
+                "content": "I threw his eraser without asking for playing.",
+                "place": "",
+                "grid": [
+                    {"type": "figure", "content": "Me", "position": [2, 2]},
+                    {"type": "object", "content": "eraser", "position": [2, 3]}
+                ]
+            },
+            "panel3": {
+                "content": "Oliver got angry and told the teacher.",
+                "place": "",
+                "grid": [
+                    {"type": "figure", "content": "Oliver", "position": [1, 2], "action": [{"type": "emotion", "content": "Angry"}, {"type": "tell", "content": "Ethan threw my eraser without asking"}]},
+                    {"type": "figure", "content": "Teacher", "position": [3, 2]}
+                ]
+            },
+            "panel4": {
+                "content": "I was sad and scared.",
+                "place": "",
+                "grid": [
+                    {"type": "figure", "content": "Me", "position": [2, 2], "action": [{"type": "emotion", "content": "Sad"}, {"type": "emotion", "content": "Scared"}]}
+                ]
+            }
+        }
         
-        if comic:
-            # second_panel 데이터가 있으면 Journal의 revision_2에 저장
-            second_panels = {}
-            for i in range(1, 5):
-                panel_data = getattr(comic, f"second_panel{i}", None)
-                if panel_data and isinstance(panel_data, dict):
-                    second_panels[f"panel{i}"] = panel_data.get("content", "")
-                else:
-                    second_panels[f"panel{i}"] = ""
-            
-            # Journal의 revision_2 필드에 저장
-            if any(second_panels.values()):
-                await update_journal_data(
-                    self.db, self.journal_entry_id,
-                    revision_2=second_panels
-                )
-                print(f"[DEBUG] revision_2: Loaded second_panel data: {second_panels}")
+        # Journal의 revision_2 필드에 하드코딩된 패널 데이터 저장
+        await update_journal_data(
+            self.db, self.journal_entry_id,
+            revision_2=hardcoded_panels
+        )
+        print(f"[DEBUG] revision_2: Set hardcoded panel data: {hardcoded_panels}")
         
         # 첫 번째 수정 질문 생성
-        initial_question = "우와앙~ 우리가 같이 만든 그림일기다! 지금부터 내용이 제대로 들어갔는지 확인해보자. 수정하거나 추가하고 싶은 부분 있어? 🤔"
+        initial_question = "Wow! Look at the journal we made together! Let's check now to see if everything is included properly. Is there anything you'd like to change or add? 🤔"
         await create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             initial_question, MessageRole.Assistant, JournalEntryStage.Revision2,
@@ -177,12 +198,11 @@ class Revision2Stage:
                 elif self.revision_count == self.max_revisions:
                     return "아앗;; 이제 마지막 기회야! 지금 수정하거나 추가하고 싶은 부분이 있다면 다 말해줘~ 😅", MessageIntent.PromptOpenEndedAnswer
                 else:
-                    return "어디를 어떻게 수정해볼까?? 🤔", MessageIntent.PromptOpenEndedAnswer
+                    return "Which part do you want to change, and how? 🤔", MessageIntent.PromptOpenEndedAnswer
             elif self._is_positive_response(user_message, user_intent): #수정할 곳이 없다
                 # 수정 완료, 완료 단계로
-                # 완성된 그림 일기 내용을 바탕으로 개인화된 마무리 메시지 생성
-                comic_data = await self._get_completed_comic_data()
-                completion_message = await self.completion_message_generator.generate_completion_message(comic_data, self.child_name)
+                # 하드코딩된 마무리 메시지 사용
+                completion_message = "So, you and Oliver had a falling out at school and hurt each other's feelings. It breaks my heart to hear that you felt sad and scared. I'll be rooting for better things to happen for you next time! Now let's press the 'Next' button and go choose a title for the journal!"
                 return completion_message, MessageIntent.TransitionToTitle
             else:
                 print(f"[DEBUG] revision_2: _generate_response: intent={user_intent}, Should not reach here!!")
@@ -190,8 +210,31 @@ class Revision2Stage:
         else:
             # 구체적인 수정 내용이 들어온 경우
             try:
-                await self._apply_user_correction(user_message)
-                return "네가 말해준 내용대로 바꿔봤어. 더 추가하거나 바꿀 곳 있어? 🤔", MessageIntent.PromptRevision2IssueExist
+                # "which part do you want to change and how" 질문에 대한 답변인지 확인
+                if await self._is_which_part_question():
+                    print(f"[DEBUG] revision_2: Detected which part question response, applying hardcoded panel3 update")
+                    # 하드코딩된 panel 3 업데이트를 revision_2 필드에 저장 (comic_context와 같은 방식)
+                    journal = await get_journal(self.db, self.journal_entry_id)
+                    if journal and journal.revision_2:
+                        updated_panels = journal.revision_2.copy()
+                        updated_panels["panel3"] = {
+                            "content": "I apologized to him after he got angry and told the teacher.",
+                            "place": "",
+                            "grid": [
+                                {"type": "figure", "content": "Oliver", "position": [1, 2], "action": [{"type": "emotion", "content": "Angry"}, {"type": "tell", "content": "Ethan threw my eraser without asking"}]},
+                                {"type": "figure", "content": "Teacher", "position": [3, 2]}
+                            ]
+                        }
+                        
+                        # revision_2 필드에 업데이트된 패널 데이터 저장 (comic_context와 같은 방식)
+                        await update_journal_data(
+                            self.db, self.journal_entry_id,
+                            revision_2=updated_panels
+                        )
+                        print(f"[DEBUG] revision_2: Updated panel3 in revision_2 field: {updated_panels['panel3']}")
+                else:
+                    await self._apply_user_correction(user_message)
+                return "I changed it according to what you told me. Is everything correct now? 🤔", MessageIntent.PromptRevision2Confirm
             except Exception as e:
                 print(f"[DEBUG] revision_2: Error applying user correction: {e}")
                 return "수정하는데 문제가 생겼어. 다시 말해줘! 😅", MessageIntent.PromptOpenEndedAnswer
@@ -203,7 +246,7 @@ class Revision2Stage:
             # 현재 사용자 메시지가 저장되기 전의 마지막 봇 메시지를 찾기 위해 -2 인덱스 사용
             for i in range(len(messages) - 1, -1, -1):
                 if messages[i].role == MessageRole.Assistant:
-                    return messages[i].intent in [MessageIntent.PromptIssueExist, MessageIntent.PromptRevision2IssueExist]
+                    return messages[i].intent in [MessageIntent.PromptRevision2IssueExist, MessageIntent.PromptRevision2Confirm]
             return False
         return False
     
@@ -212,7 +255,7 @@ class Revision2Stage:
         if user_intent == MessageIntent.AnswerNegative:
             return True
         else:
-            negative_keywords = ["없어"]
+            negative_keywords = ["없어", "something to fix", "something to change", "fix", "change", "wrong", "not correct", "problem", "issue"]
             result = any(keyword in message.lower() for keyword in negative_keywords)
             return result
     
@@ -224,6 +267,26 @@ class Revision2Stage:
             positive_keywords = ["있어"]
             result = any(keyword in message.lower() for keyword in positive_keywords)
             return result
+    
+    async def _is_which_part_question(self) -> bool:
+        """현재 질문이 "Which part do you want to change, and how?" 질문인지 확인"""
+        messages = await get_messages_by_journal_entry(self.db, self.journal_entry_id)
+        print(f"[DEBUG] revision_2: _is_which_part_question: checking {len(messages)} messages")
+        
+        if messages:
+            # 현재 사용자 메시지가 저장되기 전의 마지막 봇 메시지를 찾기
+            for i in range(len(messages) - 2, -1, -1):  # -2부터 시작 (현재 사용자 메시지 제외)
+                if messages[i].role == MessageRole.Assistant:
+                    is_which_part = messages[i].intent == MessageIntent.PromptOpenEndedAnswer and "which part" in messages[i].content.lower()
+                    print(f"[DEBUG] revision_2: Checking message {i}: role={messages[i].role}, intent={messages[i].intent}, content='{messages[i].content}', is_which_part={is_which_part}")
+                    if is_which_part:
+                        return True
+            print(f"[DEBUG] revision_2: No which part question found")
+            return False
+        print(f"[DEBUG] revision_2: No messages found")
+        return False
+    
+    
     
     async def _apply_user_correction(self, correction: str) -> None:
         """사용자 수정 내용 적용 - Structured Output 사용"""

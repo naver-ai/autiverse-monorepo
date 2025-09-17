@@ -202,46 +202,24 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
             placeNames,
           );
 
-          // 빈 문자열이거나 따옴표만 있는 경우 체크
-          const trimmedText = transcribedText?.trim();
-          const isEmptyOrQuotesOnly =
-            !trimmedText || trimmedText === '""' || trimmedText === "''";
-
-          if (transcribedText && !isEmptyOrQuotesOnly) {
-            // 오디오 파일 업로드
-            let audioFilename: string | undefined = undefined;
-            try {
-              const uploadResult = await uploadAudioFile(
-                jwt!!,
-                currentAudioUri,
-                journalEntryId,
-                currentStage,
-              );
-              audioFilename = uploadResult.filename;
-              console.log('Audio file uploaded successfully:', audioFilename);
-            } catch (error) {
-              console.error('Failed to upload audio file:', error);
-              // 업로드 실패해도 메시지는 전송
-            }
-
-            // 변환된 텍스트를 메시지로 전송 (audio_filename 포함)
-            sendMessage(transcribedText, undefined, audioFilename);
-          } else {
-            // 빈 문자열이 반환된 경우 (음성이 감지되지 않음)
-            Alert.alert(
-              t('ChatInput.VoiceRecording.DetectionFailedTitle'),
-              t('ChatInput.VoiceRecording.DetectionFailed'),
-              [
-                {
-                  text: t('ChatInput.VoiceRecording.Confirm'),
-                  onPress: () => {
-                    // 다시 음성 녹음 시작
-                    startVoiceRecording();
-                  },
-                },
-              ],
+          // 오디오 파일 업로드
+          let audioFilename: string | undefined = undefined;
+          try {
+            const uploadResult = await uploadAudioFile(
+              jwt!!,
+              currentAudioUri,
+              journalEntryId,
+              currentStage,
             );
+            audioFilename = uploadResult.filename;
+            console.log('Audio file uploaded successfully:', audioFilename);
+          } catch (error) {
+            console.error('Failed to upload audio file:', error);
+            // 업로드 실패해도 메시지는 전송
           }
+
+          // 변환된 텍스트를 메시지로 전송 (audio_filename 포함) - 빈 텍스트도 허용
+          sendMessage(transcribedText || '', undefined, audioFilename);
         } else {
           // currentAudioUri가 null인 경우
           console.log('오디오 파일을 가져올 수 없습니다.');

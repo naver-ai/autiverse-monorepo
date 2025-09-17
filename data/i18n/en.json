@@ -16,7 +16,7 @@
     },
     "Home": {
         "ViewPastDiaries": "View Past Diaries",
-        "WriteDiary": "Write Journal",
+        "WriteDiary": "Start",
         "ContinueModal": {
             "Message": "Would you like to continue the unfinished comic diary?",
             "Continue": "Yes, let's continue!",
@@ -70,8 +70,8 @@
             "NextButton": "Next",
             "NextButtonPrompt": "Please press the next button",
             "Revision1Confirmation": "Great!:) Then I'll draw what you confirmed for me! Please wait a moment~",
-            "ComicContextComplete": "Thank you for answering my questions well. Thanks to {child_name}, I think I can fill in the missing parts! Please wait a moment~",
-            "Revision2Confirmation": "Thank you for answering my questions well. Thanks to you, I think I can fill in the missing parts! Please wait a moment~"
+            "ComicContextComplete": "Thank you for answering my questions. I think I can fill in the missing parts!",
+            "Revision2Confirmation": "Thanks for answering my questions. I can fill in the missing parts!"
         },
         "UserResponses": {
             "No": ["No", "No"],
@@ -85,9 +85,9 @@
             "MessageTemplate": "{child_name}, let's meet again next time and write a fun comic strip together. Goodbye~"
         },
         "PraiseSection": {
-            "FirstMessageTemplate": "Our {child_name}, you did a perfect job making a journal today!!",
-            "SecondMessage": "Thank you for remembering today's events well, answering questions well, and waiting for me to draw pictures~",
-            "StampMessage": "Let's finish by popping the stamps below~"
+            "FirstMessageTemplate": "{child_name}, you did a perfect job making a journal today!!",
+            "SecondMessage": "Thank you for remembering today's events well, answering my questions, and waiting for me to draw pictures!",
+            "StampMessage": "Let's finish by popping the stamps below!"
         },
         "Common": {
             "DefaultChildName": "Friend",

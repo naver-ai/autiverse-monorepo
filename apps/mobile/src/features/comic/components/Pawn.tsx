@@ -75,28 +75,33 @@ export function Pawn({
             left: bodyPositionX - bodyWidth / 2,
             right: bodyPositionX - bodyWidth / 2,
             bottom: scaledHeight + 2, // 피규어 머리 위에 위치 (bottom 기준)
+            minWidth: bodyWidth * 1.5, // 감정 텍스트를 위한 충분한 너비 확보
           }}
         >
           {emotions &&
-            emotions.length > 0 &&
-            emotions.map((action, index) => (
-              <Text
-                key={index}
-                // numberOfLines={1}
-                style={{
-                  backgroundColor: Color(bandColor).alpha(0.5).rgb().string(),
-                  padding: 4,
-                  borderRadius: 8,
-                  marginBottom: 2,
-                  fontSize: comicStyle.emotionFontSize,
-                  textAlign: 'center',
-                  color: 'black',
-                  ...styleTemplates.withSemiboldFont,
-                }}
-              >
-                {getEmojiFromEmotion(action.content)} {action.content}
-              </Text>
-            ))}
+            emotions.length > 0 && (
+              <View style={{ flexDirection: 'column', alignItems: 'center' }}>
+                {emotions.map((action, index) => (
+                  <Text
+                    key={index}
+                    numberOfLines={1}
+                    style={{
+                      backgroundColor: Color(bandColor).alpha(0.5).rgb().string(),
+                      padding: 1,
+                      borderRadius: 8,
+                      marginBottom: 2,
+                      fontSize: comicStyle.emotionFontSize,
+                      textAlign: 'center',
+                      color: 'black',
+                      minWidth: 80,
+                      ...styleTemplates.withSemiboldFont,
+                    }}
+                  >
+                    {getEmojiFromEmotion(action.content)} {action.content}
+                  </Text>
+                ))}
+              </View>
+            )}
           <Text
             className="p-1 rounded-md text-center"
             style={{

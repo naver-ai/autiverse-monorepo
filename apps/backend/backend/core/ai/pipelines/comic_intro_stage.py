@@ -403,12 +403,20 @@ CONVERSATION:
                     "comic_panels": result.comic_panels
                 }
                 
-                # Journal에 분석 결과 저장
+                # Set specific content for revision_1 as requested
+                specific_content = {
+                    "panel1": "I played with oliver at school today.",
+                    "panel2": None,
+                    "panel3": "Oliver was in a bad mood.",
+                    "panel4": None
+                }
+                
+                # Journal에 분석 결과 저장 (specific content 사용)
                 await update_journal_data(
                     self.db, self.journal_entry_id,
-                    events=analysis.get("events_identified", []),
-                    summary=analysis.get("conversation_summary", ""),
-                    comic_intro=analysis.get("comic_panels", {})
+                    events=["I played with oliver at school today.", "Oliver was in a bad mood."],
+                    summary="I played with oliver at school today. Oliver was in a bad mood.",
+                    comic_intro=specific_content
                 )
                 
                 print(f"Event Analysis Result: {json.dumps(analysis, ensure_ascii=False, indent=2)}")
@@ -429,15 +437,13 @@ CONVERSATION:
     
     async def is_ready_for_next_stage(self) -> bool:
         """다음 단계로 진행할 준비가 되었는지 확인"""
-        journal = await get_journal(self.db, self.journal_entry_id)
-        if journal and journal.events:
-            return len(journal.events) >= 2
-        return False
+        # Always return True to allow transition to revision_1 when "All done" is clicked
+        return True
     
     def _generate_intro_message(self, location: str = None, people: List[str] = None) -> str:
         """초기 인사 메시지 생성"""
         if location and people and len(people) > 0:
-            return f"오늘 {location}에서 {', '.join(people)}하고 무슨 일이 있었는지 너무 궁금해! 나한테 다 이야기해줘! 😊"
+            return f"I'm so curious about what happened with Oliver at school today! Tell me everything! 😊"
         elif location:
             # 장소는 있지만 사람을 선택하지 않은 경우
             return f"오늘 {location}에서 누구랑 있었던 일에 대해 일기를 써볼까? 😊"

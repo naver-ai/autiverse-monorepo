@@ -22,12 +22,12 @@ class ComicGenerationResponse(BaseModel):
 def get_progress_and_message(status: str) -> tuple[int, str]:
     """상태 문자열에 따라 진행률과 메시지 반환"""
     status_mapping = {
-        'generating-0': (0, "어떻게 그릴지 고민중이다~"),
-        'generating-1': (20, "첫번째 칸을 그리고 있어!"),
-        'generating-2': (40, "두번째 칸을 그리고 있어!"),
-        'generating-3': (60, "세번째 칸을 그리고 있어!"),
-        'generating-4': (80, "이제 마지막 칸이다!!"),
-        'completed': (99, "만화 생성 완료!"),
+        'generating-0': (0, "I'm thinking about how to draw it!"),
+        'generating-1': (20, "I'm drawing the first panel!"),
+        'generating-2': (40, "I'm drawing the second panel!"),
+        'generating-3': (60, "I'm drawing the third panel!"),
+        'generating-4': (80, "I'm drawing the fourth panel!"),
+        'completed': (99, "Complete!!!"),
         'error': (0, "만화 생성 중 오류가 발생했습니다."),
         'cancelled': (0, "만화 생성이 취소되었습니다.")
     }

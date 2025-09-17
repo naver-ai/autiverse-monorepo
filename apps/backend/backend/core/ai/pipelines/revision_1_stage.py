@@ -97,7 +97,7 @@ class Revision1Stage:
         )
         
         # 첫 번째 수정 질문 생성
-        initial_question = "그럼 네가 지금 말해준 내용으로 오늘의 그림일기를 써보자! 먼저 내가 잘 들었는지 왼쪽 내용을 읽어서 확인해줘~ 내가 다 맞게 들었을까? 🤔"
+        initial_question = "I see! Then let's try making today's journal entry based on what you just told me. Is anything incorrect here? 🤔"
         message = await create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             initial_question, MessageRole.Assistant, JournalEntryStage.Revision1,
