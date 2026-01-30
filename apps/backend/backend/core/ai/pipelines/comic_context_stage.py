@@ -220,13 +220,41 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             await update_journal_entry_stage(self.db, self.journal_entry_id, JournalEntryStage.ComicContext)
             
             # 고정된 comic panels 설정 (comic generation과 같은 grid 형태)
+            # fixed_comic_panels = {
+            #     "panel1": {
+            #         "content": "I played with Oliver at school today.",
+            #         "place": "School",
+            #         "grid": [
+            #             {"type": "figure", "content": "Me", "position": [1, 2]},
+            #             {"type": "figure", "content": "Oliver", "position": [2, 2]}
+            #         ]
+            #     },
+            #     "panel2": {
+            #         "content": "",
+            #         "place": "",
+            #         "grid": []
+            #     },
+            #     "panel3": {
+            #         "content": "Oliver was in a bad mood.",
+            #         "place": "",
+            #         "grid": [
+            #             {"type": "figure", "content": "Oliver", "position": [2, 2], "action": [{"type": "emotion", "content": "bad mood"}]}
+            #         ]
+            #     },
+            #     "panel4": {
+            #         "content": "",
+            #         "place": "",
+            #         "grid": []
+            #     }
+            # } #- English
+
             fixed_comic_panels = {
                 "panel1": {
-                    "content": "I played with Oliver at school today.",
-                    "place": "School",
+                    "content": "나는 오늘 충호랑 학교에서 놀았다.",
+                    "place": "학교",
                     "grid": [
-                        {"type": "figure", "content": "Me", "position": [1, 2]},
-                        {"type": "figure", "content": "Oliver", "position": [2, 2]}
+                        {"type": "figure", "content": "나", "position": [1, 2]},
+                        {"type": "figure", "content": "충호", "position": [2, 2]}
                     ]
                 },
                 "panel2": {
@@ -235,10 +263,10 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                     "grid": []
                 },
                 "panel3": {
-                    "content": "Oliver was in a bad mood.",
+                    "content": "충호는 기분이 안 좋았다.",
                     "place": "",
                     "grid": [
-                        {"type": "figure", "content": "Oliver", "position": [2, 2], "action": [{"type": "emotion", "content": "bad mood"}]}
+                        {"type": "figure", "content": "충호", "position": [2, 2], "action": [{"type": "emotion", "content": "기분 안 좋음"}]}
                     ]
                 },
                 "panel4": {
@@ -246,7 +274,7 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                     "place": "",
                     "grid": []
                 }
-            }
+            } #- Korean
             
             # comic_context에 고정된 panels 저장 (grid 정보 포함)
             await update_journal_data(
@@ -260,44 +288,85 @@ You're having a friendly conversation with your autistic best friend, {self.chil
             )
             
             # 하드코딩된 대화 순서와 각 메시지별 설정
+            # hardcoded_messages = [
+            #     {
+            #         "message": "I turned what you told me into a four-panel comic! But I couldn't draw everything with the information I had. Could you help me fill in the missing parts? When you're ready, press the 'Next' button!",
+            #         "focused_panel": None,
+            #         "panel_updates": {}
+            #     },
+            #     {
+            #         "message": "It must have been fun playing with Oliver at school! 😄 What did you do with him?",
+            #         "focused_panel": "panel2",
+            #         "panel_updates": {}
+            #     },
+            #     {
+            #         "message": "Playing with the eraser sounds like fun! 😄 But then, what happened to Oliver that made him feel bad? Was it because of the eraser, or did something else happen?",
+            #         "focused_panel": "panel2",
+            #         "panel_updates": {
+            #             "panel2": "Oliver and I played with an eraser."
+            #         }
+            #     },
+            #     {
+            #         "message": "What did you do with Oliver’s eraser? Did you just erase something quickly, or did you do something else too?",
+            #         "focused_panel": "panel2",
+            #         "panel_updates": {
+            #             "panel1": "I played with Oliver at school today with an eraser.",
+            #             "panel2": "I used his eraser without asking."
+            #         }
+            #     },
+            #     {
+            #         "message": "Oh, I see. What was Oliver's reaction when he saw you throwing the eraser? Did he get angry, or did he say something?",
+            #         "focused_panel": "panel3",
+            #         "panel_updates": {
+            #             "panel2": "I threw his eraser without asking."
+            #         }
+            #     },
+            #     {
+            #         "message": "Oh, Oliver got mad.. 😥 How did you feel when he got angry and told the teacher?",
+            #         "focused_panel": "panel4",
+            #         "panel_updates": {
+            #             "panel3": "Oliver got angry and told the teacher."
+            #         }
+            #     }
+            # ] #- English
             hardcoded_messages = [
                 {
-                    "message": "I turned what you told me into a four-panel comic! But I couldn't draw everything with the information I had. Could you help me fill in the missing parts? When you're ready, press the 'Next' button!",
+                    "message": "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래?? 준비되면 '다음' 버튼을 눌러줘!",
                     "focused_panel": None,
                     "panel_updates": {}
                 },
                 {
-                    "message": "It must have been fun playing with Oliver at school! 😄 What did you do with him?",
+                    "message": "학교에서 충호랑 놀았다니 재미있었겠다! 😄 충호랑 뭐하고 놀았어?",
                     "focused_panel": "panel2",
                     "panel_updates": {}
                 },
                 {
-                    "message": "Playing with the eraser sounds like fun! 😄 But then, what happened to Oliver that made him feel bad? Was it because of the eraser, or did something else happen?",
+                    "message": "지우개 가지고 노는 거 진짜 재밌었겠다! 😄 그런데 무슨 일이 있었길래 충호 기분이 안 좋아졌어? 지우개 때문이었어? 아니면 다른 일이 있었어?",
                     "focused_panel": "panel2",
                     "panel_updates": {
-                        "panel2": "Oliver and I played with an eraser."
+                        "panel2": "나는 충호랑 지우개를 가지고 놀았다."
                     }
                 },
                 {
-                    "message": "What did you do with Oliver’s eraser? Did you just erase something quickly, or did you do something else too?",
+                    "message": "충호 지우개를 뭐 하는 데 썼어? 그냥 잠깐 뭐를 지운거야? 아니면 다른 것도 했어?",
                     "focused_panel": "panel2",
                     "panel_updates": {
-                        "panel1": "I played with Oliver at school today with an eraser.",
-                        "panel2": "I used his eraser without asking."
+                        "panel1": "나는 충호랑 학교에서 지우개를 가지고 놀았다.",
+                        "panel2": "나는 충호한테 물어보지도 않고 충호 지우개를 썼다."
                     }
                 },
                 {
-                    "message": "Oh, I see. What was Oliver's reaction when he saw you throwing the eraser? Did he get angry, or did he say something?",
+                    "message": "아, 그랬구나! 네가 지우개 던지는 걸 보고 충호는 어떤 반응을 보였어? 화를 냈어? 아니면 어떤 말을 했어?",
                     "focused_panel": "panel3",
                     "panel_updates": {
-                        "panel2": "I threw his eraser without asking."
+                        "panel2": "나는 충호한테 물어보지도 않고 충호 지우개를 던졌다."
                     }
                 },
                 {
-                    "message": "Oh, Oliver got mad.. 😥 How did you feel when he got angry and told the teacher?",
+                    "message": "아, 충호가 화났구나.. 😥 충호가 화를 내고 선생님께 말씀드렸을 때 네 기분은 어땠어?",
                     "focused_panel": "panel4",
                     "panel_updates": {
-                        "panel3": "Oliver got angry and told the teacher."
+                        "panel3": "충호가 화를 내고 선생님께 말씀드렸다."
                     }
                 }
             ]
@@ -356,7 +425,8 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                 print(f"[DEBUG] comic_context: Emotion selected, starting comic generation")
                 
                 # comic_generation 시작 신호 반환
-                response_message = "Thanks for answering my questions. Now I can draw in the rest of the panel! Just wait a little bit!"
+                # response_message = "Thanks for answering my questions. Now I can draw in the rest of the panel! Just wait a little bit!" #- English
+                response_message = "내가 물어보는 질문에 잘 답해줘서 고마워. 네 덕분에 비어있던 부분을 채울 수 있을 것 같아! 조금만 기다려줘~" #- Korean
                 response_intent = MessageIntent.StartComicGeneration
 
                 message = await create_message(
@@ -368,44 +438,86 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                 return message
             
             # 하드코딩된 대화 순서와 각 메시지별 설정
+            # hardcoded_messages = [
+            #     {
+            #         "message": "I turned what you told me into a four-panel comic! But I couldn't draw everything with the information I had. Could you help me fill in the missing parts? When you're ready, press the 'Next' button!",
+            #         "focused_panel": None,
+            #         "panel_updates": {}
+            #     },
+            #     {
+            #         "message": "It must have been fun playing with Oliver at school! 😄 What did you do with Oliver?",
+            #         "focused_panel": "panel2",
+            #         "panel_updates": {}
+            #     },
+            #     {
+            #         "message": "Playing with the eraser sounds like fun! But then, what happened to Oliver that made him feel bad? Was it because of the eraser, or did something else happen?",
+            #         "focused_panel": "panel2",
+            #         "panel_updates": {
+            #             "panel2": "Oliver and I played with an eraser."
+            #         }
+            #     },
+            #     {
+            #         "message": "How did you use the Oliver's eraser? Did you just erase it quickly, or did you do something else too?",
+            #         "focused_panel": "panel2",
+            #         "panel_updates": {
+            #             "panel1": "I played with Oliver at school today with an eraser.",
+            #             "panel2": "I used his eraser without asking."
+            #         }
+            #     },
+            #     {
+            #         "message": "Oh, I see. What was Oliver's reaction when he saw you throwing the eraser? Did he get angry, or did he say something?",
+            #         "focused_panel": "panel3",
+            #         "panel_updates": {
+            #             "panel2": "I threw his eraser without asking."
+            #         }
+            #     },
+            #     {
+            #         "message": "Oh, Oliver got mad.. 😥 How did you feel when he got angry and told the teacher?",
+            #         "focused_panel": "panel4",
+            #         "panel_updates": {
+            #             "panel3": "Oliver got angry and told the teacher."
+            #         }
+            #     }
+            # ] #-English
+
             hardcoded_messages = [
                 {
-                    "message": "I turned what you told me into a four-panel comic! But I couldn't draw everything with the information I had. Could you help me fill in the missing parts? When you're ready, press the 'Next' button!",
+                    "message": "짜잔~ 네가 말해준 내용을 4컷 만화로 그려봤어! 그런데 네가 말해준 내용 만으로는 그림을 충분히 그릴 수 없었어.. 그림 일기를 완성할 수 있도록 몇가지 확인해줄래?? 준비되면 '다음' 버튼을 눌러줘!",
                     "focused_panel": None,
                     "panel_updates": {}
                 },
                 {
-                    "message": "It must have been fun playing with Oliver at school! 😄 What did you do with Oliver?",
+                    "message": "학교에서 충호랑 놀았다니 재미있었겠다! 😄 충호랑 뭐하고 놀았어?",
                     "focused_panel": "panel2",
                     "panel_updates": {}
                 },
                 {
-                    "message": "Playing with the eraser sounds like fun! But then, what happened to Oliver that made him feel bad? Was it because of the eraser, or did something else happen?",
+                    "message": "지우개 가지고 노는 거 진짜 재밌었겠다! 😄 그런데 무슨 일이 있었길래 충호 기분이 안 좋아졌어? 지우개 때문이었어? 아니면 다른 일이 있었어?",
                     "focused_panel": "panel2",
                     "panel_updates": {
-                        "panel2": "Oliver and I played with an eraser."
+                        "panel2": "나는 충호랑 지우개를 가지고 놀았다."
                     }
                 },
                 {
-                    "message": "How did you use the Oliver's eraser? Did you just erase it quickly, or did you do something else too?",
+                    "message": "충호 지우개를 뭐 하는 데 썼어? 그냥 잠깐 뭐를 지운거야? 아니면 다른 것도 했어?",
                     "focused_panel": "panel2",
                     "panel_updates": {
-                        "panel1": "I played with Oliver at school today with an eraser.",
-                        "panel2": "I used his eraser without asking."
+                        "panel1": "나는 충호랑 학교에서 지우개를 가지고 놀았다.",
+                        "panel2": "나는 충호한테 물어보지도 않고 충호 지우개를 썼다."
                     }
                 },
                 {
-                    "message": "Oh, I see. What was Oliver's reaction when he saw you throwing the eraser? Did he get angry, or did he say something?",
+                    "message": "아, 그랬구나! 네가 지우개 던지는 걸 보고 충호는 어떤 반응을 보였어? 화를 냈어? 아니면 어떤 말을 했어?",
                     "focused_panel": "panel3",
                     "panel_updates": {
-                        "panel2": "I threw his eraser without asking."
+                        "panel2": "나는 충호한테 물어보지도 않고 충호 지우개를 던졌다."
                     }
                 },
                 {
-                    "message": "Oh, Oliver got mad.. 😥 How did you feel when he got angry and told the teacher?",
+                    "message": "아, 충호가 화났구나.. 😥 충호가 화를 내고 선생님께 말씀드렸을 때 네 기분은 어땠어?",
                     "focused_panel": "panel4",
                     "panel_updates": {
-                        "panel3": "Oliver got angry and told the teacher."
+                        "panel3": "충호가 화를 내고 선생님께 말씀드렸다."
                     }
                 }
             ]
@@ -1542,13 +1654,20 @@ Please generate a question that addresses the FIRST missing information gap."""
             
             # 패널 내용 추출 (ComicPanelInfo 형식에서 content 필드만 추출)
             # 하드코딩된 패널 내용으로 설정
-            panel_contents = {
-                "panel1": "I played with Oliver at school today with an eraser.",
-                "panel2": "I threw his eraser without asking.",
-                "panel3": "Oliver got angry and told the teacher.",
-                "panel4": "I was sad and scared"
-            }
+            # panel_contents = {
+            #     "panel1": "I played with Oliver at school today with an eraser.",
+            #     "panel2": "I threw his eraser without asking.",
+            #     "panel3": "Oliver got angry and told the teacher.",
+            #     "panel4": "I was sad and scared"
+            # } #- English
             
+
+            panel_contents = {
+                "panel1": "나는 오늘 충호랑 학교에서 지우개를 가지고 놀았다.",
+                "panel2": "나는 충호한테 물어보지도 않고 충호 지우개를 썼다.",
+                "panel3": "충호가 화를 내고 선생님께 말씀드렸다.",
+                "panel4": "나는 슬프고 무서웠다."
+            } #- Korean 
             # 원래 로직 (주석 처리)
             # panel_contents = {}
             # for panel_key in ['panel1', 'panel2', 'panel3', 'panel4']:

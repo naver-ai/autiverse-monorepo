@@ -106,37 +106,72 @@ class Revision2Stage:
         )
         
         # 하드코딩된 패널 데이터 설정
+        # hardcoded_panels = {
+        #     "panel1": {
+        #         "content": "I played with Oliver at school today using an eraser.",
+        #         "place": "School",
+        #         "grid": [
+        #             {"type": "figure", "content": "Me", "position": [1, 2]},
+        #             {"type": "object", "content": "eraser", "position": [2, 2]},
+        #             {"type": "figure", "content": "Oliver", "position": [3, 2]}
+        #         ]
+        #     },
+        #     "panel2": {
+        #         "content": "I threw his eraser without asking for playing.",
+        #         "place": "",
+        #         "grid": [
+        #             {"type": "figure", "content": "Me", "position": [2, 2]},
+        #             {"type": "object", "content": "eraser", "position": [2, 3]}
+        #         ]
+        #     },
+        #     "panel3": {
+        #         "content": "Oliver got angry and told the teacher.",
+        #         "place": "",
+        #         "grid": [
+        #             {"type": "figure", "content": "Oliver", "position": [1, 2], "action": [{"type": "emotion", "content": "Angry"}, {"type": "tell", "content": "Ethan threw my eraser without asking"}]},
+        #             {"type": "figure", "content": "Teacher", "position": [3, 2]}
+        #         ]
+        #     },
+        #     "panel4": {
+        #         "content": "I was sad and scared.",
+        #         "place": "",
+        #         "grid": [
+        #             {"type": "figure", "content": "Me", "position": [2, 2], "action": [{"type": "emotion", "content": "Sad"}, {"type": "emotion", "content": "Scared"}]}
+        #         ]
+        #     }
+        # } #- English
+
         hardcoded_panels = {
             "panel1": {
-                "content": "I played with Oliver at school today using an eraser.",
-                "place": "School",
+                "content": "나는 오늘 충호랑 학교에서 지우개를 가지고 놀았다.",
+                "place": "학교",
                 "grid": [
-                    {"type": "figure", "content": "Me", "position": [1, 2]},
-                    {"type": "object", "content": "eraser", "position": [2, 2]},
-                    {"type": "figure", "content": "Oliver", "position": [3, 2]}
+                    {"type": "figure", "content": "나", "position": [1, 2]},
+                    {"type": "object", "content": "지우개", "position": [2, 2]},
+                    {"type": "figure", "content": "충호", "position": [3, 2]}
                 ]
             },
             "panel2": {
-                "content": "I threw his eraser without asking for playing.",
+                "content": "나는 충호한테 물어보지도 않고 충호 지우개를 썼다.",
                 "place": "",
                 "grid": [
-                    {"type": "figure", "content": "Me", "position": [2, 2]},
-                    {"type": "object", "content": "eraser", "position": [2, 3]}
+                    {"type": "figure", "content": "나", "position": [2, 2]},
+                    {"type": "object", "content": "지우개", "position": [2, 3]}
                 ]
             },
             "panel3": {
-                "content": "Oliver got angry and told the teacher.",
+                "content": "충호가 화를 내고 선생님께 말씀드렸다.",
                 "place": "",
                 "grid": [
-                    {"type": "figure", "content": "Oliver", "position": [1, 2], "action": [{"type": "emotion", "content": "Angry"}, {"type": "tell", "content": "Ethan threw my eraser without asking"}]},
-                    {"type": "figure", "content": "Teacher", "position": [3, 2]}
+                    {"type": "figure", "content": "충호", "position": [1, 2], "action": [{"type": "emotion", "content": "화남"}, {"type": "tell", "content": "민준이가 물어보지도 않고 제 지우개 던졌어요!"}]},
+                    {"type": "figure", "content": "선생님", "position": [3, 2]}
                 ]
             },
             "panel4": {
-                "content": "I was sad and scared.",
+                "content": "나는 슬프고 무서웠다.",
                 "place": "",
                 "grid": [
-                    {"type": "figure", "content": "Me", "position": [2, 2], "action": [{"type": "emotion", "content": "Sad"}, {"type": "emotion", "content": "Scared"}]}
+                    {"type": "figure", "content": "나", "position": [2, 2], "action": [{"type": "emotion", "content": "슬픔"}, {"type": "emotion", "content": "무서움"}]}
                 ]
             }
         }
@@ -149,7 +184,8 @@ class Revision2Stage:
         print(f"[DEBUG] revision_2: Set hardcoded panel data: {hardcoded_panels}")
         
         # 첫 번째 수정 질문 생성
-        initial_question = "Wow! Look at the journal we made together! Let's check now to see if everything is included properly. Is there anything you'd like to change or add? 🤔"
+        # initial_question = "Wow! Look at the journal we made together! Let's check now to see if everything is included properly. Is there anything you'd like to change or add? 🤔" #- English
+        initial_question = "우와앙~ 우리가 같이 만든 그림일기다! 지금부터 내용이 제대로 들어갔는지 확인해보자. 수정하거나 추가하고 싶은 부분 있어? 🤔" #- Korean
         await create_message(
             self.db, self.journal_entry_id, interaction_turn.id,
             initial_question, MessageRole.Assistant, JournalEntryStage.Revision2,
@@ -198,11 +234,13 @@ class Revision2Stage:
                 elif self.revision_count == self.max_revisions:
                     return "아앗;; 이제 마지막 기회야! 지금 수정하거나 추가하고 싶은 부분이 있다면 다 말해줘~ 😅", MessageIntent.PromptOpenEndedAnswer
                 else:
-                    return "Which part do you want to change, and how? 🤔", MessageIntent.PromptOpenEndedAnswer
+                    # return "Which part do you want to change, and how? 🤔", MessageIntent.PromptOpenEndedAnswer #- English
+                    return "어디를 어떻게 수정해볼까?? 🤔", MessageIntent.PromptOpenEndedAnswer #- Korean
             elif self._is_positive_response(user_message, user_intent): #수정할 곳이 없다
                 # 수정 완료, 완료 단계로
                 # 하드코딩된 마무리 메시지 사용
-                completion_message = "So, you and Oliver had a falling out at school and hurt each other's feelings. It breaks my heart to hear that you felt sad and scared. I'll be rooting for better things to happen for you next time! Now let's press the 'Next' button and go choose a title for the journal!"
+                # completion_message = "So, you and Oliver had a falling out at school and hurt each other's feelings. It breaks my heart to hear that you felt sad and scared. I'll be rooting for better things to happen for you next time! Now let's press the 'Next' button and go choose a title for the journal!"
+                completion_message = "오늘 학교에서 충호랑 다퉈서 속상했겠다. 네가 슬프고 무서웠다니까 나까지 마음이 다 안 좋아..😥 다음번엔 분명히 다 잘 풀릴 거야! 내가 옆에서 응원할게! 이제 '다음' 버튼을 눌러서 오늘 일기의 제목을 고르러 가자!"
                 return completion_message, MessageIntent.TransitionToTitle
             else:
                 print(f"[DEBUG] revision_2: _generate_response: intent={user_intent}, Should not reach here!!")
@@ -217,15 +255,24 @@ class Revision2Stage:
                     journal = await get_journal(self.db, self.journal_entry_id)
                     if journal and journal.revision_2:
                         updated_panels = journal.revision_2.copy()
+                        # updated_panels["panel3"] = {
+                        #     "content": "I apologized to him after he got angry and told the teacher.",
+                        #     "place": "",
+                        #     "grid": [
+                        #         {"type": "figure", "content": "Oliver", "position": [1, 2], "action": [{"type": "emotion", "content": "Angry"}, {"type": "tell", "content": "Ethan threw my eraser without asking"}]},
+                        #         {"type": "figure", "content": "Teacher", "position": [3, 2]}
+                        #     ]
+                        # } #- English
+                        
                         updated_panels["panel3"] = {
-                            "content": "I apologized to him after he got angry and told the teacher.",
+                            "content": "충호가 화를 내고 선생님께 말씀드린 후 나는 충호에게 사과했다.",
                             "place": "",
                             "grid": [
-                                {"type": "figure", "content": "Oliver", "position": [1, 2], "action": [{"type": "emotion", "content": "Angry"}, {"type": "tell", "content": "Ethan threw my eraser without asking"}]},
-                                {"type": "figure", "content": "Teacher", "position": [3, 2]}
+                                {"type": "figure", "content": "충호", "position": [1, 2], "action": [{"type": "emotion", "content": "화남"}, {"type": "tell", "content": "민준이가 허락도 안 받고 제 지우개 던졌어요!"}]},
+                                {"type": "figure", "content": "선생님", "position": [3, 2]}
                             ]
                         }
-                        
+
                         # revision_2 필드에 업데이트된 패널 데이터 저장 (comic_context와 같은 방식)
                         await update_journal_data(
                             self.db, self.journal_entry_id,
@@ -234,7 +281,8 @@ class Revision2Stage:
                         print(f"[DEBUG] revision_2: Updated panel3 in revision_2 field: {updated_panels['panel3']}")
                 else:
                     await self._apply_user_correction(user_message)
-                return "I changed it according to what you told me. Is everything correct now? 🤔", MessageIntent.PromptRevision2Confirm
+                # return "I changed it according to what you told me. Is everything correct now? 🤔", MessageIntent.PromptRevision2Confirm #- English
+                return "네가 말해준 내용대로 바꿔봤어. 더 추가하거나 바꿀 곳 있어? 🤔", MessageIntent.PromptRevision2Confirm #- Korean
             except Exception as e:
                 print(f"[DEBUG] revision_2: Error applying user correction: {e}")
                 return "수정하는데 문제가 생겼어. 다시 말해줘! 😅", MessageIntent.PromptOpenEndedAnswer
@@ -277,7 +325,8 @@ class Revision2Stage:
             # 현재 사용자 메시지가 저장되기 전의 마지막 봇 메시지를 찾기
             for i in range(len(messages) - 2, -1, -1):  # -2부터 시작 (현재 사용자 메시지 제외)
                 if messages[i].role == MessageRole.Assistant:
-                    is_which_part = messages[i].intent == MessageIntent.PromptOpenEndedAnswer and "which part" in messages[i].content.lower()
+                    # is_which_part = messages[i].intent == MessageIntent.PromptOpenEndedAnswer and "which part" in messages[i].content.lower()
+                    is_which_part = messages[i].intent == MessageIntent.PromptOpenEndedAnswer and "어디를" in messages[i].content
                     print(f"[DEBUG] revision_2: Checking message {i}: role={messages[i].role}, intent={messages[i].intent}, content='{messages[i].content}', is_which_part={is_which_part}")
                     if is_which_part:
                         return True

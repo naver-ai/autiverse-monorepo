@@ -110,7 +110,8 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           <View className="bg-white border border-gray-200 p-3 rounded-lg self-start">
             <View className="flex-row items-center">
               <ActivityIndicator size="small" color="#666" />
-              <Text className="text-gray-600 ml-2 text-lg" style={styleTemplates.withSemiboldFont}>{agentName} is thinking...</Text>
+              {/* <Text className="text-gray-600 ml-2 text-lg" style={styleTemplates.withSemiboldFont}>{agentName} is thinking...</Text> #- English */}
+              <Text className="text-gray-600 ml-2 text-lg" style={styleTemplates.withSemiboldFont}>{agentName}가 생각 중...</Text>
             </View>
           </View>
         </View>

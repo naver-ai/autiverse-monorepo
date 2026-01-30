@@ -404,18 +404,27 @@ CONVERSATION:
                 }
                 
                 # Set specific content for revision_1 as requested
+                # specific_content = {
+                #     "panel1": "I played with oliver at school today.",
+                #     "panel2": None,
+                #     "panel3": "Oliver was in a bad mood.",
+                #     "panel4": None
+                # } #- English
+
                 specific_content = {
-                    "panel1": "I played with oliver at school today.",
+                    "panel1": "나는 오늘 충호랑 학교에서 놀았다.",
                     "panel2": None,
-                    "panel3": "Oliver was in a bad mood.",
+                    "panel3": "충호는 기분이 안 좋았다.",
                     "panel4": None
-                }
+                } #- Korean
                 
                 # Journal에 분석 결과 저장 (specific content 사용)
                 await update_journal_data(
                     self.db, self.journal_entry_id,
-                    events=["I played with oliver at school today.", "Oliver was in a bad mood."],
-                    summary="I played with oliver at school today. Oliver was in a bad mood.",
+                    # events=["I played with oliver at school today.", "Oliver was in a bad mood."],
+                    # summary="I played with oliver at school today. Oliver was in a bad mood.", #-English
+                    events=["나는 오늘 충호랑 학교에서 놀았다.", "충호는 기분이 안 좋았다."],
+                    summary="나는 오늘 충호랑 학교에서 놀았다. 충호는 기분이 안 좋았다.", #- Korean
                     comic_intro=specific_content
                 )
                 
@@ -443,7 +452,8 @@ CONVERSATION:
     def _generate_intro_message(self, location: str = None, people: List[str] = None) -> str:
         """초기 인사 메시지 생성"""
         if location and people and len(people) > 0:
-            return f"I'm so curious about what happened with Oliver at school today! Tell me everything! 😊"
+            # return f"I'm so curious about what happened with Oliver at school today! Tell me everything! 😊" # English
+            return f"오늘 학교에서 충호하고 무슨 일이 있었는지 너무 궁금해! 나한테 다 이야기해줘! 😊" # Korean
         elif location:
             # 장소는 있지만 사람을 선택하지 않은 경우
             return f"오늘 {location}에서 누구랑 있었던 일에 대해 일기를 써볼까? 😊"

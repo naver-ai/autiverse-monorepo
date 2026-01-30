@@ -99,20 +99,28 @@ class ChatbotController:
     async def _handle_intro_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
         """인트로 단계 처리 - 완전히 하드코딩으로 revision_1 처리"""
         # 고정된 comic panels를 comic_intro에 저장
+        # fixed_comic_panels = {
+        #     "panel1": "I played with Oliver at school today.",
+        #     "panel2": None,
+        #     "panel3": "Oliver was in a bad mood.",
+        #     "panel4": None
+        # } #- English
         fixed_comic_panels = {
-            "panel1": "I played with Oliver at school today.",
+            "panel1": "나는 오늘 충호랑 학교에서 놀았다.",
             "panel2": None,
-            "panel3": "Oliver was in a bad mood.",
+            "panel3": "충호는 기분이 안 좋았다.",
             "panel4": None
-        }
+        } #- Korean
         
         # Journal entry stage를 Revision1으로 업데이트
         await update_journal_entry_stage(self.db, journal_entry_id, JournalEntryStage.Revision1)
         
         await update_journal_data(
             self.db, journal_entry_id,
-            events=["I played with Oliver at school today.", "Oliver was in a bad mood."],
-            summary="I played with Oliver at school today. Oliver was in a bad mood.",
+            # events=["I played with Oliver at school today.", "Oliver was in a bad mood."],
+            # summary="I played with Oliver at school today. Oliver was in a bad mood.",#- English
+            events=["나는 오늘 충호랑 학교에서 놀았다.", "충호는 기분이 안 좋았다."],
+            summary="나는 오늘 충호랑 학교에서 놀았다. 충호는 기분이 안 좋았다.", #- Korean
             comic_intro=fixed_comic_panels
         )
         
@@ -124,7 +132,8 @@ class ChatbotController:
         
         message = await create_message(
             self.db, journal_entry_id, interaction_turn.id,
-            "I see! Then let's try writing today's journal entry using what you just told me. Is anything incorrect here? 🤔",
+            # "I see! Then let's try writing today's journal entry using what you just told me. Is anything incorrect here? 🤔", #- English
+            "그럼 네가 지금 말해준 내용으로 오늘의 그림일기를 써보자! 먼저 내가 잘 들었는지 왼쪽 내용을 읽어서 확인해줘~ 내가 다 맞게 들었을까? 🤔", #- Korean
             MessageRole.Assistant, JournalEntryStage.Revision1,
             intent=MessageIntent.PromptIssueExist
         )
@@ -132,12 +141,15 @@ class ChatbotController:
         # 하드코딩된 응답으로 바로 반환 (LLM 호출 없이)
         return {
             "message_id": message.id,
-            "response": "I see! Then let's try writing today's journal entry using what you just told me. Is anything incorrect here? 🤔",
+            # "response": "I see! Then let's try writing today's journal entry using what you just told me. Is anything incorrect here? 🤔", #- English
+            "response": "그럼 네가 지금 말해준 내용으로 오늘의 그림일기를 써보자! 먼저 내가 잘 들었는지 왼쪽 내용을 읽어서 확인해줘~ 내가 다 맞게 들었을까? 🤔", #- Korean
             "stage": "revision_1",
             "intent": "prompt_issue_exist",
             "data": {
-                "events": ["I played with Oliver at school today.", "Oliver was in a bad mood."],
-                "summary": "I played with Oliver at school today. Oliver was in a bad mood.",
+                # "events": ["I played with Oliver at school today.", "Oliver was in a bad mood."],
+                # "summary": "I played with Oliver at school today. Oliver was in a bad mood.",
+                "events": ["나는 오늘 충호랑 학교에서 놀았다.", "충호는 기분이 안 좋았다."],
+                "summary": "나는 오늘 충호랑 학교에서 놀았다. 충호는 기분이 안 좋았다.", #- Korean
                 "panels": fixed_comic_panels
             }
         }
@@ -310,77 +322,146 @@ class ChatbotController:
             # 현재 단계에 따라 적절한 패널 데이터 선택
             if journal_entry.stage == JournalEntryStage.Complete:
                 # complete 단계에서는 하드코딩된 패널 데이터 사용
+                # current_panels = {
+                #     "panel1": {
+                #         "content": "I played with Oliver at school today using an eraser.",
+                #         "place": "School",
+                #         "grid": [
+                #             {"type": "figure", "content": "Me", "position": [1, 2]},
+                #             {"type": "object", "content": "eraser", "position": [2, 2]},
+                #             {"type": "figure", "content": "Oliver", "position": [3, 2]}
+                #         ]
+                #     },
+                #     "panel2": {
+                #         "content": "I threw his eraser without asking for playing.",
+                #         "place": "",
+                #         "grid": [
+                #             {"type": "figure", "content": "Me", "position": [2, 2]},
+                #             {"type": "object", "content": "eraser", "position": [2, 3]}
+                #         ]
+                #     },
+                #     "panel3": {
+                #         "content": "I apologized to him after he got angry and told the teacher.",
+                #         "place": "",
+                #         "grid": [
+                #             {"type": "figure", "content": "Oliver", "position": [1, 2], "action": [{"type": "emotion", "content": "Angry"}, {"type": "tell", "content": "Ethan threw my eraser without asking"}]},
+                #             {"type": "figure", "content": "Teacher", "position": [3, 2]}
+                #         ]
+                #     },
+                #     "panel4": {
+                #         "content": "I was sad and scared.",
+                #         "place": "",
+                #         "grid": [
+                #             {"type": "figure", "content": "Me", "position": [2, 2], "action": [{"type": "emotion", "content": "Sad"}, {"type": "emotion", "content": "Scared"}]}
+                #         ]
+                #     }
+                # } #- English
+
                 current_panels = {
                     "panel1": {
-                        "content": "I played with Oliver at school today using an eraser.",
-                        "place": "School",
+                        "content": "나는 오늘 충호랑 학교에서 지우개를 가지고 놀았다.",
+                        "place": "학교",
                         "grid": [
-                            {"type": "figure", "content": "Me", "position": [1, 2]},
-                            {"type": "object", "content": "eraser", "position": [2, 2]},
-                            {"type": "figure", "content": "Oliver", "position": [3, 2]}
+                            {"type": "figure", "content": "나", "position": [1, 2]},
+                            {"type": "object", "content": "지우개", "position": [2, 2]},
+                            {"type": "figure", "content": "충호", "position": [3, 2]}
                         ]
                     },
                     "panel2": {
-                        "content": "I threw his eraser without asking for playing.",
+                        "content": "나는 충호한테 물어보지도 않고 충호 지우개를 썼다.",
                         "place": "",
                         "grid": [
-                            {"type": "figure", "content": "Me", "position": [2, 2]},
-                            {"type": "object", "content": "eraser", "position": [2, 3]}
+                            {"type": "figure", "content": "나", "position": [2, 2]},
+                            {"type": "object", "content": "지우개", "position": [2, 3]}
                         ]
                     },
                     "panel3": {
-                        "content": "I apologized to him after he got angry and told the teacher.",
+                        "content": "충호가 화를 내고 선생님께 말씀드린 후 나는 충호에게 사과했다.",
                         "place": "",
                         "grid": [
-                            {"type": "figure", "content": "Oliver", "position": [1, 2], "action": [{"type": "emotion", "content": "Angry"}, {"type": "tell", "content": "Ethan threw my eraser without asking"}]},
-                            {"type": "figure", "content": "Teacher", "position": [3, 2]}
+                            {"type": "figure", "content": "충호", "position": [1, 2], "action": [{"type": "emotion", "content": "화남"}, {"type": "tell", "content": "민준이가 물어보지도 않고 제 지우개 던졌어요!"}]},
+                            {"type": "figure", "content": "선생님", "position": [3, 2]}
                         ]
                     },
                     "panel4": {
-                        "content": "I was sad and scared.",
+                        "content": "나는 슬프고 무서웠다.",
                         "place": "",
                         "grid": [
-                            {"type": "figure", "content": "Me", "position": [2, 2], "action": [{"type": "emotion", "content": "Sad"}, {"type": "emotion", "content": "Scared"}]}
+                            {"type": "figure", "content": "나", "position": [2, 2], "action": [{"type": "emotion", "content": "슬픔"}, {"type": "emotion", "content": "무서움"}]}
                         ]
                     }
-                }
+                } #- Korean
                 print(f"[DEBUG] get_session_info: Using hardcoded complete data: {current_panels}")
             elif journal_entry.stage == JournalEntryStage.Title:
                 # title 단계에서는 하드코딩된 패널 데이터 사용
+                # current_panels = {
+                #     "panel1": {
+                #         "content": "I played with Oliver at school today using an eraser.",
+                #         "place": "School",
+                #         "grid": [
+                #             {"type": "figure", "content": "Me", "position": [1, 2]},
+                #             {"type": "object", "content": "eraser", "position": [2, 2]},
+                #             {"type": "figure", "content": "Oliver", "position": [3, 2]}
+                #         ]
+                #     },
+                #     "panel2": {
+                #         "content": "I threw his eraser without asking for playing.",
+                #         "place": "",
+                #         "grid": [
+                #             {"type": "figure", "content": "Me", "position": [2, 2]},
+                #             {"type": "object", "content": "eraser", "position": [2, 3]}
+                #         ]
+                #     },
+                #     "panel3": {
+                #         "content": "I apologized to him after he got angry and told the teacher.",
+                #         "place": "",
+                #         "grid": [
+                #             {"type": "figure", "content": "Oliver", "position": [1, 2], "action": [{"type": "emotion", "content": "Angry"}, {"type": "tell", "content": "Ethan threw my eraser without asking"}]},
+                #             {"type": "figure", "content": "Teacher", "position": [3, 2]}
+                #         ]
+                #     },
+                #     "panel4": {
+                #         "content": "I was sad and scared.",
+                #         "place": "",
+                #         "grid": [
+                #             {"type": "figure", "content": "Me", "position": [2, 2], "action": [{"type": "emotion", "content": "Sad"}, {"type": "emotion", "content": "Scared"}]}
+                #         ]
+                #     }
+                # } #- English
                 current_panels = {
                     "panel1": {
-                        "content": "I played with Oliver at school today using an eraser.",
-                        "place": "School",
+                        "content": "나는 오늘 충호랑 학교에서 지우개를 가지고 놀았다.",
+                        "place": "학교",
                         "grid": [
-                            {"type": "figure", "content": "Me", "position": [1, 2]},
-                            {"type": "object", "content": "eraser", "position": [2, 2]},
-                            {"type": "figure", "content": "Oliver", "position": [3, 2]}
+                            {"type": "figure", "content": "나", "position": [1, 2]},
+                            {"type": "object", "content": "지우개", "position": [2, 2]},
+                            {"type": "figure", "content": "충호", "position": [3, 2]}
                         ]
                     },
                     "panel2": {
-                        "content": "I threw his eraser without asking for playing.",
+                        "content": "나는 충호한테 물어보지도 않고 충호 지우개를 썼다.",
                         "place": "",
                         "grid": [
-                            {"type": "figure", "content": "Me", "position": [2, 2]},
-                            {"type": "object", "content": "eraser", "position": [2, 3]}
+                            {"type": "figure", "content": "나", "position": [2, 2]},
+                            {"type": "object", "content": "지우개", "position": [2, 3]}
                         ]
                     },
                     "panel3": {
-                        "content": "I apologized to him after he got angry and told the teacher.",
+                        "content": "충호가 화를 내고 선생님께 말씀드린 후 나는 충호에게 사과했다.",
                         "place": "",
                         "grid": [
-                            {"type": "figure", "content": "Oliver", "position": [1, 2], "action": [{"type": "emotion", "content": "Angry"}, {"type": "tell", "content": "Ethan threw my eraser without asking"}]},
-                            {"type": "figure", "content": "Teacher", "position": [3, 2]}
+                            {"type": "figure", "content": "충호", "position": [1, 2], "action": [{"type": "emotion", "content": "화남"}, {"type": "tell", "content": "민준이가 물어보지도 않고 제 지우개 던졌어요!"}]},
+                            {"type": "figure", "content": "선생님", "position": [3, 2]}
                         ]
                     },
                     "panel4": {
-                        "content": "I was sad and scared.",
+                        "content": "나는 슬프고 무서웠다.",
                         "place": "",
                         "grid": [
-                            {"type": "figure", "content": "Me", "position": [2, 2], "action": [{"type": "emotion", "content": "Sad"}, {"type": "emotion", "content": "Scared"}]}
+                            {"type": "figure", "content": "나", "position": [2, 2], "action": [{"type": "emotion", "content": "슬픔"}, {"type": "emotion", "content": "무서움"}]}
                         ]
                     }
-                }
+                } #- Korean
                 print(f"[DEBUG] get_session_info: Using hardcoded title data: {current_panels}")
             elif journal_entry.stage == JournalEntryStage.Revision2:
                 # revision_2 단계에서는 실제 revision_2 데이터 사용 (업데이트된 내용 반영)
@@ -389,37 +470,71 @@ class ChatbotController:
                     print(f"[DEBUG] get_session_info: Using revision_2 data: {current_panels}")
                 else:
                     # fallback: 하드코딩된 패널 데이터 사용
+                    # current_panels = {
+                    #     "panel1": {
+                    #         "content": "I played with Oliver at school today using an eraser.",
+                    #         "place": "School",
+                    #         "grid": [
+                    #             {"type": "figure", "content": "Me", "position": [1, 2]},
+                    #             {"type": "object", "content": "eraser", "position": [2, 2]},
+                    #             {"type": "figure", "content": "Oliver", "position": [3, 2]}
+                    #         ]
+                    #     },
+                    #     "panel2": {
+                    #         "content": "I threw his eraser without asking for playing.",
+                    #         "place": "",
+                    #         "grid": [
+                    #             {"type": "figure", "content": "Me", "position": [2, 2]},
+                    #             {"type": "object", "content": "eraser", "position": [2, 3]}
+                    #         ]
+                    #     },
+                    #     "panel3": {
+                    #         "content": "Oliver got angry and told the teacher.",
+                    #         "place": "",
+                    #         "grid": [
+                    #             {"type": "figure", "content": "Oliver", "position": [1, 2], "action": [{"type": "emotion", "content": "Angry"}, {"type": "tell", "content": "Ethan threw my eraser without asking"}]},
+                    #             {"type": "figure", "content": "Teacher", "position": [3, 2]}
+                    #         ]
+                    #     },
+                    #     "panel4": {
+                    #         "content": "I was sad and scared.",
+                    #         "place": "",
+                    #         "grid": [
+                    #             {"type": "figure", "content": "Me", "position": [2, 2], "action": [{"type": "emotion", "content": "Sad"}, {"type": "emotion", "content": "Scared"}]}
+                    #         ]
+                    #     }
+                    # } #- English
                     current_panels = {
                         "panel1": {
-                            "content": "I played with Oliver at school today using an eraser.",
-                            "place": "School",
+                            "content": "나는 오늘 충호랑 학교에서 지우개를 가지고 놀았다.",
+                            "place": "학교",
                             "grid": [
-                                {"type": "figure", "content": "Me", "position": [1, 2]},
-                                {"type": "object", "content": "eraser", "position": [2, 2]},
-                                {"type": "figure", "content": "Oliver", "position": [3, 2]}
+                                {"type": "figure", "content": "나", "position": [1, 2]},
+                                {"type": "object", "content": "지우개", "position": [2, 2]},
+                                {"type": "figure", "content": "충호", "position": [3, 2]}
                             ]
                         },
                         "panel2": {
-                            "content": "I threw his eraser without asking for playing.",
+                            "content": "나는 충호한테 물어보지도 않고 충호 지우개를 썼다.",
                             "place": "",
                             "grid": [
-                                {"type": "figure", "content": "Me", "position": [2, 2]},
-                                {"type": "object", "content": "eraser", "position": [2, 3]}
+                                {"type": "figure", "content": "나", "position": [2, 2]},
+                                {"type": "object", "content": "지우개", "position": [2, 3]}
                             ]
                         },
                         "panel3": {
-                            "content": "Oliver got angry and told the teacher.",
+                            "content": "충호가 화를 내고 선생님께 말씀드렸다.",
                             "place": "",
                             "grid": [
-                                {"type": "figure", "content": "Oliver", "position": [1, 2], "action": [{"type": "emotion", "content": "Angry"}, {"type": "tell", "content": "Ethan threw my eraser without asking"}]},
-                                {"type": "figure", "content": "Teacher", "position": [3, 2]}
+                                {"type": "figure", "content": "충호", "position": [1, 2], "action": [{"type": "emotion", "content": "화남"}, {"type": "tell", "content": "민준이가 물어보지도 않고 제 지우개 던졌어요!"}]},
+                                {"type": "figure", "content": "선생님", "position": [3, 2]}
                             ]
                         },
                         "panel4": {
-                            "content": "I was sad and scared.",
+                            "content": "나는 슬프고 무서웠다.",
                             "place": "",
                             "grid": [
-                                {"type": "figure", "content": "Me", "position": [2, 2], "action": [{"type": "emotion", "content": "Sad"}, {"type": "emotion", "content": "Scared"}]}
+                                {"type": "figure", "content": "나", "position": [2, 2], "action": [{"type": "emotion", "content": "슬픔"}, {"type": "emotion", "content": "무서움"}]}
                             ]
                         }
                     }
@@ -431,13 +546,41 @@ class ChatbotController:
                 # comic_context 단계에서는 모든 panel_updates를 누적해서 적용
                 if messages:
                     # 기본 comic panels 설정
+                    # fixed_comic_panels = {
+                    #     "panel1": {
+                    #         "content": "I played with Oliver at school today.",
+                    #         "place": "School",
+                    #         "grid": [
+                    #             {"type": "figure", "content": "Me", "position": [1, 2]},
+                    #             {"type": "figure", "content": "Oliver", "position": [2, 2]}
+                    #         ]
+                    #     },
+                    #     "panel2": {
+                    #         "content": "",
+                    #         "place": "",
+                    #         "grid": []
+                    #     },
+                    #     "panel3": {
+                    #         "content": "Oliver was in a bad mood.",
+                    #         "place": "",
+                    #         "grid": [
+                    #             {"type": "figure", "content": "Oliver", "position": [2, 2], "action": [{"type": "emotion", "content": "bad mood"}]}
+                    #         ]
+                    #     },
+                    #     "panel4": {
+                    #         "content": "",
+                    #         "place": "",
+                    #         "grid": []
+                    #     }
+                    # } #- English
+
                     fixed_comic_panels = {
                         "panel1": {
-                            "content": "I played with Oliver at school today.",
-                            "place": "School",
+                            "content": "나는 오늘 충호랑 학교에서 놀았다.",
+                            "place": "학교",
                             "grid": [
-                                {"type": "figure", "content": "Me", "position": [1, 2]},
-                                {"type": "figure", "content": "Oliver", "position": [2, 2]}
+                                {"type": "figure", "content": "나", "position": [1, 2]},
+                                {"type": "figure", "content": "충호", "position": [2, 2]}
                             ]
                         },
                         "panel2": {
@@ -446,10 +589,10 @@ class ChatbotController:
                             "grid": []
                         },
                         "panel3": {
-                            "content": "Oliver was in a bad mood.",
+                            "content": "충호는 기분이 안 좋았다.",
                             "place": "",
                             "grid": [
-                                {"type": "figure", "content": "Oliver", "position": [2, 2], "action": [{"type": "emotion", "content": "bad mood"}]}
+                                {"type": "figure", "content": "충호", "position": [2, 2], "action": [{"type": "emotion", "content": "기분 안 좋음"}]}
                             ]
                         },
                         "panel4": {

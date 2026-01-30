@@ -53,14 +53,20 @@ class TitleStage:
                 return "만화 데이터를 찾을 수 없어요."
             
             # 하드코딩된 제목 3개 사용
+            # hardcoded_titles = {
+            #     "title1": "The day I played a prank on Oliver😢",
+            #     "title2": "Oliver's Angry Day😠", 
+            #     "title3": "Making Up with Oliver🤝"
+            # } #- English
             hardcoded_titles = {
-                "title1": "The day I played a prank on Oliver😢",
-                "title2": "Oliver's Angry Day😠", 
-                "title3": "Making Up with Oliver🤝"
-            }
+                "title1": "충호에게 장난친 날😢",
+                "title2": "충호가 화난 날😠",
+                "title3": "충호랑 다투고 화해한 날🤝"
+            } #- Korean
 
             # 첫 번째 질문 생성 (제목 3개 제시)
-            initial_question = f"What should we title today's journal? 1) {hardcoded_titles['title1']}. 2) {hardcoded_titles['title2']}. 3) {hardcoded_titles['title3']}. Which title do you like?"
+            # initial_question = f"What should we title today's journal? 1) {hardcoded_titles['title1']}. 2) {hardcoded_titles['title2']}. 3) {hardcoded_titles['title3']}. Which title do you like?" #- English
+            initial_question = f"우리 오늘 일기의 제목은 뭐로 할까? 1) {hardcoded_titles['title1']}. 2) {hardcoded_titles['title2']}. 3) {hardcoded_titles['title3']}. 어떤 제목이 마음에 들어?" #- Korean
             
             new_message = await create_message(
                 self.db, self.journal_entry_id, interaction_turn.id,
@@ -176,7 +182,8 @@ class TitleStage:
         
         # 하드코딩된 응답 사용
         if user_message in ["1", "2", "3"]:
-            response = "I'm glad you liked the title, 'The day I played a prank on Oliver'! Once you review the completed journal on the left, let's wrap up!"
+            # response = "I'm glad you liked the title, 'The day I played a prank on Oliver'! Once you review the completed journal on the left, let's wrap up!" #- English
+            response = "'충호에게 장난친 날😢'이 마음에 들었구나! 다행이다:) 왼쪽에 완성된 일기 천천히 보고 다 확인했으면 다음 버튼을 눌러줘!" #- Korean
             response_intent = MessageIntent.PromptNext
         else:
             response = "그럼 어떤 제목으로 하고 싶어?"

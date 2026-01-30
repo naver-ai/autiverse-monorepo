@@ -27,18 +27,31 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
   const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
 
   const emotionButtons = [
-    { text: t('Emotions.Happy'), emoji: '😊', key: 'Happy' },
-    { text: t('Emotions.Joyful'), emoji: '😄', key: 'Joyful' },
-    { text: t('Emotions.Loved'), emoji: '🥰', key: 'Loved' },
-    { text: t('Emotions.Excited'), emoji: '🤩', key: 'Excited' },
-    { text: t('Emotions.Sad'), emoji: '😢', key: 'Sad' },
-    { text: t('Emotions.Angry'), emoji: '😠', key: 'Angry' },
-    { text: t('Emotions.Upset'), emoji: '😞', key: 'Upset' },
-    { text: t('Emotions.Scared'), emoji: '😨', key: 'Scared' },
-    { text: t('Emotions.Afraid'), emoji: '😰', key: 'Afraid' },
-    { text: t('Emotions.Surprised'), emoji: '😲', key: 'Surprised' },
-    { text: t('Emotions.Amazed'), emoji: '😍', key: 'Amazed' },
-    { text: t('Emotions.Bored'), emoji: '😴', key: 'Bored' }
+    // { text: t('Emotions.Happy'), emoji: '😊', key: 'Happy' },
+    // { text: t('Emotions.Joyful'), emoji: '😄', key: 'Joyful' },
+    // { text: t('Emotions.Loved'), emoji: '🥰', key: 'Loved' },
+    // { text: t('Emotions.Excited'), emoji: '🤩', key: 'Excited' },
+    // { text: t('Emotions.Sad'), emoji: '😢', key: 'Sad' },
+    // { text: t('Emotions.Angry'), emoji: '😠', key: 'Angry' },
+    // { text: t('Emotions.Upset'), emoji: '😞', key: 'Upset' },
+    // { text: t('Emotions.Scared'), emoji: '😨', key: 'Scared' },
+    // { text: t('Emotions.Afraid'), emoji: '😰', key: 'Afraid' },
+    // { text: t('Emotions.Surprised'), emoji: '😲', key: 'Surprised' },
+    // { text: t('Emotions.Amazed'), emoji: '😍', key: 'Amazed' },
+    // { text: t('Emotions.Bored'), emoji: '😴', key: 'Bored' }
+    
+    { text: t('Emotions.Happy'), emoji: '😊', key: '즐거웠다' },
+    { text: t('Emotions.Joyful'), emoji: '😄', key: '기뻤다' },
+    { text: t('Emotions.Loved'), emoji: '🥰', key: '행복했다' },
+    { text: t('Emotions.Excited'), emoji: '🤩', key: '신났다' },
+    { text: t('Emotions.Sad'), emoji: '😢', key: '슬펐다' },
+    { text: t('Emotions.Angry'), emoji: '😠', key: '화났다' },
+    { text: t('Emotions.Upset'), emoji: '😞', key: '속상했다' },
+    { text: t('Emotions.Scared'), emoji: '😨', key: '무서웠다' },
+    { text: t('Emotions.Afraid'), emoji: '😰', key: '두려웠다' },
+    { text: t('Emotions.Surprised'), emoji: '😲', key: '놀랐다' },
+    { text: t('Emotions.Amazed'), emoji: '😍', key: '감탄했다' },
+    { text: t('Emotions.Bored'), emoji: '😴', key: '지루했다' }
   ];
 
 
@@ -62,8 +75,8 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
         };
       case MessageIntent.PromptRevision2Confirm:
         return {
-          left: {label: t('ChatInput.ButtonLabels.No'), intent: MessageIntent.AnswerNegative},
-          right: {label: t('ChatInput.ButtonLabels.Yes'), intent: MessageIntent.AnswerPositive},
+          left: {label: t('ChatInput.ButtonLabels.Yes'), intent: MessageIntent.AnswerNegative},
+          right: {label: t('ChatInput.ButtonLabels.No'), intent: MessageIntent.AnswerPositive},
         };
       case MessageIntent.TransitionToTitle:
         return {
@@ -258,7 +271,8 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
           {selectedEmotions.length > 0 && (
             <View className="mt-3 items-center">
               <Text className="text-gray-600 text-lg mb-2" style={styleTemplates.withSemiboldFont}>
-                Selected emotions: {selectedEmotions.join(', ')}
+                {/* Selected emotions: {selectedEmotions.join(', ')} */}
+                선택된 감정: {selectedEmotions.join(', ')}
               </Text>
               <TouchableOpacity
                 onPress={handleEmotionComplete}
@@ -276,7 +290,8 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
                 }}
               >
                 <Text className="text-white text-lg text-center" style={styleTemplates.withBoldFont}>
-                  Done
+                  {/* Done */}
+                  선택 완료
                 </Text>
               </TouchableOpacity>
             </View>
