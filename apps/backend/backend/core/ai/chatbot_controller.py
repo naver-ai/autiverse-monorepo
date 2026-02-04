@@ -5,8 +5,8 @@ from backend.database.crud.chatbot import (
     create_journal, get_journal, update_journal_data, 
     get_messages_by_journal_entry, delete_journal_entry, reset_journal_entry
 )
-from backend.database.models import JournalEntryStage, JournalEntryStatus, MessageRole, JournalingSessionInfo, ChatMessage, ComicData, MessageIntent
-from backend.core.ai.pipelines import ComicIntroStage, Revision1Stage, ComicContextStage, Revision2Stage, TitleStage
+from backend.database.models import JournalEntryStage, JournalEntryStatus, MessageRole, JournalingSessionInfo, ChatMessage, ComicData, MessageIntent, UserLocale
+from backend.core.ai.pipelines import ComicIntroStage, ComicIntroStageEng, Revision1Stage, Revision1StageEng, ComicContextStage, ComicContextStageEng, Revision2Stage, Revision2StageEng, TitleStage, TitleStageEng
 
 class ChatbotController:
     def __init__(self, db: AsyncSession):
@@ -32,8 +32,9 @@ class ChatbotController:
         from backend.database.crud.chatbot import create_comic
         await create_comic(self.db, journal_entry.id, journal.id, dyad_id)
         
-        # comic intro 단계 시작
-        intro_stage = await ComicIntroStage.create(self.db, journal_entry.id)
+        # comic intro 단계 시작 (dyad.locale에 따라 kr/eng 선택)
+        IntroStageClass = ComicIntroStageEng if dyad.locale == UserLocale.English else ComicIntroStage
+        intro_stage = await IntroStageClass.create(self.db, journal_entry.id)
         initial_message = await intro_stage.start_conversation(location, people)
         
         return {
@@ -62,8 +63,9 @@ class ChatbotController:
         from ...database.crud.chatbot import create_comic
         await create_comic(self.db, journal_entry.id, journal.id, dyad_id)
         
-        # comic intro 단계 시작 (suggestion 모드)
-        intro_stage = await ComicIntroStage.create(self.db, journal_entry.id)
+        # comic intro 단계 시작 (suggestion 모드, dyad.locale에 따라 kr/eng 선택)
+        IntroStageClass = ComicIntroStageEng if dyad.locale == UserLocale.English else ComicIntroStage
+        intro_stage = await IntroStageClass.create(self.db, journal_entry.id)
         initial_message = await intro_stage.start_conversation_with_suggestion()
         
         return {
@@ -96,8 +98,13 @@ class ChatbotController:
             raise ValueError(f"Unknown stage: {current_stage}")
     
     async def _handle_intro_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
-        """인트로 단계 처리"""
-        intro_stage = await ComicIntroStage.create(self.db, journal_entry_id)
+        """인트로 단계 처리 (dyad.locale에 따라 kr/eng 선택)"""
+        journal_entry = await get_journal_entry(self.db, journal_entry_id)
+        if not journal_entry:
+            raise ValueError("Journal entry not found")
+        dyad = await get_dyad_by_id(self.db, journal_entry.dyad_id)
+        IntroStageClass = ComicIntroStageEng if dyad.locale == UserLocale.English else ComicIntroStage
+        intro_stage = await IntroStageClass.create(self.db, journal_entry_id)
         
         # 메시지 처리 (audio_filename 포함)
         intro_response_message = await intro_stage.process_message(message, intent, audio_filename)
@@ -113,8 +120,10 @@ class ChatbotController:
             if messages and messages[-1].role == MessageRole.Assistant:
                 await delete_message(self.db, messages[-1].id)
             
-            # revision_1 단계로 전환
-            revision_stage = await Revision1Stage.create(self.db, journal_entry_id)
+            # revision_1 단계로 전환 (dyad.locale에 따라 kr/eng 선택)
+            dyad = await get_dyad_by_id(self.db, journal_entry.dyad_id)
+            Revision1StageClass = Revision1StageEng if dyad.locale == UserLocale.English else Revision1Stage
+            revision_stage = await Revision1StageClass.create(self.db, journal_entry_id)
             response_message = await revision_stage.start_revision()
             
             return {
@@ -155,8 +164,11 @@ class ChatbotController:
             return await self._handle_revision_2_stage(journal_entry_id, message, intent, audio_filename)
     
     async def _handle_revision_1_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
-        """revision_1 단계 처리"""
-        revision_stage = await Revision1Stage.create(self.db, journal_entry_id)
+        """revision_1 단계 처리 (dyad.locale에 따라 kr/eng 선택)"""
+        journal_entry = await get_journal_entry(self.db, journal_entry_id)
+        dyad = await get_dyad_by_id(self.db, journal_entry.dyad_id)
+        Revision1StageClass = Revision1StageEng if dyad.locale == UserLocale.English else Revision1Stage
+        revision_stage = await Revision1StageClass.create(self.db, journal_entry_id)
         message = await revision_stage.process_message(message, intent, audio_filename)
         
         return {
@@ -167,8 +179,11 @@ class ChatbotController:
         }
     
     async def _handle_comic_context_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
-        """comic_context 단계 처리"""
-        context_stage = await ComicContextStage.create(self.db, journal_entry_id)
+        """comic_context 단계 처리 (dyad.locale에 따라 kr/eng 선택)"""
+        journal_entry = await get_journal_entry(self.db, journal_entry_id)
+        dyad = await get_dyad_by_id(self.db, journal_entry.dyad_id)
+        ContextStageClass = ComicContextStageEng if dyad.locale == UserLocale.English else ComicContextStage
+        context_stage = await ContextStageClass.create(self.db, journal_entry_id)
         context_response_message = await context_stage.process_message(message, intent, audio_filename)
         
         # focus panel 정보는 message의 metadata에서 가져오기
@@ -188,11 +203,14 @@ class ChatbotController:
         }
     
     async def _handle_revision_2_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
-        """revision_2 단계 처리"""
+        """revision_2 단계 처리 (dyad.locale에 따라 kr/eng 선택)"""
         print(f"[DEBUG] _handle_revision_2_stage: message={message.strip()}, intent={intent}")
+        journal_entry = await get_journal_entry(self.db, journal_entry_id)
+        dyad = await get_dyad_by_id(self.db, journal_entry.dyad_id)
+        Revision2StageClass = Revision2StageEng if dyad.locale == UserLocale.English else Revision2Stage
         if intent == MessageIntent.AnswerNext:
             # 사용자 메시지를 DB에 저장
-            revision2_stage = await Revision2Stage.create(self.db, journal_entry_id)
+            revision2_stage = await Revision2StageClass.create(self.db, journal_entry_id)
             interaction_turn = await revision2_stage._get_or_create_interaction_turn(JournalEntryStage.Revision2)
             
             from backend.database.crud.chatbot import create_message
@@ -204,8 +222,9 @@ class ChatbotController:
                 intent=intent
             )
             
-            # title stage 시작
-            self.title_stage = await TitleStage.create(self.db, journal_entry_id)
+            # title stage 시작 (dyad.locale에 따라 kr/eng 선택)
+            TitleStageClass = TitleStageEng if dyad.locale == UserLocale.English else TitleStage
+            self.title_stage = await TitleStageClass.create(self.db, journal_entry_id)
             title_response_message = await self.title_stage.start_title_selection()
             
             return {
@@ -216,7 +235,7 @@ class ChatbotController:
                 "stage": "title"
             }
         
-        revision2_stage = await Revision2Stage.create(self.db, journal_entry_id)
+        revision2_stage = await Revision2StageClass.create(self.db, journal_entry_id)
         response_message = await revision2_stage.process_message(message, intent, audio_filename)
         
         return {
@@ -229,10 +248,12 @@ class ChatbotController:
 
     
     async def _handle_title_stage(self, journal_entry_id: str, message: str, intent: MessageIntent | None = None, audio_filename: str = None) -> Dict[str, Any]:
-        """title 단계 처리 (제목 정하기)"""
+        """title 단계 처리 (제목 정하기, dyad.locale에 따라 kr/eng 선택)"""
         if not self.title_stage:
-            # TitleStage 인스턴스가 없으면 새로 생성
-            self.title_stage = await TitleStage.create(self.db, journal_entry_id)
+            journal_entry = await get_journal_entry(self.db, journal_entry_id)
+            dyad = await get_dyad_by_id(self.db, journal_entry.dyad_id)
+            TitleStageClass = TitleStageEng if dyad.locale == UserLocale.English else TitleStage
+            self.title_stage = await TitleStageClass.create(self.db, journal_entry_id)
         
         title_response_message = await self.title_stage.process_message(message, intent, audio_filename)
         

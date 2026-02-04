@@ -4,17 +4,17 @@ import Fuse from 'fuse.js';
 
 const EMOTION_EMOJIS = [
     { text: ['즐거웠다', '즐거움', '즐겁다', 'happy'], emoji: '😊' },
-    { text: ['기뻤다', '기분좋다', '기분좋음'], emoji: '😄' },
-    { text: ['행복했다', '행복함', '행복'], emoji: '🥰' },
-    { text: ['신났다', '신남', '신난다'], emoji: '🤩' },
-    { text: ['슬펐다', '슬픔', '슬프다'], emoji: '😢' },
-    { text: ['화났다', '화남', '화난다', '화나다'], emoji: '😠' },
-    { text: ['속상했다', '속상함', '속상한', '속상하다'], emoji: '😞' },
-    { text: ['무서웠다', '무서움', '무서운', '무섭다'], emoji: '😨' },
-    { text: ['두려웠다', '두려움', '두렵다'], emoji: '😰' },
-    { text: ['놀랬다', '놀람', '놀라움', '놀라다', '놀랍다', '놀랐다'], emoji: '😲' },
-    { text: ['감탄했다', '감탄하다', '감탄'], emoji: '😍' },
-    { text: ['지루했다', '지루함', '지루하다'], emoji: '😴' }
+    { text: ['기뻤다', '기쁨', '기쁘다', '기분좋다', '기분좋음', 'joyful'], emoji: '😄' },
+    { text: ['행복했다', '행복함', '행복', 'loved'], emoji: '🥰' },
+    { text: ['신났다', '신남', '신난다', 'excited'], emoji: '🤩' },
+    { text: ['슬펐다', '슬픔', '슬프다', 'sad'], emoji: '😢' },
+    { text: ['화났다', '화남', '화난다', '화나다', 'angry'], emoji: '😠' },
+    { text: ['속상했다', '속상함', '속상한', '속상하다', 'upset'], emoji: '😞' },
+    { text: ['무서웠다', '무서움', '무서운', '무섭다', 'scared'], emoji: '😨' },
+    { text: ['두려웠다', '두려움', '두렵다', 'afraid'], emoji: '😰' },
+    { text: ['놀랬다', '놀람', '놀라움', '놀라다', '놀랍다', '놀랐다', 'surprised'], emoji: '😲' },
+    { text: ['감탄했다', '감탄하다', '감탄', 'amazed'], emoji: '😍' },
+    { text: ['지루했다', '지루함', '지루하다', 'bored'], emoji: '😴' }
 ]
 
 function disassembleToSequence(text: string): Array<string> {
@@ -30,6 +30,12 @@ const EMOTION_EMOJI_MAP_ESCAPED: Array<{sequence: Array<string>, emoji: string}>
 }).flat();
 
 export const getEmojiFromEmotion = (emotion: string): string | undefined => {
+    const trimmed = emotion.trim();
+    // 정확히 일치하는 경우(한국어/영어) 먼저 조회해 이모지 반환
+    const lower = trimmed.toLowerCase();
+    for (const e of EMOTION_EMOJIS) {
+        if (e.text.some((t) => t.toLowerCase() === lower)) return e.emoji;
+    }
     const emotionSequence = disassembleToSequence(emotion);
     
     // Create a searchable array from EMOTION_EMOJI_MAP_ESCAPED

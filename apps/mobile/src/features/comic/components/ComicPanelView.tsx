@@ -114,8 +114,8 @@ export const ComicPanelView = memo(({
                       );
                     }
 
-                    // figure 타입이면 Pawn 컴포넌트 표시
-                    if (tile.type === 'figure' || tile.content === '나') {
+                    // figure 타입이면 Pawn 컴포넌트 표시 (한국어 '나' / 영어 'Me' = dyad child)
+                    if (tile.type === 'figure' || tile.content === '나' || tile.content === 'Me') {
                       return (
                         <View
                           key={`${x}-${y}`}

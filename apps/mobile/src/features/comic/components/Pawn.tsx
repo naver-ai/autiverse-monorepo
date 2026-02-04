@@ -15,7 +15,8 @@ import { styleTemplates } from '../../../styles';
 import Color from 'color';
 import { COMIC_STYLE_MAP, ComicContext, useComicStyle, useGetFigureColor } from '../styles';
 import { useContext } from 'react';
-import { ComicGridItem, getEmojiFromEmotion } from '@autiverse-monorepo/ts-core';
+import { ComicGridItem, getEmojiFromEmotion, UserLocale } from '@autiverse-monorepo/ts-core';
+import { useDyad } from '../../../api/dyad';
 
 const PAWN_SVG_PIVOT_X = 55.13 / 2;
 const PAWN_SVG_PIVOT_Y = 53;
@@ -31,13 +32,20 @@ export function Pawn({
 }) {
 
   const {comicStyle, comicGridSize} = useComicStyle();
-
+  const { locale } = useDyad();
   const getFigureColor = useGetFigureColor();
 
   // Calculate scale factor based on bodyWidth relative to pivot width
   const scale = bodyWidth / PAWN_SVG_PIVOT_WIDTH;
 
-  const emotions = item.action?.filter((action) => action.type === 'emotion');
+  const emotions = (item.action?.filter((action) => action.type === 'emotion') ?? []).flatMap(
+    (action) =>
+      action.content
+        .split(/\s*,\s*|\s+and\s+/i)
+        .map((s) => s.replace(/^\s*and\s+/i, '').replace(/\s+and\s*$/i, '').trim())
+        .filter((s) => s && s.toLowerCase() !== 'and')
+        .map((content) => ({ ...action, content }))
+  );
 
   const bandColor = getFigureColor(item);
 
@@ -72,8 +80,8 @@ export function Pawn({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            left: bodyPositionX - bodyWidth / 2,
-            right: bodyPositionX - bodyWidth / 2,
+            left: bodyPositionX - bodyWidth,
+            right: bodyPositionX - bodyWidth,
             bottom: scaledHeight + 2, // 피규어 머리 위에 위치 (bottom 기준)
           }}
         >
@@ -84,16 +92,24 @@ export function Pawn({
                 key={index}
                 style={{
                   backgroundColor: Color(bandColor).alpha(0.5).rgb().string(),
-                  padding: 4,
-                  borderRadius: 8,
-                  marginBottom: 2,
-                  fontSize: comicStyle.emotionFontSize,
+                  paddingVertical: 2,
+                  paddingHorizontal: 6,
+                  borderRadius: 5,
+                  marginBottom: 1,
+                  fontSize: Math.max(8, comicStyle.emotionFontSize - 1),
                   textAlign: 'center',
                   color: 'black',
                   ...styleTemplates.withSemiboldFont,
                 }}
               >
-                {getEmojiFromEmotion(action.content)} {action.content}
+                {(() => {
+                const emoji = getEmojiFromEmotion(action.content.trim().toLowerCase());
+                const label =
+                  locale === UserLocale.English
+                    ? action.content.trim().toLowerCase().replace(/^\w/, (c) => c.toUpperCase())
+                    : action.content.trim();
+                return emoji ? `${emoji} ${label}` : label;
+              })()}
               </Text>
             ))}
           <Text

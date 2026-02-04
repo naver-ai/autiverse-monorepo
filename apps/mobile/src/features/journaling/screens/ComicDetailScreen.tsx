@@ -6,6 +6,8 @@ import { GridView } from '../../../components/GridView';
 import { styleTemplates } from '../../../styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ComicElementSize } from '../../comic/styles';
+import { UserLocale } from '@autiverse-monorepo/ts-core';
+import { useDyad } from '../../../api/dyad';
 
 const { width } = Dimensions.get('window');
 
@@ -38,8 +40,12 @@ function getKoreanSubjectParticle(name: string): string {
   return '가';
 }
 
+const DAY_NAMES_KO = ['일', '월', '화', '수', '목', '금', '토'];
+const DAY_NAMES_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 export default function ComicDetailScreen() {
   const router = useRouter();
+  const { locale } = useDyad();
   const { comicId, panels, revision2, childName, agentName, createdAt, title } = useLocalSearchParams();
   
   const panelsData = panels ? JSON.parse(panels as string) : [];
@@ -48,16 +54,19 @@ export default function ComicDetailScreen() {
   const agentNameStr = agentName as string || '친구';
   const titleStr = title as string || '';
   
+  const dayNames = locale === UserLocale.English ? DAY_NAMES_EN : DAY_NAMES_KO;
   // 만화 생성 날짜
   const comicDate = createdAt ? new Date(createdAt as string) : new Date();
   const month = comicDate.getMonth() + 1;
   const day = comicDate.getDate();
-  const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][comicDate.getDay()];
+  const dayOfWeek = dayNames[comicDate.getDay()];
   
-  // 제목 결정: title이 있으면 사용, 없으면 기본 형식 사용
-  const baseTitle = titleStr && titleStr.trim() !== '' 
-    ? titleStr 
-    : `${childNameStr}${getKoreanParticle(childNameStr)} ${agentNameStr}${getKoreanSubjectParticle(agentNameStr)} 함께 쓴 그림일기`;
+  // 제목 결정: title이 있으면 사용, 없으면 locale에 따라 기본 형식 사용
+  const baseTitle = titleStr && titleStr.trim() !== ''
+    ? titleStr
+    : locale === UserLocale.English
+      ? `Comic Diary by ${childNameStr} and ${agentNameStr}`
+      : `${childNameStr}${getKoreanParticle(childNameStr)} ${agentNameStr}${getKoreanSubjectParticle(agentNameStr)} 함께 쓴 그림일기`;
   
   // 헤더에 표시할 제목: 날짜 + 제목
   const displayTitle = `[${month}/${day} (${dayOfWeek})] ${baseTitle}`;

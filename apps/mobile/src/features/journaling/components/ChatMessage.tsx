@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
+// @ts-ignore
+import format from 'string-format';
 import { styleTemplates } from '../../../styles';
 import { useSpeech } from '../utils';
 import { getTTSOptionsFromAgentConfig } from '../utils/speechUtils';
@@ -9,6 +12,8 @@ import { useJournalingStore } from '../store';
 import { useSpeechAnimation } from '../hooks/useSpeechAnimation';
 import Reanimated from 'react-native-reanimated';
 import { AnimatedText } from '../../../components/AnimatedText';
+import { UserLocale } from '@autiverse-monorepo/ts-core';
+import { useDyad } from '../../../api/dyad';
 
 interface ChatMessageProps {
   journalEntryId: string;
@@ -30,7 +35,9 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
   onTTSStart,
   onTTSComplete
 }) => {
-
+  const { t } = useTranslation();
+  const { locale } = useDyad();
+  const charInterval = locale === UserLocale.English ? 60 : 100;
   const {isSendingMessage, setIsInputActive, isInputActive} = useJournalingStore();
 
   const {startSpeech} = useSpeech()
@@ -46,7 +53,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
 
   const sentences = useMemo(() => {
     return lastBotMessage?.text
-      .split(/(?<=[.!?])\s+(?=[가-힣0-9])|\s+(?=\d+\))|(?<=[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}])\s+/u)
+      .split(/(?<=[.!?])\s+(?=[가-힣0-9a-zA-Z])|\s+(?=\d+\))|(?<=[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}])\s+/u)
       .filter(sentence => sentence.trim().length > 0);
   }, [lastBotMessage?.text]);
 
@@ -110,7 +117,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           <View className="bg-white border border-gray-200 p-3 rounded-lg self-start">
             <View className="flex-row items-center">
               <ActivityIndicator size="small" color="#666" />
-              <Text className="text-gray-600 ml-2 text-lg" style={styleTemplates.withSemiboldFont}>{agentName}가 생각 중...</Text>
+              <Text className="text-gray-600 ml-2 text-lg" style={styleTemplates.withSemiboldFont}>{format(t('Chat.ThinkingTemplate'), { agentName })}</Text>
             </View>
           </View>
         </View>
@@ -138,14 +145,13 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           </Reanimated.View>
           <View className="flex-1">
             {sentences?.map((sentence, index) => {
-              // 앞 문장들의 글자수 * charInterval의 합 + 문장 간격을 계산 (이모지 포함)
+              // 앞 문장들의 글자수 * charInterval의 합 + 문장 간격을 계산 (이모지 포함, locale에 따라 속도 반영)
               const previousDelay = sentences
                 .slice(0, index)
                 .reduce((total, prevSentence) => {
-                  // Array.from()을 사용하여 이모지를 포함한 정확한 글자 수 계산
                   const charCount = Array.from(prevSentence.trim()).length;
-                  return total + (charCount * 100);
-                }, 0) + (index * 400); // 문장별 100ms 간격 추가
+                  return total + (charCount * charInterval);
+                }, 0) + (index * 400); // 문장별 400ms 간격 추가
               
               return (
                 <AnimatedText 
@@ -154,7 +160,7 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
                     style={ttsBorderColorStyle}
                     text={sentence.trim()}
                     initialDelay={previousDelay}
-                    charInterval={100}
+                    charInterval={charInterval}
                     textClassName="text-xl leading-8 text-gray-800"
                     textStyle={styleTemplates.withSemiboldFont}
                   />

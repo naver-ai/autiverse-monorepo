@@ -16,11 +16,11 @@
     },
     "Home": {
         "ViewPastDiaries": "View Past Diaries",
-        "WriteDiary": "Write Diary",
+        "WriteDiary": "Start",
         "ContinueModal": {
-            "Message": "Would you like to continue the unfinished comic diary?",
-            "Continue": "Yes, let's continue!",
-            "StartNew": "No, I want to write a new one!"
+            "Message": "Continue the unfinished comic diary?",
+            "Continue": "Yes, continue!",
+            "StartNew": "No, a new one!"
         }
     },
     "Label": {
@@ -33,11 +33,11 @@
     },
     "Journaling": {
         "Header": {
-            "TitleTemplate": "Writing Diary with {agent_name}"
+            "TitleTemplate": "Writing Journal with {agent_name}"
         },
         "PresetSelection": {
-            "LocationSelectionMessage": "Where did you have an experience today that you'd like to write about in your comic diary?",
-            "PeopleSelectionMessageTemplate": "Who were you with at {location} when you had an experience you'd like to write about? You can choose multiple people, and if you want to talk about someone not on screen, just go to the next step!",
+            "LocationSelectionMessage": "Which place shall we write the journal about?",
+            "PeopleSelectionMessageTemplate": "Who shall we write the journal about from {location}? You can choose multiple people, and if you want to talk about someone not on screen, just move on the next step!",
             "DontKnowWhatToWrite": "I don't know what to write...",
             "IWantToWriteSomething": "I have something I want to write about today!",
             "NextStepTemplate": "Next step ({count} people selected)",
@@ -69,9 +69,9 @@
             "Loading": "Loading diary...",
             "NextButton": "Next",
             "NextButtonPrompt": "Please press the next button",
-            "Revision1Confirmation": "Great!:) Then I'll draw what you confirmed for me! Please wait a moment~",
-            "ComicContextComplete": "Thank you for answering my questions well. Thanks to {child_name}, I think I can fill in the missing parts! Please wait a moment~",
-            "Revision2Confirmation": "Thank you for answering my questions well. Thanks to you, I think I can fill in the missing parts! Please wait a moment~"
+            "Revision1Confirmation": "Great! Then I'll draw what you confirmed for me! Please wait a moment!",
+            "ComicContextComplete": "Thanks for answering my questions. Now I can draw in the rest of the panel! Just wait a little bit!",
+            "Revision2Confirmation": "Thanks for answering my questions. Now I can draw in the rest of the panel! Just wait a little bit!"
         },
         "UserResponses": {
             "No": ["No", "No"],
@@ -82,12 +82,12 @@
         },
         "DefaultTitleTemplate": "Comic Diary by {child_name} and {agent_name}",
         "FarewellSection": {
-            "MessageTemplate": "{child_name}, let's meet again next time and write a fun comic diary together. Goodbye~"
+            "MessageTemplate": "{child_name}, let's meet again next time and write a fun comic strip together. Goodbye!"
         },
         "PraiseSection": {
-            "FirstMessageTemplate": "Our {child_name}, you did a perfect job writing a comic diary today!!",
-            "SecondMessage": "Thank you for remembering today's events well, answering questions well, and waiting for me to draw pictures~",
-            "StampMessage": "Let's finish by popping the stamps below~"
+            "FirstMessageTemplate": "{child_name}, you did a perfect job making a journal today!!",
+            "SecondMessage": "Thank you for remembering today's events well, answering my questions, and waiting for me to draw pictures!",
+            "StampMessage": "Let's finish by popping the stamps below!"
         },
         "Common": {
             "DefaultChildName": "Friend",
@@ -102,12 +102,14 @@
         "Placeholder": "Please enter your message.",
         "ChatButton": "Press and hold to input via chat",
         "SendButton": "Send",
-        "VoiceCompleteButton": "I'm done talking",
+        "VoiceCompleteButton": "All done",
         "SubmittingMessage": "Sending message...",
-        "LoadingMessage": "Thinking of a response..."
+        "LoadingMessage": "Thinking of a response...",
+        "ThinkingTemplate": "{agentName} is thinking..."
     },
     "ChatStage": {
         "DefaultComicMessage": "I'll draw a 4-panel comic here with what you told me!",
+        "DrawingInProgress": "I'm working hard on the drawing!",
         "EndSession": "Do it again next time",
         "ProgressCompleteTemplate": "{progress}% complete",
         "ChatHeaderTemplate": "💬 Chat with {agent_name}"
@@ -133,6 +135,22 @@
             "NoOther": "No, something else",
             "YesGood": "Yes, good!",
             "NotGoodAtAll": "All are bad"
+        },
+        "EmotionButtons": {
+            "Happy": "Happy",
+            "Joyful": "Joyful",
+            "Loved": "Loved",
+            "Excited": "Excited",
+            "Sad": "Sad",
+            "Angry": "Angry",
+            "Upset": "Upset",
+            "Scared": "Scared",
+            "Afraid": "Afraid",
+            "Surprised": "Surprised",
+            "Amazed": "Amazed",
+            "Bored": "Bored",
+            "SelectedLabel": "Selected emotions",
+            "Done": "Done"
         },
         "VoiceRecording": {
             "StartError": "Unable to start voice recording.",

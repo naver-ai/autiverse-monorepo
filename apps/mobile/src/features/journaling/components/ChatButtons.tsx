@@ -24,21 +24,21 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
 
   const {t} = useTranslation();
 
-  const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
+  const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]); // emotion keys e.g. 'Happy', 'Surprised'
 
-  const emotionButtons = [
-    { text: '즐거웠다', emoji: '😊' },
-    { text: '기뻤다', emoji: '😄' },
-    { text: '행복했다', emoji: '🥰' },
-    { text: '신났다', emoji: '🤩' },
-    { text: '슬펐다', emoji: '😢' },
-    { text: '화났다', emoji: '😠' },
-    { text: '속상했다', emoji: '😞' },
-    { text: '무서웠다', emoji: '😨' },
-    { text: '두려웠다', emoji: '😰' },
-    { text: '놀랐다', emoji: '😲' },
-    { text: '감탄했다', emoji: '😍' },
-    { text: '지루했다', emoji: '😴' }
+  const emotionButtonKeys: { key: string; emoji: string }[] = [
+    { key: 'Happy', emoji: '😊' },
+    { key: 'Joyful', emoji: '😄' },
+    { key: 'Loved', emoji: '🥰' },
+    { key: 'Excited', emoji: '🤩' },
+    { key: 'Sad', emoji: '😢' },
+    { key: 'Angry', emoji: '😠' },
+    { key: 'Upset', emoji: '😞' },
+    { key: 'Scared', emoji: '😨' },
+    { key: 'Afraid', emoji: '😰' },
+    { key: 'Surprised', emoji: '😲' },
+    { key: 'Amazed', emoji: '😍' },
+    { key: 'Bored', emoji: '😴' },
   ];
 
 
@@ -97,7 +97,8 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
 
   const handleEmotionComplete = () => {
     if (selectedEmotions.length > 0 && !isDisabled) {
-      sendMessage(selectedEmotions.join(', '), MessageIntent.AnswerEmotion);
+      const labels = selectedEmotions.map((key) => t(`ChatInput.EmotionButtons.${key}`));
+      sendMessage(labels.join(', '), MessageIntent.AnswerEmotion);
       setSelectedEmotions([]);
     }
   };
@@ -207,13 +208,14 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
         <View className="mb-4 p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
           {[0, 1, 2, 3].map((row) => (
             <View key={row} className="flex-row gap-2 mb-2">
-              {emotionButtons.slice(row * 3, (row + 1) * 3).map((emotion) => {
-                const isSelected = selectedEmotions.includes(emotion.text);
+              {emotionButtonKeys.slice(row * 3, (row + 1) * 3).map((emotion) => {
+                const label = t(`ChatInput.EmotionButtons.${emotion.key}`);
+                const isSelected = selectedEmotions.includes(emotion.key);
                 return (
                   <TouchableOpacity
-                    key={emotion.text}
+                    key={emotion.key}
                     className="flex-1"
-                    onPress={() => handleEmotionClick(emotion.text)}
+                    onPress={() => handleEmotionClick(emotion.key)}
                     disabled={isDisabled}
                     style={{
                       padding: 12,
@@ -231,9 +233,17 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
                       elevation: isSelected ? 4 : 2,
                     }}
                   >
-                    <Text className="text-white text-lg text-center" style={styleTemplates.withBoldFont}>
-                      {emotion.emoji} {emotion.text}
-                    </Text>
+                    <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
+                      <Text
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.5}
+                        className="text-white text-center"
+                        style={[styleTemplates.withBoldFont, { fontSize: 18, width: '100%' }]}
+                      >
+                        {emotion.emoji} {label}
+                      </Text>
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -243,7 +253,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
           {selectedEmotions.length > 0 && (
             <View className="mt-3 items-center">
               <Text className="text-gray-600 text-lg mb-2" style={styleTemplates.withSemiboldFont}>
-                선택된 감정: {selectedEmotions.join(', ')}
+                {t('ChatInput.EmotionButtons.SelectedLabel')}: {selectedEmotions.map((key) => t(`ChatInput.EmotionButtons.${key}`)).join(', ')}
               </Text>
               <TouchableOpacity
                 onPress={handleEmotionComplete}
@@ -261,7 +271,7 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
                 }}
               >
                 <Text className="text-white text-lg text-center" style={styleTemplates.withBoldFont}>
-                  선택 완료
+                  {t('ChatInput.EmotionButtons.Done')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -269,14 +279,13 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
         </View>
       )}
 
-      {/* 다음 버튼 - AI 말하는 박스와 동일한 스타일 */}
       {showNextButton && (
         <View className="flex-row justify-center mb-4">
           <TouchableOpacity
             className={`px-6 py-4 rounded-xl justify-center ${
               isDisabled ? 'bg-gray-400' : 'bg-blue-500'
             }`}
-            onPress={() => sendMessage('다음', MessageIntent.AnswerNext)}
+            onPress={() => sendMessage(t('Journaling.Messages.NextButton'), MessageIntent.AnswerNext)}
             disabled={isDisabled}
             style={{
               backgroundColor: isDisabled ? '#9CA3AF' : '#4A90E2',
@@ -289,7 +298,9 @@ export const ChatButtons: React.FC<ChatButtonsProps> = ({
               elevation: 3,
             }}
           >
-            <Text className="text-white text-2xl text-center" style={styleTemplates.withBoldFont}>다음</Text>
+            <Text className="text-white text-2xl text-center" style={styleTemplates.withBoldFont}>
+              {t('Journaling.Messages.NextButton')}
+            </Text>
           </TouchableOpacity>
         </View>
       )}

@@ -1,2 +1,3 @@
 from .chatbot_controller import ChatbotController
 from .pipelines.comic_grid_generator import ComicGridGenerator
+from .pipelines.comic_grid_generator_eng import ComicGridGeneratorEng

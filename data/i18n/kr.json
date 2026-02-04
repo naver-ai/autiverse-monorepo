@@ -104,10 +104,12 @@
         "SendButton": "보내기",
         "VoiceCompleteButton": "다 말했어",
         "SubmittingMessage": "메시지 보내는 중...",
-        "LoadingMessage": "답변을 생각중이야..."
+        "LoadingMessage": "답변을 생각중이야...",
+        "ThinkingTemplate": "{agentName}가 생각 중..."
     },
     "ChatStage": {
         "DefaultComicMessage": "네가 말해준 내용으로 내가 여기에 조금 이따 4컷 만화를 그릴거야~",
+        "DrawingInProgress": "열심히 그리고 있는 중~",
         "EndSession": "다음에 다시 하기",
         "ProgressCompleteTemplate": "{progress}% 완료",
         "ChatHeaderTemplate": "💬 {agent_name}와 대화하기"
@@ -133,6 +135,22 @@
             "NoOther": "아니, 다른 걸로",
             "YesGood": "응, 좋아!",
             "NotGoodAtAll": "다 별로야"
+        },
+        "EmotionButtons": {
+            "Happy": "즐거웠다",
+            "Joyful": "기뻤다",
+            "Loved": "행복했다",
+            "Excited": "신났다",
+            "Sad": "슬펐다",
+            "Angry": "화났다",
+            "Upset": "속상했다",
+            "Scared": "무서웠다",
+            "Afraid": "두려웠다",
+            "Surprised": "놀랐다",
+            "Amazed": "감탄했다",
+            "Bored": "지루했다",
+            "SelectedLabel": "선택된 감정",
+            "Done": "선택 완료"
         },
         "VoiceRecording": {
             "StartError": "음성 녹음을 시작할 수 없습니다.",
