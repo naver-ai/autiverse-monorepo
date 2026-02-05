@@ -59,9 +59,9 @@ class TitleStage:
             #     "title3": "Making Up with Oliver🤝"
             # } #- English
             hardcoded_titles = {
-                "title1": "충호에게 장난친 날😢",
-                "title2": "충호가 화난 날😠",
-                "title3": "충호랑 다투고 화해한 날🤝"
+                "title1": "은우에게 장난친 날😢",
+                "title2": "은우가 화난 날😠",
+                "title3": "은우랑 다투고 화해한 날🤝"
             } #- Korean
 
             # 첫 번째 질문 생성 (제목 3개 제시)
@@ -183,7 +183,7 @@ class TitleStage:
         # 하드코딩된 응답 사용
         if user_message in ["1", "2", "3"]:
             # response = "I'm glad you liked the title, 'The day I played a prank on Oliver'! Once you review the completed journal on the left, let's wrap up!" #- English
-            response = "'충호에게 장난친 날😢'이 마음에 들었구나! 다행이다:) 왼쪽에 완성된 일기 천천히 보고 다 확인했으면 다음 버튼을 눌러줘!" #- Korean
+            response = "'은우에게 장난친 날😢'이 마음에 들었구나! 다행이다:) 왼쪽에 완성된 일기 천천히 보고 다 확인했으면 다음 버튼을 눌러줘!" #- Korean
             response_intent = MessageIntent.PromptNext
         else:
             response = "그럼 어떤 제목으로 하고 싶어?"

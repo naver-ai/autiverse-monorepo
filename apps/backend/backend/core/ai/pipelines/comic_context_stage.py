@@ -250,11 +250,11 @@ You're having a friendly conversation with your autistic best friend, {self.chil
 
             fixed_comic_panels = {
                 "panel1": {
-                    "content": "나는 오늘 충호랑 학교에서 놀았다.",
+                    "content": "나는 오늘 은우랑 학교에서 놀았다.",
                     "place": "학교",
                     "grid": [
                         {"type": "figure", "content": "나", "position": [1, 2]},
-                        {"type": "figure", "content": "충호", "position": [2, 2]}
+                        {"type": "figure", "content": "은우", "position": [2, 2]}
                     ]
                 },
                 "panel2": {
@@ -263,10 +263,10 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                     "grid": []
                 },
                 "panel3": {
-                    "content": "충호는 기분이 안 좋았다.",
+                    "content": "은우는 기분이 안 좋았다.",
                     "place": "",
                     "grid": [
-                        {"type": "figure", "content": "충호", "position": [2, 2], "action": [{"type": "emotion", "content": "기분 안 좋음"}]}
+                        {"type": "figure", "content": "은우", "position": [2, 2], "action": [{"type": "emotion", "content": "기분 안 좋음"}]}
                     ]
                 },
                 "panel4": {
@@ -336,37 +336,37 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                     "panel_updates": {}
                 },
                 {
-                    "message": "학교에서 충호랑 놀았다니 재미있었겠다! 😄 충호랑 뭐하고 놀았어?",
+                    "message": "학교에서 은우랑 놀았다니 재미있었겠다! 😄 은우랑 뭐하고 놀았어?",
                     "focused_panel": "panel2",
                     "panel_updates": {}
                 },
                 {
-                    "message": "지우개 가지고 노는 거 진짜 재밌었겠다! 😄 그런데 무슨 일이 있었길래 충호 기분이 안 좋아졌어? 지우개 때문이었어? 아니면 다른 일이 있었어?",
+                    "message": "지우개 가지고 노는 거 진짜 재밌었겠다! 😄 그런데 무슨 일이 있었길래 은우 기분이 안 좋아졌어? 지우개 때문이었어, 아니면 다른 일이 있었어?",
                     "focused_panel": "panel2",
                     "panel_updates": {
-                        "panel2": "나는 충호랑 지우개를 가지고 놀았다."
+                        "panel2": "나는 은우랑 지우개를 가지고 놀았다."
                     }
                 },
                 {
-                    "message": "충호 지우개를 뭐 하는 데 썼어? 그냥 잠깐 뭐를 지운거야? 아니면 다른 것도 했어?",
+                    "message": "은우 지우개를 뭐 하는 데 썼어? 그냥 잠깐 뭐를 지운거야? 아니면 다른 것도 했어?",
                     "focused_panel": "panel2",
                     "panel_updates": {
-                        "panel1": "나는 충호랑 학교에서 지우개를 가지고 놀았다.",
-                        "panel2": "나는 충호한테 물어보지도 않고 충호 지우개를 썼다."
+                        "panel1": "나는 은우랑 학교에서 지우개를 가지고 놀았다.",
+                        "panel2": "나는 은우한테 물어보지도 않고 은우 지우개를 썼다."
                     }
                 },
                 {
-                    "message": "아, 그랬구나! 네가 지우개 던지는 걸 보고 충호는 어떤 반응을 보였어? 화를 냈어? 아니면 어떤 말을 했어?",
+                    "message": "아, 그랬구나! 네가 지우개 던지는 걸 보고 은우는 어떤 반응을 보였어? 화를 냈어, 아니면 어떤 말을 했어?",
                     "focused_panel": "panel3",
                     "panel_updates": {
-                        "panel2": "나는 충호한테 물어보지도 않고 충호 지우개를 던졌다."
+                        "panel2": "나는 은우한테 물어보지도 않고 은우 지우개를 던졌다."
                     }
                 },
                 {
-                    "message": "아, 충호가 화났구나.. 😥 충호가 화를 내고 선생님께 말씀드렸을 때 네 기분은 어땠어?",
+                    "message": "아, 은우가 화났구나.. 😥 은우가 화를 내고 선생님께 말씀드렸을 때 네 기분은 어땠어?",
                     "focused_panel": "panel4",
                     "panel_updates": {
-                        "panel3": "충호가 화를 내고 선생님께 말씀드렸다."
+                        "panel3": "은우가 화를 내고 선생님께 말씀드렸다."
                     }
                 }
             ]
@@ -487,37 +487,37 @@ You're having a friendly conversation with your autistic best friend, {self.chil
                     "panel_updates": {}
                 },
                 {
-                    "message": "학교에서 충호랑 놀았다니 재미있었겠다! 😄 충호랑 뭐하고 놀았어?",
+                    "message": "학교에서 은우랑 놀았다니 재미있었겠다! 😄 은우랑 뭐하고 놀았어?",
                     "focused_panel": "panel2",
                     "panel_updates": {}
                 },
                 {
-                    "message": "지우개 가지고 노는 거 진짜 재밌었겠다! 😄 그런데 무슨 일이 있었길래 충호 기분이 안 좋아졌어? 지우개 때문이었어? 아니면 다른 일이 있었어?",
+                    "message": "지우개 가지고 노는 거 진짜 재밌었겠다! 😄 그런데 무슨 일이 있었길래 은우 기분이 안 좋아졌어? 지우개 때문이었어, 아니면 다른 일이 있었어?",
                     "focused_panel": "panel2",
                     "panel_updates": {
-                        "panel2": "나는 충호랑 지우개를 가지고 놀았다."
+                        "panel2": "나는 은우랑 지우개를 가지고 놀았다."
                     }
                 },
                 {
-                    "message": "충호 지우개를 뭐 하는 데 썼어? 그냥 잠깐 뭐를 지운거야? 아니면 다른 것도 했어?",
+                    "message": "은우 지우개를 뭐 하는 데 썼어? 그냥 잠깐 뭐를 지운거야, 아니면 다른 것도 했어?",
                     "focused_panel": "panel2",
                     "panel_updates": {
-                        "panel1": "나는 충호랑 학교에서 지우개를 가지고 놀았다.",
-                        "panel2": "나는 충호한테 물어보지도 않고 충호 지우개를 썼다."
+                        "panel1": "나는 은우랑 학교에서 지우개를 가지고 놀았다.",
+                        "panel2": "나는 은우한테 물어보지도 않고 은우 지우개를 썼다."
                     }
                 },
                 {
-                    "message": "아, 그랬구나! 네가 지우개 던지는 걸 보고 충호는 어떤 반응을 보였어? 화를 냈어? 아니면 어떤 말을 했어?",
+                    "message": "아, 그랬구나! 네가 지우개 던지는 걸 보고 은우는 어떤 반응을 보였어? 화를 냈어, 아니면 어떤 말을 했어?",
                     "focused_panel": "panel3",
                     "panel_updates": {
-                        "panel2": "나는 충호한테 물어보지도 않고 충호 지우개를 던졌다."
+                        "panel2": "나는 은우한테 물어보지도 않고 은우 지우개를 던졌다."
                     }
                 },
                 {
-                    "message": "아, 충호가 화났구나.. 😥 충호가 화를 내고 선생님께 말씀드렸을 때 네 기분은 어땠어?",
+                    "message": "아, 은우가 화났구나.. 😥 은우가 화를 내고 선생님께 말씀드렸을 때 네 기분은 어땠어?",
                     "focused_panel": "panel4",
                     "panel_updates": {
-                        "panel3": "충호가 화를 내고 선생님께 말씀드렸다."
+                        "panel3": "은우가 화를 내고 선생님께 말씀드렸다."
                     }
                 }
             ]
@@ -1663,9 +1663,9 @@ Please generate a question that addresses the FIRST missing information gap."""
             
 
             panel_contents = {
-                "panel1": "나는 오늘 충호랑 학교에서 지우개를 가지고 놀았다.",
-                "panel2": "나는 충호한테 물어보지도 않고 충호 지우개를 썼다.",
-                "panel3": "충호가 화를 내고 선생님께 말씀드렸다.",
+                "panel1": "나는 오늘 은우랑 학교에서 지우개를 가지고 놀았다.",
+                "panel2": "나는 은우한테 물어보지도 않고 은우 지우개를 썼다.",
+                "panel3": "은우가 화를 내고 선생님께 말씀드렸다.",
                 "panel4": "나는 슬프고 무서웠다."
             } #- Korean 
             # 원래 로직 (주석 처리)

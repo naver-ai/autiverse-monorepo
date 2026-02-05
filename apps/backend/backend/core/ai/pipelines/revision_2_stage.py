@@ -143,16 +143,16 @@ class Revision2Stage:
 
         hardcoded_panels = {
             "panel1": {
-                "content": "나는 오늘 충호랑 학교에서 지우개를 가지고 놀았다.",
+                "content": "나는 오늘 은우랑 학교에서 지우개를 가지고 놀았다.",
                 "place": "학교",
                 "grid": [
                     {"type": "figure", "content": "나", "position": [1, 2]},
                     {"type": "object", "content": "지우개", "position": [2, 2]},
-                    {"type": "figure", "content": "충호", "position": [3, 2]}
+                    {"type": "figure", "content": "은우", "position": [3, 2]}
                 ]
             },
             "panel2": {
-                "content": "나는 충호한테 물어보지도 않고 충호 지우개를 썼다.",
+                "content": "나는 은우한테 물어보지도 않고 은우 지우개를 썼다.",
                 "place": "",
                 "grid": [
                     {"type": "figure", "content": "나", "position": [2, 2]},
@@ -160,10 +160,10 @@ class Revision2Stage:
                 ]
             },
             "panel3": {
-                "content": "충호가 화를 내고 선생님께 말씀드렸다.",
+                "content": "은우가 화를 내고 선생님께 말씀드렸다.",
                 "place": "",
                 "grid": [
-                    {"type": "figure", "content": "충호", "position": [1, 2], "action": [{"type": "emotion", "content": "화남"}, {"type": "tell", "content": "민준이가 물어보지도 않고 제 지우개 던졌어요!"}]},
+                    {"type": "figure", "content": "은우", "position": [1, 2], "action": [{"type": "emotion", "content": "화남"}, {"type": "tell", "content": "민준이가 물어보지도 않고 제 지우개 던졌어요!"}]},
                     {"type": "figure", "content": "선생님", "position": [3, 2]}
                 ]
             },
@@ -240,7 +240,7 @@ class Revision2Stage:
                 # 수정 완료, 완료 단계로
                 # 하드코딩된 마무리 메시지 사용
                 # completion_message = "So, you and Oliver had a falling out at school and hurt each other's feelings. It breaks my heart to hear that you felt sad and scared. I'll be rooting for better things to happen for you next time! Now let's press the 'Next' button and go choose a title for the journal!"
-                completion_message = "오늘 학교에서 충호랑 다퉈서 속상했겠다. 네가 슬프고 무서웠다니까 나까지 마음이 다 안 좋아..😥 다음번엔 분명히 다 잘 풀릴 거야! 내가 옆에서 응원할게! 이제 '다음' 버튼을 눌러서 오늘 일기의 제목을 고르러 가자!"
+                completion_message = "오늘 학교에서 은우랑 다퉈서 속상했겠다. 네가 슬프고 무서웠다니까 나까지 마음이 다 안 좋아..😥 다음번엔 분명히 다 잘 풀릴 거야! 내가 옆에서 응원할게! 이제 '다음' 버튼을 눌러서 오늘 일기의 제목을 고르러 가자!"
                 return completion_message, MessageIntent.TransitionToTitle
             else:
                 print(f"[DEBUG] revision_2: _generate_response: intent={user_intent}, Should not reach here!!")
@@ -265,10 +265,10 @@ class Revision2Stage:
                         # } #- English
                         
                         updated_panels["panel3"] = {
-                            "content": "충호가 화를 내고 선생님께 말씀드린 후 나는 충호에게 사과했다.",
+                            "content": "은우가 화를 내고 선생님께 말씀드린 후 나는 은우에게 사과했다.",
                             "place": "",
                             "grid": [
-                                {"type": "figure", "content": "충호", "position": [1, 2], "action": [{"type": "emotion", "content": "화남"}, {"type": "tell", "content": "민준이가 허락도 안 받고 제 지우개 던졌어요!"}]},
+                                {"type": "figure", "content": "은우", "position": [1, 2], "action": [{"type": "emotion", "content": "화남"}, {"type": "tell", "content": "민준이가 허락도 안 받고 제 지우개 던졌어요!"}]},
                                 {"type": "figure", "content": "선생님", "position": [3, 2]}
                             ]
                         }

@@ -106,9 +106,9 @@ class ChatbotController:
         #     "panel4": None
         # } #- English
         fixed_comic_panels = {
-            "panel1": "나는 오늘 충호랑 학교에서 놀았다.",
+            "panel1": "나는 오늘 은우랑 학교에서 놀았다.",
             "panel2": None,
-            "panel3": "충호는 기분이 안 좋았다.",
+            "panel3": "은우는 기분이 안 좋았다.",
             "panel4": None
         } #- Korean
         
@@ -119,8 +119,8 @@ class ChatbotController:
             self.db, journal_entry_id,
             # events=["I played with Oliver at school today.", "Oliver was in a bad mood."],
             # summary="I played with Oliver at school today. Oliver was in a bad mood.",#- English
-            events=["나는 오늘 충호랑 학교에서 놀았다.", "충호는 기분이 안 좋았다."],
-            summary="나는 오늘 충호랑 학교에서 놀았다. 충호는 기분이 안 좋았다.", #- Korean
+            events=["나는 오늘 은우랑 학교에서 놀았다.", "은우는 기분이 안 좋았다."],
+            summary="나는 오늘 은우랑 학교에서 놀았다. 은우는 기분이 안 좋았다.", #- Korean
             comic_intro=fixed_comic_panels
         )
         
@@ -148,8 +148,8 @@ class ChatbotController:
             "data": {
                 # "events": ["I played with Oliver at school today.", "Oliver was in a bad mood."],
                 # "summary": "I played with Oliver at school today. Oliver was in a bad mood.",
-                "events": ["나는 오늘 충호랑 학교에서 놀았다.", "충호는 기분이 안 좋았다."],
-                "summary": "나는 오늘 충호랑 학교에서 놀았다. 충호는 기분이 안 좋았다.", #- Korean
+                "events": ["나는 오늘 은우랑 학교에서 놀았다.", "은우는 기분이 안 좋았다."],
+                "summary": "나는 오늘 은우랑 학교에서 놀았다. 은우는 기분이 안 좋았다.", #- Korean
                 "panels": fixed_comic_panels
             }
         }
@@ -359,16 +359,16 @@ class ChatbotController:
 
                 current_panels = {
                     "panel1": {
-                        "content": "나는 오늘 충호랑 학교에서 지우개를 가지고 놀았다.",
+                        "content": "나는 오늘 은우랑 학교에서 지우개를 가지고 놀았다.",
                         "place": "학교",
                         "grid": [
                             {"type": "figure", "content": "나", "position": [1, 2]},
                             {"type": "object", "content": "지우개", "position": [2, 2]},
-                            {"type": "figure", "content": "충호", "position": [3, 2]}
+                            {"type": "figure", "content": "은우", "position": [3, 2]}
                         ]
                     },
                     "panel2": {
-                        "content": "나는 충호한테 물어보지도 않고 충호 지우개를 썼다.",
+                        "content": "나는 은우한테 물어보지도 않고 은우 지우개를 썼다.",
                         "place": "",
                         "grid": [
                             {"type": "figure", "content": "나", "position": [2, 2]},
@@ -376,10 +376,10 @@ class ChatbotController:
                         ]
                     },
                     "panel3": {
-                        "content": "충호가 화를 내고 선생님께 말씀드린 후 나는 충호에게 사과했다.",
+                        "content": "은우가 화를 내고 선생님께 말씀드린 후 나는 은우에게 사과했다.",
                         "place": "",
                         "grid": [
-                            {"type": "figure", "content": "충호", "position": [1, 2], "action": [{"type": "emotion", "content": "화남"}, {"type": "tell", "content": "민준이가 물어보지도 않고 제 지우개 던졌어요!"}]},
+                            {"type": "figure", "content": "은우", "position": [1, 2], "action": [{"type": "emotion", "content": "화남"}, {"type": "tell", "content": "민준이가 물어보지도 않고 제 지우개 던졌어요!"}]},
                             {"type": "figure", "content": "선생님", "position": [3, 2]}
                         ]
                     },
@@ -430,16 +430,16 @@ class ChatbotController:
                 # } #- English
                 current_panels = {
                     "panel1": {
-                        "content": "나는 오늘 충호랑 학교에서 지우개를 가지고 놀았다.",
+                        "content": "나는 오늘 은우랑 학교에서 지우개를 가지고 놀았다.",
                         "place": "학교",
                         "grid": [
                             {"type": "figure", "content": "나", "position": [1, 2]},
                             {"type": "object", "content": "지우개", "position": [2, 2]},
-                            {"type": "figure", "content": "충호", "position": [3, 2]}
+                            {"type": "figure", "content": "은우", "position": [3, 2]}
                         ]
                     },
                     "panel2": {
-                        "content": "나는 충호한테 물어보지도 않고 충호 지우개를 썼다.",
+                        "content": "나는 은우한테 물어보지도 않고 은우 지우개를 썼다.",
                         "place": "",
                         "grid": [
                             {"type": "figure", "content": "나", "position": [2, 2]},
@@ -447,10 +447,10 @@ class ChatbotController:
                         ]
                     },
                     "panel3": {
-                        "content": "충호가 화를 내고 선생님께 말씀드린 후 나는 충호에게 사과했다.",
+                        "content": "은우가 화를 내고 선생님께 말씀드린 후 나는 은우에게 사과했다.",
                         "place": "",
                         "grid": [
-                            {"type": "figure", "content": "충호", "position": [1, 2], "action": [{"type": "emotion", "content": "화남"}, {"type": "tell", "content": "민준이가 물어보지도 않고 제 지우개 던졌어요!"}]},
+                            {"type": "figure", "content": "은우", "position": [1, 2], "action": [{"type": "emotion", "content": "화남"}, {"type": "tell", "content": "민준이가 물어보지도 않고 제 지우개 던졌어요!"}]},
                             {"type": "figure", "content": "선생님", "position": [3, 2]}
                         ]
                     },
@@ -506,16 +506,16 @@ class ChatbotController:
                     # } #- English
                     current_panels = {
                         "panel1": {
-                            "content": "나는 오늘 충호랑 학교에서 지우개를 가지고 놀았다.",
+                            "content": "나는 오늘 은우랑 학교에서 지우개를 가지고 놀았다.",
                             "place": "학교",
                             "grid": [
                                 {"type": "figure", "content": "나", "position": [1, 2]},
                                 {"type": "object", "content": "지우개", "position": [2, 2]},
-                                {"type": "figure", "content": "충호", "position": [3, 2]}
+                                {"type": "figure", "content": "은우", "position": [3, 2]}
                             ]
                         },
                         "panel2": {
-                            "content": "나는 충호한테 물어보지도 않고 충호 지우개를 썼다.",
+                            "content": "나는 은우한테 물어보지도 않고 은우 지우개를 썼다.",
                             "place": "",
                             "grid": [
                                 {"type": "figure", "content": "나", "position": [2, 2]},
@@ -523,10 +523,10 @@ class ChatbotController:
                             ]
                         },
                         "panel3": {
-                            "content": "충호가 화를 내고 선생님께 말씀드렸다.",
+                            "content": "은우가 화를 내고 선생님께 말씀드렸다.",
                             "place": "",
                             "grid": [
-                                {"type": "figure", "content": "충호", "position": [1, 2], "action": [{"type": "emotion", "content": "화남"}, {"type": "tell", "content": "민준이가 물어보지도 않고 제 지우개 던졌어요!"}]},
+                                {"type": "figure", "content": "은우", "position": [1, 2], "action": [{"type": "emotion", "content": "화남"}, {"type": "tell", "content": "민준이가 물어보지도 않고 제 지우개 던졌어요!"}]},
                                 {"type": "figure", "content": "선생님", "position": [3, 2]}
                             ]
                         },
@@ -576,11 +576,11 @@ class ChatbotController:
 
                     fixed_comic_panels = {
                         "panel1": {
-                            "content": "나는 오늘 충호랑 학교에서 놀았다.",
+                            "content": "나는 오늘 은우랑 학교에서 놀았다.",
                             "place": "학교",
                             "grid": [
                                 {"type": "figure", "content": "나", "position": [1, 2]},
-                                {"type": "figure", "content": "충호", "position": [2, 2]}
+                                {"type": "figure", "content": "은우", "position": [2, 2]}
                             ]
                         },
                         "panel2": {
@@ -589,10 +589,10 @@ class ChatbotController:
                             "grid": []
                         },
                         "panel3": {
-                            "content": "충호는 기분이 안 좋았다.",
+                            "content": "은우는 기분이 안 좋았다.",
                             "place": "",
                             "grid": [
-                                {"type": "figure", "content": "충호", "position": [2, 2], "action": [{"type": "emotion", "content": "기분 안 좋음"}]}
+                                {"type": "figure", "content": "은우", "position": [2, 2], "action": [{"type": "emotion", "content": "기분 안 좋음"}]}
                             ]
                         },
                         "panel4": {

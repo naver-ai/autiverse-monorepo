@@ -412,9 +412,9 @@ CONVERSATION:
                 # } #- English
 
                 specific_content = {
-                    "panel1": "나는 오늘 충호랑 학교에서 놀았다.",
+                    "panel1": "나는 오늘 은우랑 학교에서 놀았다.",
                     "panel2": None,
-                    "panel3": "충호는 기분이 안 좋았다.",
+                    "panel3": "은우는 기분이 안 좋았다.",
                     "panel4": None
                 } #- Korean
                 
@@ -423,8 +423,8 @@ CONVERSATION:
                     self.db, self.journal_entry_id,
                     # events=["I played with oliver at school today.", "Oliver was in a bad mood."],
                     # summary="I played with oliver at school today. Oliver was in a bad mood.", #-English
-                    events=["나는 오늘 충호랑 학교에서 놀았다.", "충호는 기분이 안 좋았다."],
-                    summary="나는 오늘 충호랑 학교에서 놀았다. 충호는 기분이 안 좋았다.", #- Korean
+                    events=["나는 오늘 은우랑 학교에서 놀았다.", "은우는 기분이 안 좋았다."],
+                    summary="나는 오늘 은우랑 학교에서 놀았다. 은우는 기분이 안 좋았다.", #- Korean
                     comic_intro=specific_content
                 )
                 
@@ -453,7 +453,7 @@ CONVERSATION:
         """초기 인사 메시지 생성"""
         if location and people and len(people) > 0:
             # return f"I'm so curious about what happened with Oliver at school today! Tell me everything! 😊" # English
-            return f"오늘 학교에서 충호하고 무슨 일이 있었는지 너무 궁금해! 나한테 다 이야기해줘! 😊" # Korean
+            return f"오늘 학교에서 은우하고 무슨 일이 있었는지 너무 궁금해! 나한테 다 이야기해줘! 😊" # Korean
         elif location:
             # 장소는 있지만 사람을 선택하지 않은 경우
             return f"오늘 {location}에서 누구랑 있었던 일에 대해 일기를 써볼까? 😊"
