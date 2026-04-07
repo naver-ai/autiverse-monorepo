@@ -1,129 +1,217 @@
 # Autiverse Monorepo
 
-Monorepo for the Autiverse project.
+A tablet app that elicits autistic adolescents' daily narratives through AI-guided multimodal journaling. [[CHI 2026 Paper](https://doi.org/10.1145/3772318.3791381)]
 
-## Setting Up Environment
+Project website: https://naver-ai.github.io/autiverse
 
+## Tech Stack
 
-### 1. Python Environment Setup
+| Layer | Stack |
+|-------|-------|
+| Backend | Python 3.12, FastAPI, SQLite / PostgreSQL |
+| Admin Web | React 19, Vite, Ant Design, TanStack Router |
+| Mobile | React Native 0.79, Expo SDK 53 (landscape tablet) |
+| Shared | `libs/ts-core` — TypeScript types, i18n, network utilities |
+| Infra | Redis (WebSocket), Nx 21 (monorepo orchestration) |
 
-1. Install Pyenv (<https://github.com/pyenv/pyenv>)
-2. Install Python 3.12
-```bash
-pyenv install 3.12
-pyenv global 3.12
-python --version  # Verify 3.12.x
-```
-3. Install Poetry (<https://python-poetry.org/docs/#installing-with-the-official-installer>)
-```bash
-curl -sSL https://install.python-poetry.org | python3 -
-```
-
-### 2. Node.js and Nx Setup
-
-1. Install NVM (<https://github.com/nvm-sh/nvm>)
-2. Install latest LTS version of Node.js
-```bash
-nvm install --lts
-```
-3. Install Nx globally
-```bash
-npm i -g nx
-nx --version  # Verify Nx version
-```
-
-4. Install dependencies
-```bash
-npm install # This will also run nx run backend:install under the hood to install python dependencies.
-```
-
-### 3. Run Setup Script
-
-Run initial setup script:
-```bash
-npm run setup # Prepare OpenAI API Key.
-```
-
-## Install and run `Redis`
-As a client manager for websocket, Autiverse leverages [`Redis`](https://redis.io/).
-
-- MacOS (Development) (https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/install-redis-on-mac-os/):
-    ```bash
-    brew install redis
-    brew services start redis
-    brew services info redis # Check if the redis server is running.
-    ```
-- Ubuntu (Production):
-    Follow instructions at https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/install-redis-on-linux/
-
-    ```bash
-    redis-cli # Check if you can connect to Redis console.
-    ```    
-
-
-## Database Settings (If selected `Postgresql`)
-1. Install Postgresql on the system
-- MacOS (Development):
-    ```bash
-    brew install postgresql
-    brew services start postgresql
-    ```
-
-- Ubuntu (Production):
-
-    ```bash
-    sudo apt install postgresql postgresql-contrib
-    ```
-
-    - On Ubuntu, Postgresql by default requires Peer authentication; the role in the Postgresql should be the same as the ubuntu username. Therefore, you should first create a postgresql role with the same name as the ubuntu user and with superuser privilages:
-
-        ```bash
-        sudo -u postgres psql # Enter psql shell with default postgres user
-
-        psql> CREATE ROLE your_ubuntu_account_name WITH LOGIN # Replace `your_ubuntu_account_name` into your ubuntu account name that will also run the server.
-        psql> ALTER ROLE your_ubuntu_account_name WITH SUPERUSER; # Assign superuser privileges.
-        psql> \q #Quit the psql shell.
-        ```
-
-
-
-
-## Development Commands
-
-### Test commands
-```bash
-nx run backend:test_langchain
-```
-
-### Backend (Python)
-
-Run development server:
-```bash
-nx run backend:run-dev
-```
-
-Run admin web server:
-```bash
-nx serve admin-web
-```
-
-You can run both in a single terminal tab:
-```bash
-npm run dev
-```
-
-### Mobile App 
-
-Run development mode:
-```bash
-nx run-ios mobile #iOS
-nx run-android mobile #Android
-```
+For a detailed architecture overview, see **[docs/architecture.md](docs/architecture.md)**.
 
 ## Project Structure
 
 ```
 apps/
-  ├── backend/     # Python backend
-libs/          # Shared libraries
+  ├── backend/      # FastAPI Python backend (port 3000)
+  ├── admin-web/    # React + Vite admin dashboard (port 8888)
+  └── mobile/       # React Native Expo mobile app
+libs/
+  └── ts-core/      # Shared TypeScript utilities
+data/
+  └── i18n/         # Translation files (en.json, kr.json)
 ```
+
+## Prerequisites
+
+- **Python 3.12** — Install via [Pyenv](https://github.com/pyenv/pyenv)
+  ```bash
+  pyenv install 3.12
+  pyenv global 3.12
+  ```
+- **Node.js LTS** — Install via [NVM](https://github.com/nvm-sh/nvm)
+  ```bash
+  nvm install --lts
+  ```
+- **Poetry** — [Install Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer)
+  ```bash
+  curl -sSL https://install.python-poetry.org | python3 -
+  ```
+- **Nx** — Install globally
+  ```bash
+  npm i -g nx
+  ```
+- **Redis** — Required for WebSocket support
+  - macOS: `brew install redis && brew services start redis`
+  - Ubuntu: Follow [Redis installation guide](https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/install-redis-on-linux/)
+- **PostgreSQL** *(optional, SQLite is the default)* — See [Database Configuration](#database-configuration)
+
+## Getting Started
+
+```bash
+# 1. Install dependencies (also installs Python deps via postinstall)
+npm install
+
+# 2. Run interactive setup (configures API keys, database, auth)
+npm run setup
+
+# 3. Start development servers (backend + admin web)
+npm run dev
+```
+
+## Development Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Run backend + admin-web concurrently |
+| `nx run backend:run-dev` | Backend only (port 3000) |
+| `nx serve admin-web` | Admin web only (port 8888) |
+| `nx run-ios mobile` | Mobile app on iOS simulator |
+| `nx run-android mobile` | Mobile app on Android emulator |
+| `nx run backend:test_langchain` | Run LangChain tests |
+| `nx run backend:reset-db` | Reset the database |
+| `nx run backend:dump-data` | Backup database |
+| `nx run backend:restore-data` | Restore database from backup |
+
+## Internationalization (i18n)
+
+Autiverse supports **Korean** and **English**. Language is determined per Dyad (child-caregiver pair) via the `dyad.locale` field — set when creating a Dyad in the admin panel. The mobile app automatically syncs the UI language from the Dyad profile.
+
+Translation files: `data/i18n/kr.json` (Korean), `data/i18n/en.json` (English).
+
+For details on the language switching flow, backend usage, and translation editing, see **[docs/i18n.md](docs/i18n.md)**.
+
+## Expo / EAS Build
+
+### Setup
+
+```bash
+npm install -g eas-cli
+eas login
+```
+
+### Build Profiles
+
+Defined in `apps/mobile/eas.json`:
+
+| Profile | Purpose | Distribution |
+|---------|---------|-------------|
+| `development` | Dev client with Expo dev tools | Internal |
+| `preview` | Testing (iOS simulator + Android APK) | Internal |
+| `production` | Release build (Android APK, auto-increment version) | Store |
+
+### Build Commands
+
+```bash
+cd apps/mobile
+
+# Development build
+eas build --profile development --platform android
+
+# Preview build (iOS simulator)
+eas build --profile preview --platform ios
+
+# Production build
+eas build --profile production --platform android
+```
+
+### App Configuration
+
+Key settings in `apps/mobile/app.json`:
+- **Bundle ID**: `com.naver.ai.autiverse`
+- **Orientation**: Landscape
+- **Expo SDK**: 53
+- **Permissions**: `RECORD_AUDIO` (for speech recognition)
+
+> The mobile app requires `EXPO_PUBLIC_*` environment variables — these are configured automatically by `npm run setup`.
+
+## Environment Variables
+
+`npm run setup` generates a `.env` file at the project root and copies it to `apps/backend/.env` and `apps/mobile/.env`.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `BACKEND_PORT` | Backend server port | `3000` |
+| `BACKEND_HOSTNAME` | Backend hostname | `0.0.0.0` |
+| `AUTH_SECRET` | JWT signing secret | — |
+| `OPENAI_API_KEY` | OpenAI API key (required) | — |
+| `CLOVA_CLIENT_ID` | Naver Clova TTS client ID | — |
+| `CLOVA_CLIENT_SECRET` | Naver Clova TTS client secret | — |
+| `DATABASE_TYPE` | `sqlite` or `postgres` | `sqlite` |
+| `POSTGRES_DB_NAME` | PostgreSQL database name | `autiversedb` |
+| `POSTGRES_USER` | PostgreSQL user | `autiverse` |
+| `POSTGRES_PASSWORD` | PostgreSQL password | — |
+| `USE_HTTPS` | Enable HTTPS (`1` / `0`) | `0` |
+
+The setup script automatically creates `VITE_` and `EXPO_PUBLIC_` prefixed copies for client-side access.
+
+## Database Configuration
+
+SQLite is the default and requires no additional setup. If you selected PostgreSQL during `npm run setup`:
+
+### macOS
+
+```bash
+brew install postgresql
+brew services start postgresql
+```
+
+### Ubuntu
+
+```bash
+sudo apt install postgresql postgresql-contrib
+```
+
+On Ubuntu, PostgreSQL uses peer authentication by default — the PostgreSQL role must match your system username:
+
+```bash
+sudo -u postgres psql
+
+psql> CREATE ROLE your_username WITH LOGIN;
+psql> ALTER ROLE your_username WITH SUPERUSER;
+psql> \q
+```
+
+## Code Contributors
+- Migyeong Yang (NAVER AI Lab) https://yangmigyeong.github.io
+- Young-Ho Kim (NAVER AI Lab) https://younghokim.net
+
+## Research Team
+- Migyeong Yang (NAVER AI Lab)
+- Kyungah Lee (Dodakim Child Development Center)
+- Jinyoung Han (Sungkyunkwan University)
+- SoHyun Park (NAVER Cloud)
+- Young-Ho Kim (NAVER AI Lab) *Corresponding author
+
+
+## Citing Autiverse
+
+If you use Autiverse in your research, please cite our CHI 2026 paper:
+
+> Migyeong Yang, Kyungah Lee, Jinyoung Han, SoHyun Park, and Young-Ho Kim. 2026. **Autiverse: Eliciting Autistic Adolescents' Daily Narratives through AI-guided Multimodal Journaling.** In *CHI Conference on Human Factors in Computing Systems (CHI '26)*. https://doi.org/10.1145/3772318.3791381
+
+```bibtex
+@inproceedings{yang2026autiverse,
+  title={Autiverse: Eliciting Autistic Adolescents' Daily Narratives through AI-guided Multimodal Journaling},
+  author={Migyeong Yang and Kyungah Lee and Jinyoung Han and SoHyun Park and Young-Ho Kim},
+  year={2026},
+  publisher={Association for Computing Machinery},
+  address={New York, NY, USA},
+  url={https://doi.org/10.1145/3772318.3791381},
+  doi={10.1145/3772318.3791381},
+  booktitle={Proceedings of the 2026 CHI Conference on Human Factors in Computing Systems},
+  location={Barcelona, Spain},
+  series={CHI '26}
+}
+```
+
+## License
+
+MIT
